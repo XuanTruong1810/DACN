@@ -11,8 +11,12 @@ namespace Application.Mapping
         {
             CreateMap<AreaDTO, Areas>().ReverseMap();
             CreateMap<AreaModelView, Areas>().ReverseMap();
+
             CreateMap<SupplierDTO, Areas>().ReverseMap();
             CreateMap<Suppliers, SupplierModelView>().ReverseMap();
+
+            CreateMap<StableDTO, Stables>().ReverseMap();
+            CreateMap<StableModelView, Stables>().ReverseMap();
         }
     }
 }

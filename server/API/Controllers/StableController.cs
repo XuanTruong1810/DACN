@@ -1,35 +1,48 @@
 namespace API.Controllers
 {
+    using Application.DTOs;
+    using Application.Interfaces;
+    using Application.Models;
+    using Core.Base;
+    using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
     [ApiController]
     [Route("api/v1/[controller]")]
-    public class StableController : ControllerBase
+    public class StableController(IStableService stableService) : ControllerBase
     {
+        private readonly IStableService stableService = stableService;
+
         [HttpGet]
-        public IActionResult Get()
+        [Authorize]
+        public async Task<IActionResult> Get([FromQuery] string areaId, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
         {
-            return Ok();
-        }
-        [HttpGet("{id}")]
-        public IActionResult Get(string id)
-        {
-            return Ok();
+            BasePagination<StableModelView>? result = await stableService.GetAllStablesByArea(pageIndex, pageSize, areaId);
+            return Ok(BaseResponse<BasePagination<StableModelView>>.OkResponse(result));
         }
         [HttpPost]
-        public IActionResult Post()
+        [Authorize]
+
+        public async Task<IActionResult> Post(StableDTO stableDTO)
         {
-            return Ok();
+            await stableService.InsertStable(stableDTO);
+            return Ok(BaseResponse<object>.OkResponse("Created successfully"));
         }
         [HttpPut("{id}")]
-        public IActionResult Put(string id)
+        [Authorize]
+
+        public async Task<IActionResult> Put(string id, StableDTO stableDTO)
         {
-            return Ok();
+            await stableService.UpdateStable(id, stableDTO);
+            return Ok(BaseResponse<object>.OkResponse("Update successfully")); ;
         }
         [HttpDelete("{id}")]
-        public IActionResult Delete(string id)
+        [Authorize]
+
+        public async Task<IActionResult> Delete(string id)
         {
-            return Ok();
+            await stableService.DeleteStable(id);
+            return Ok(BaseResponse<object>.OkResponse("Delete successfully"));
         }
     }
 }
