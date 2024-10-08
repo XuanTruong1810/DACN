@@ -12,6 +12,8 @@ namespace API.Controllers
     public class AreaController(IAreaService areaService) : ControllerBase
     {
         private readonly IAreaService areaService = areaService;
+
+
         [HttpGet]
         [Authorize]
         public async Task<IActionResult> Get()

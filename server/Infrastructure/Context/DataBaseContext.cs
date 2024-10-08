@@ -11,6 +11,8 @@ namespace Infrastructure.Context
         public DbSet<Stables> Stables { get; set; }
         public DbSet<Suppliers> Suppliers { get; set; }
 
+        public DbSet<PigIntakes> PigIntakes { get; set; }
+
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -21,6 +23,7 @@ namespace Infrastructure.Context
             builder.Entity<Areas>().ToTable("Areas");
             builder.Entity<Stables>().ToTable("Stables");
             builder.Entity<Suppliers>().ToTable("Suppliers");
+            builder.Entity<PigIntakes>().ToTable("PigIntakes");
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

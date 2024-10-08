@@ -1,4 +1,6 @@
 using System.Text;
+using Application.Interfaces;
+using Application.Services;
 using Core.Entities;
 using Infrastructure;
 using Infrastructure.Context;
@@ -12,6 +14,7 @@ public static class Startup
 {
     public static IServiceCollection ConfigureServices(this IServiceCollection services)
     {
+        services.AddHttpContextAccessor();
         services.AddSwaggerGenUI();
         services.AddAuthentication();
         services.AddDBContext();
@@ -19,6 +22,7 @@ public static class Startup
         services.AddIdentity();
         services.AddConfigTimeToken();
         services.AddInfrastructure();
+        services.AddServiceBusiness();
         return services;
     }
     public static void AddSwaggerGenUI(this IServiceCollection services)

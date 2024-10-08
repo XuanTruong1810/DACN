@@ -17,6 +17,10 @@ namespace Application.Mapping
 
             CreateMap<StableDTO, Stables>().ReverseMap();
             CreateMap<StableModelView, Stables>().ReverseMap();
+
+            CreateMap<PigIntakeInsertDTO, PigIntakes>().ReverseMap();
+            CreateMap<PigInTakeModelView, PigIntakes>().ReverseMap();
+            CreateMap<PigIntakeAcceptDTO, PigIntakes>().ReverseMap();
         }
     }
 }
