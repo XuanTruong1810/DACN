@@ -7,7 +7,7 @@ namespace API.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
-    public class SupplierController(ISupplierService supplierService) : ControllerBase
+    public class SuppliersController(ISupplierService supplierService) : ControllerBase
     {
         private readonly ISupplierService supplierService = supplierService;
 

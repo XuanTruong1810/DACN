@@ -8,7 +8,7 @@ namespace API.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
-    public class AreaController(IAreaService areaService) : ControllerBase
+    public class AreasController(IAreaService areaService) : ControllerBase
     {
         private readonly IAreaService areaService = areaService;
 

@@ -49,5 +49,10 @@ namespace Infrastructure.Repositories
             IReadOnlyList<Entity> entities = await query.Skip((index - 1) * pageSize).Take(pageSize).ToListAsync();
             return new BasePagination<Entity>(entities, count, index, pageSize);
         }
+
+        public async Task AddRangeAsync(List<Entity> entities)
+        {
+            await dbSet.AddRangeAsync(entities);
+        }
     }
 }

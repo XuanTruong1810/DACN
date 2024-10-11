@@ -10,6 +10,7 @@ namespace Core.Repositories
         Task InsertAsync(Entity entity);
         Task UpdateAsync(Entity entity);
         Task DeleteAsync(object id);
+        Task AddRangeAsync(List<Entity> entities);
         Task<BasePagination<Entity>> GetPagination(IQueryable<Entity> query, int index, int pageSize);
     }
 }

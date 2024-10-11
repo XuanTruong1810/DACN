@@ -9,7 +9,7 @@ namespace API.Controllers
 
     [ApiController]
     [Route("api/v1/[controller]")]
-    public class StableController(IStableService stableService) : ControllerBase
+    public class StablesController(IStableService stableService) : ControllerBase
     {
         private readonly IStableService stableService = stableService;
 

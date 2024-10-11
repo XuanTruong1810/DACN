@@ -9,7 +9,7 @@ namespace API.Controllers
 
     [ApiController]
     [Route("api/v1/[controller]")]
-    public class PigIntakeController(IPigIntakeService pigIntakeService) : ControllerBase
+    public class PigsIntakeController(IPigIntakeService pigIntakeService) : ControllerBase
     {
         private readonly IPigIntakeService pigIntakeService = pigIntakeService;
 
