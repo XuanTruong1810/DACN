@@ -2,7 +2,6 @@ using Application.DTOs;
 using Application.Interfaces;
 using Application.Models;
 using Core.Base;
-using Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers
@@ -42,7 +41,7 @@ namespace API.Controllers
             await areaService.UpdateAsync(id, areaModel);
             return Ok(BaseResponse<object>.OkResponse("Updated successfully"));
         }
-        [HttpPatch("{id}")]
+        [HttpDelete("{id}")]
         [Authorize]
         public async Task<IActionResult> Delete(string id)
         {

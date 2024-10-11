@@ -16,17 +16,17 @@ namespace Application.Services
 
         public async Task<BasePagination<SupplierModelView>> GetSupplierAsync(int pageIndex, int pageSize)
         {
-            IEnumerable<Suppliers>? suppliers = await unitOfWork.GetRepository<Suppliers>()
-            .GetEntities.Where(s => s.DeleteTime == null).ToListAsync()
-             ?? throw new BaseException(Core.Stores.StatusCodeHelper.NotFound, ErrorCode.NotFound, "Supplier not found");
+            IQueryable<Suppliers>? supplierQuery = unitOfWork.GetRepository<Suppliers>().GetEntities.Where(s => s.DeleteTime == null);
 
-            int totalCount = suppliers.Count();
+            int totalCount = await supplierQuery.CountAsync();
+            if (totalCount == 0)
+            {
+                throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Suppliers not found");
+            }
 
-            List<Suppliers>? pagedSuppliers = suppliers
-                .Skip((pageIndex - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-            List<SupplierModelView>? supplierModels = mapper.Map<List<SupplierModelView>>(pagedSuppliers);
+            BasePagination<Suppliers> basePagination = await unitOfWork.GetRepository<Suppliers>().GetPagination(supplierQuery, pageIndex, pageSize);
+
+            List<SupplierModelView>? supplierModels = mapper.Map<List<SupplierModelView>>(basePagination.Items.ToList());
 
             BasePagination<SupplierModelView>? paginationResult = new(supplierModels, pageSize, pageIndex, totalCount);
 

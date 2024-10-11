@@ -1,3 +1,4 @@
+using Core.Base;
 using Core.Repositories;
 using Core.Stores;
 using Infrastructure.Context;
@@ -40,6 +41,13 @@ namespace Infrastructure.Repositories
         public Task UpdateAsync(Entity entity)
         {
             return Task.FromResult(dbSet.Update(entity));
+        }
+        public async Task<BasePagination<Entity>> GetPagination(IQueryable<Entity> query, int index, int pageSize)
+        {
+            query = query.AsNoTracking();
+            int count = await query.CountAsync();
+            IReadOnlyList<Entity> entities = await query.Skip((index - 1) * pageSize).Take(pageSize).ToListAsync();
+            return new BasePagination<Entity>(entities, count, index, pageSize);
         }
     }
 }

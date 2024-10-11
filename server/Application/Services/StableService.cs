@@ -60,16 +60,17 @@ public class StableService(IUnitOfWork unitOfWork, IMapper mapper) : IStableServ
 
     public async Task<BasePagination<StableModelView>> GetAllStablesByArea(int pageIndex, int pageSize, string areaId)
     {
-        IEnumerable<Stables>? stables = await unitOfWork.GetRepository<Stables>()
-        .GetEntities.Where(s => s.DeleteTime == null && s.AreasId == areaId).ToListAsync()
-         ?? throw new BaseException(Core.Stores.StatusCodeHelper.NotFound, ErrorCode.NotFound, "Stable not found");
+        IQueryable<Stables>? stableQuery = unitOfWork.GetRepository<Stables>()
+        .GetEntities.Where(s => s.DeleteTime == null && s.AreasId == areaId);
 
-        int totalCount = stables.Count();
-        List<Stables>? pagedStables = stables
-                .Skip((pageIndex - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-        List<StableModelView>? model = mapper.Map<List<StableModelView>>(pagedStables);
+        int totalCount = await stableQuery.CountAsync();
+        if (totalCount == 0)
+        {
+            throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Stable not found");
+        }
+        BasePagination<Stables> basePagination =
+            await unitOfWork.GetRepository<Stables>().GetPagination(stableQuery, pageIndex, pageSize);
+        List<StableModelView>? model = mapper.Map<List<StableModelView>>(basePagination.Items.ToList());
 
         BasePagination<StableModelView>? paginationResult = new(model, pageSize, pageIndex, totalCount);
 

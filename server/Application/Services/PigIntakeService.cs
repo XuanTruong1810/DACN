@@ -8,6 +8,7 @@ using Core.Entities;
 using Core.Repositories;
 using Core.Stores;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 namespace Application.Services
 {
     public class PigIntakeService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor httpContextAccessor) : IPigIntakeService
@@ -17,7 +18,7 @@ namespace Application.Services
         private readonly IHttpContextAccessor httpContextAccessor = httpContextAccessor;
         public async Task<BasePagination<PigInTakeModelView>> GetAllAsync(int pageIndex, int pageSize, string? filter)
         {
-            IEnumerable<PigIntakes>? pigIntakes = await unitOfWork.GetRepository<PigIntakes>().GetAllAsync();
+            IQueryable<PigIntakes>? pigIntakes = unitOfWork.GetRepository<PigIntakes>().GetEntities;
             if (!string.IsNullOrWhiteSpace(filter))
             {
                 if (!pigIntakes.Any())
@@ -33,12 +34,11 @@ namespace Application.Services
                     pigIntakes = pigIntakes.Where(x => !x.ApprovedTime.HasValue);
                 }
             }
-            int totalCount = pigIntakes.Count();
-            List<PigIntakes>? pagedPigIntakes = pigIntakes
-                .Skip((pageIndex - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-            List<PigInTakeModelView>? pigIntakeModels = mapper.Map<List<PigInTakeModelView>>(pagedPigIntakes);
+            int totalCount = await pigIntakes.CountAsync();
+            BasePagination<PigIntakes> basePagination = await unitOfWork.GetRepository<PigIntakes>().GetPagination(pigIntakes, pageIndex, pageSize);
+
+            List<PigInTakeModelView>? pigIntakeModels = mapper.Map<List<PigInTakeModelView>>(basePagination.Items.ToList());
+
             BasePagination<PigInTakeModelView>? paginationResult = new(pigIntakeModels, pageSize, pageIndex, totalCount);
             return paginationResult;
         }

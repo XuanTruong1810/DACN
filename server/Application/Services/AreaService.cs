@@ -18,20 +18,20 @@ namespace Application.Services
 
         public async Task<BasePagination<AreaModelView>> GetAllAsync(int pageIndex, int pageSize)
         {
-            IEnumerable<Areas>? areas = await unitOfWork.GetRepository<Areas>()
-                .GetEntities.Where(x => x.DeleteTime == null).ToListAsync();
-            if (!areas.Any())
+            IQueryable<Areas> areaQuery = unitOfWork.GetRepository<Areas>()
+                .GetEntities.Where(x => x.DeleteTime == null);
+
+            int totalCount = await areaQuery.CountAsync();
+            if (totalCount == 0)
             {
                 throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Areas not found");
             }
-            int totalCount = areas.Count();
-            List<Areas>? pagedArea = areas
-                .Skip((pageIndex - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-            List<AreaModelView>? supplierModels = mapper.Map<List<AreaModelView>>(pagedArea);
 
-            BasePagination<AreaModelView>? paginationResult = new(supplierModels, pageSize, pageIndex, totalCount);
+            BasePagination<Areas> pagedArea = await unitOfWork.GetRepository<Areas>().GetPagination(areaQuery, pageIndex, pageSize);
+
+            List<AreaModelView> AreaModels = mapper.Map<List<AreaModelView>>(pagedArea.Items.ToList());
+
+            BasePagination<AreaModelView> paginationResult = new(AreaModels, totalCount, pageIndex, pageSize);
 
             return paginationResult;
         }

@@ -9,6 +9,9 @@ namespace Core.Entities
 
         [ForeignKey("Areas")]
         public string AreasId { get; set; }
+
         public virtual Areas Areas { get; set; }
+        [InverseProperty("Stables")]
+        public virtual ICollection<Pigs> Pigs { get; set; } = new List<Pigs>();
     }
 }

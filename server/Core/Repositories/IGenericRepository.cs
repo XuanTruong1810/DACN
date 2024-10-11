@@ -1,3 +1,5 @@
+using Core.Base;
+
 namespace Core.Repositories
 {
     public interface IGenericRepository<Entity> where Entity : class
@@ -8,5 +10,6 @@ namespace Core.Repositories
         Task InsertAsync(Entity entity);
         Task UpdateAsync(Entity entity);
         Task DeleteAsync(object id);
+        Task<BasePagination<Entity>> GetPagination(IQueryable<Entity> query, int index, int pageSize);
     }
 }
