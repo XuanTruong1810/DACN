@@ -33,7 +33,7 @@ public class StableService(IUnitOfWork unitOfWork, IMapper mapper) : IStableServ
     }
     public async Task InsertStable(StableDTO stableModel)
     {
-        Stables? stable = await unitOfWork.GetRepository<Stables>().GetEntities.FirstOrDefaultAsync(s => s.Name == stableModel.StableName);
+        Stables? stable = await unitOfWork.GetRepository<Stables>().GetEntities.FirstOrDefaultAsync(s => s.Name == stableModel.Name);
         if (stable != null)
         {
             throw new BaseException(Core.Stores.StatusCodeHelper.Conflict, ErrorCode.Conflict, "Stable already exist");
@@ -49,7 +49,7 @@ public class StableService(IUnitOfWork unitOfWork, IMapper mapper) : IStableServ
         {
             throw new BaseException(Core.Stores.StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Id is required");
         }
-        Stables? stable = await unitOfWork.GetRepository<Stables>().GetEntities.FirstOrDefaultAsync(s => s.Name == stableModel.StableName && s.Id != id);
+        Stables? stable = await unitOfWork.GetRepository<Stables>().GetEntities.FirstOrDefaultAsync(s => s.Name == stableModel.Name && s.Id != id);
         if (stable != null)
         {
             throw new BaseException(Core.Stores.StatusCodeHelper.Conflict, ErrorCode.Conflict, "Stable already exist");
@@ -60,20 +60,31 @@ public class StableService(IUnitOfWork unitOfWork, IMapper mapper) : IStableServ
 
     public async Task<BasePagination<StableModelView>> GetAllStablesByArea(int pageIndex, int pageSize, string areaId)
     {
-        IQueryable<Stables>? stableQuery = unitOfWork.GetRepository<Stables>()
-        .GetEntities.Where(s => s.DeleteTime == null && s.AreasId == areaId);
+        IQueryable<StableModelView> stableQuery = unitOfWork.GetRepository<Stables>()
+            .GetEntities
+            .Where(s => s.DeleteTime == null && s.AreasId == areaId)
+            .Select(s => new StableModelView
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Capacity = s.Capacity,
+                CurrentOccupancy = s.CurrentOccupancy,
+                AreaName = s.Areas.Name
+            });
 
         int totalCount = await stableQuery.CountAsync();
         if (totalCount == 0)
         {
             throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Stable not found");
         }
-        BasePagination<Stables> basePagination =
-            await unitOfWork.GetRepository<Stables>().GetPagination(stableQuery, pageIndex, pageSize);
-        List<StableModelView>? model = mapper.Map<List<StableModelView>>(basePagination.Items.ToList());
+        List<StableModelView> paginatedItems = await stableQuery
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
 
-        BasePagination<StableModelView>? paginationResult = new(model, pageSize, pageIndex, totalCount);
+        BasePagination<StableModelView> paginationResult = new(paginatedItems, pageSize, pageIndex, totalCount);
 
         return paginationResult;
     }
+
 }

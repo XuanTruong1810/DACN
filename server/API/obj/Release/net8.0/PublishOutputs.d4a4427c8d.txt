@@ -1,6 +1,7 @@
 C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Release\net8.0\PubTmp\Out\API.exe
 C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Release\net8.0\PubTmp\Out\appsettings.Development.json
 C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Release\net8.0\PubTmp\Out\appsettings.json
+C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Release\net8.0\PubTmp\Out\.env
 C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Release\net8.0\PubTmp\Out\API.dll
 C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Release\net8.0\PubTmp\Out\API.runtimeconfig.json
 C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Release\net8.0\PubTmp\Out\API.pdb

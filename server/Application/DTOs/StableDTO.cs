@@ -5,14 +5,13 @@ namespace Application.DTOs;
 public class StableDTO
 {
     [Required(ErrorMessage = "Stable name is required")]
-    public string StableName { get; set; }
+    public string Name { get; set; }
 
     [Required(ErrorMessage = "Stable capacity is required")]
-    [MinLength(1, ErrorMessage = "Stable capacity must be at least 1")]
-    [MaxLength(10, ErrorMessage = "Stable capacity must be at most 10")]
+    [Range(1, 10, ErrorMessage = "Stable capacity must be at most 10")]
     public int Capacity { get; set; }
 
     public int CurrentOccupancy { get; set; } = 0;
-
-    public int AreaId { get; set; }
+    [Required(ErrorMessage = "AreasId is required")]
+    public string AreasId { get; set; }
 }

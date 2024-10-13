@@ -14,22 +14,34 @@ public static class Startup
 {
     public static IServiceCollection ConfigureServices(this IServiceCollection services)
     {
+        services.AddCorsConfig();
         services.AddHttpContextAccessor();
         services.AddSwaggerGenUI();
-        services.AddAuthentication();
         services.AddDBContext();
         services.AddService();
         services.AddIdentity();
+        services.AddAuthenticationJWTBearer();
         services.AddConfigTimeToken();
         services.AddInfrastructure();
-        services.AddServiceBusiness();
         return services;
+    }
+
+    public static void AddCorsConfig(this IServiceCollection services)
+    {
+        services.AddCors(options =>
+        {
+            options.AddPolicy("AllowOrigin",
+                policy => policy.WithOrigins(Environment.GetEnvironmentVariable("CLIENT_DOMAIN") ?? throw new Exception("CLIENT_DOMAIN is not set"))
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                );
+        });
     }
     public static void AddSwaggerGenUI(this IServiceCollection services)
     {
         services.AddSwaggerGen(c =>
         {
-            c.SwaggerDoc("v1", new OpenApiInfo { Title = "MilkStore.API", Version = "v1" });
+            c.SwaggerDoc("v1", new OpenApiInfo { Title = "PigManagement.API", Version = "v1" });
             c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Description = "Example: \"Authorization: Bearer {token}\"",
@@ -50,9 +62,8 @@ public static class Startup
             });
         });
     }
-    public static void AddAuthentication(this IServiceCollection services)
+    public static void AddAuthenticationJWTBearer(this IServiceCollection services)
     {
-        services.AddAuthorization();
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -65,14 +76,12 @@ public static class Startup
                 ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                ValidIssuer = Environment.GetEnvironmentVariable("ISSUER"),
-                ValidAudience = Environment.GetEnvironmentVariable("AUDIENCE"),
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("SECRET_KEY") ?? throw new Exception("Secret key not found")))
+                ValidIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? throw new Exception("JWT_ISSUER is not set"),
+                ValidAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? throw new Exception("JWT_AUDIENCE is not set"),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new Exception("JWT_KEY is not set")))
             };
         });
     }
-
-
     public static void AddDBContext(this IServiceCollection services)
     {
         services.AddDbContext<DataBaseContext>(options =>
@@ -84,6 +93,7 @@ public static class Startup
     {
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
+
         })
         .AddEntityFrameworkStores<DataBaseContext>()
         .AddDefaultTokenProviders();

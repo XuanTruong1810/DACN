@@ -14,14 +14,14 @@ namespace API.Controllers
         private readonly IStableService stableService = stableService;
 
         [HttpGet]
-        [Authorize]
+        // [Authorize]
         public async Task<IActionResult> Get([FromQuery] string areaId, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
         {
             BasePagination<StableModelView>? result = await stableService.GetAllStablesByArea(pageIndex, pageSize, areaId);
             return Ok(BaseResponse<BasePagination<StableModelView>>.OkResponse(result));
         }
         [HttpPost]
-        [Authorize]
+        // [Authorize]
 
         public async Task<IActionResult> Post(StableDTO stableDTO)
         {
@@ -29,7 +29,7 @@ namespace API.Controllers
             return Ok(BaseResponse<object>.OkResponse("Created successfully"));
         }
         [HttpPut("{id}")]
-        [Authorize]
+        // [Authorize]
 
         public async Task<IActionResult> Put(string id, StableDTO stableDTO)
         {
@@ -37,7 +37,7 @@ namespace API.Controllers
             return Ok(BaseResponse<object>.OkResponse("Update successfully")); ;
         }
         [HttpDelete("{id}")]
-        [Authorize]
+        // [Authorize]
 
         public async Task<IActionResult> Delete(string id)
         {

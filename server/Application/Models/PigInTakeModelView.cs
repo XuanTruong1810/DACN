@@ -3,7 +3,7 @@ namespace Application.Models
     public class PigInTakeModelView
     {
         public string Id { get; set; }
-        public string SupplierId { get; set; }
+        public string SuppliersId { get; set; }
 
         public decimal UnitPrice { get; set; }
         public decimal Deposit { get; set; }

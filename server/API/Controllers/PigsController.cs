@@ -1,4 +1,5 @@
 using Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
@@ -8,10 +9,12 @@ namespace API.Controllers
     public class PigsController(IPigService pigService) : ControllerBase
     {
         private readonly IPigService pigService = pigService;
+
         [HttpPost]
-        public async Task<IActionResult> Post(string id)
+        [Authorize(Roles = "Admin,Dispatch")]
+        public async Task<IActionResult> Post(string AreasId, string id)
         {
-            await pigService.AllocatePigsToStableAsync(id);
+            await pigService.AllocatePigsToStableAsync(AreasId, id);
             return Ok(BaseResponse<object>.OkResponse("Created successfully"));
         }
     }

@@ -154,3 +154,4 @@ C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Release\net8.0\refint\
 C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Release\net8.0\API.pdb
 C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Release\net8.0\API.genruntimeconfig.cache
 C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Release\net8.0\ref\API.dll
+C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\bin\Release\net8.0\.env

@@ -15,6 +15,9 @@ public static class DependencyInjection
         services.AddScoped<IAreaService, AreaService>();
         services.AddScoped<ISupplierService, SupplierService>();
         services.AddScoped<IPigIntakeService, PigIntakeService>();
+        services.AddScoped<IStableService, StableService>();
+        services.AddScoped<IPigService, PigService>();
+        services.AddScoped<IAuthService, AuthService>();
 
     }
     public static void AddMapping(this IServiceCollection services)

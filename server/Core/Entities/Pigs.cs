@@ -9,6 +9,6 @@ namespace Core.Entities
 
         [ForeignKey("Stables")]
         public string StableId { get; set; }
-        public Stables Stables { get; set; }
+        public virtual Stables Stables { get; set; }
     }
 }

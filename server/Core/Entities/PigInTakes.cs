@@ -31,6 +31,8 @@ namespace Core.Entities
 
         // Trạng thái xác nhận của quản lý  
         public DateTimeOffset? ApprovedTime { get; set; }
+        public DateTimeOffset? DeliveryDate { get; set; }
+
 
 
         [Required]
@@ -39,7 +41,7 @@ namespace Core.Entities
         [ForeignKey("Suppliers")]
         public string? SuppliersId { get; set; }
 
-        public Suppliers Suppliers { get; set; }
+        public virtual Suppliers Suppliers { get; set; }
 
     }
 }
