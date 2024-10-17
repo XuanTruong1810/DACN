@@ -8,6 +8,7 @@ namespace Core.Repositories
         Task<IEnumerable<Entity>> GetAllAsync();
         Task<Entity> GetByIdAsync(object id);
         Task InsertAsync(Entity entity);
+        Task InsertRangeAsync(List<Entity> entities);
         Task UpdateAsync(Entity entity);
         Task DeleteAsync(object id);
         Task AddRangeAsync(List<Entity> entities);

@@ -130,6 +130,149 @@ namespace Infrastructure.Migrations
                     b.ToTable("Areas", (string)null);
                 });
 
+            modelBuilder.Entity("Core.Entities.FeedInTakeDetails", b =>
+                {
+                    b.Property<string>("FeedInTakeId")
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnOrder(0);
+
+                    b.Property<string>("FeedId")
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnOrder(1);
+
+                    b.Property<int?>("AcceptedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExpectedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReceivedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RejectedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("FeedInTakeId", "FeedId");
+
+                    b.HasIndex("FeedId");
+
+                    b.ToTable("FeedInTakeDetails", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.FeedInTakes", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("ApprovedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreateBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeliveryDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal?>("Deposit")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTimeOffset?>("IsInStock")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal?>("RemainingAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("SuppliersId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal?>("TotalPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SuppliersId");
+
+                    b.ToTable("FeedInTakes", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.FeedTypes", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("FeedTypeName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FeedTypes", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.Feeds", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("AreasId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("FeedName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("FeedPerPig")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("FeedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FeedTypeId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AreasId");
+
+                    b.HasIndex("FeedTypeId");
+
+                    b.ToTable("Feeds", (string)null);
+                });
+
             modelBuilder.Entity("Core.Entities.PigIntakes", b =>
                 {
                     b.Property<string>("Id")
@@ -420,6 +563,55 @@ namespace Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Core.Entities.FeedInTakeDetails", b =>
+                {
+                    b.HasOne("Core.Entities.Feeds", "Feeds")
+                        .WithMany()
+                        .HasForeignKey("FeedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.FeedInTakes", "FeedInTakes")
+                        .WithMany("FeedInTakeDetails")
+                        .HasForeignKey("FeedInTakeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FeedInTakes");
+
+                    b.Navigation("Feeds");
+                });
+
+            modelBuilder.Entity("Core.Entities.FeedInTakes", b =>
+                {
+                    b.HasOne("Core.Entities.Suppliers", "Suppliers")
+                        .WithMany()
+                        .HasForeignKey("SuppliersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Suppliers");
+                });
+
+            modelBuilder.Entity("Core.Entities.Feeds", b =>
+                {
+                    b.HasOne("Core.Entities.Areas", "Areas")
+                        .WithMany("Feeds")
+                        .HasForeignKey("AreasId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.FeedTypes", "FeedTypes")
+                        .WithMany("Feeds")
+                        .HasForeignKey("FeedTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Areas");
+
+                    b.Navigation("FeedTypes");
+                });
+
             modelBuilder.Entity("Core.Entities.PigIntakes", b =>
                 {
                     b.HasOne("Core.Entities.Suppliers", "Suppliers")
@@ -504,7 +696,19 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.Areas", b =>
                 {
+                    b.Navigation("Feeds");
+
                     b.Navigation("Stables");
+                });
+
+            modelBuilder.Entity("Core.Entities.FeedInTakes", b =>
+                {
+                    b.Navigation("FeedInTakeDetails");
+                });
+
+            modelBuilder.Entity("Core.Entities.FeedTypes", b =>
+                {
+                    b.Navigation("Feeds");
                 });
 
             modelBuilder.Entity("Core.Entities.Stables", b =>

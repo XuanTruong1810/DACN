@@ -57,6 +57,31 @@ namespace Application.SeedData
                 await userManager.AddToRoleAsync(newAccount, "Dispatch");
             }
 
+
+
+            if (!await roleManager.RoleExistsAsync("Dispatch"))
+            {
+                await roleManager.CreateAsync(new IdentityRole { Name = "Dispatch" });
+            }
+            string emailFeedManager = "FeedManage@gmail.com";
+            string passwordFeedManager = "FeedManage123*";
+            string NameFeedManager = "FeedManage 1";
+
+            ApplicationUser? FeedManager = await userManager.FindByEmailAsync(emailFeedManager);
+            if (FeedManager is null)
+            {
+                ApplicationUser? newAccount = new ApplicationUser
+                {
+                    UserName = emailFeedManager,
+                    Email = emailFeedManager,
+                    EmailConfirmed = true,
+                    Name = NameFeedManager,
+                };
+                await userManager.CreateAsync(newAccount, passwordFeedManager);
+                await userManager.AddToRoleAsync(newAccount, "FeedManager");
+            }
+
+
         }
     }
 }

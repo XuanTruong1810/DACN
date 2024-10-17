@@ -25,6 +25,10 @@ namespace Application.Mapping
             CreateMap<PigInTakeModelView, PigIntakes>().ReverseMap();
 
             CreateMap<PigIntakeAcceptDTO, PigIntakes>().ReverseMap();
+
+            CreateMap<FeedInTakeDetails, FeedIntakeInsertDTO>().ReverseMap();
+
+            CreateMap<FeedIntakeResponseModel, FeedInTakes>().ReverseMap();
         }
     }
 }

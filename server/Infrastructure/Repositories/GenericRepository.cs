@@ -38,6 +38,11 @@ namespace Infrastructure.Repositories
             await dbSet.AddAsync(entity);
         }
 
+        public async Task InsertRangeAsync(List<Entity> entities)
+        {
+            await dbSet.AddRangeAsync(entities);
+        }
+
         public Task UpdateAsync(Entity entity)
         {
             return Task.FromResult(dbSet.Update(entity));

@@ -11,5 +11,9 @@ namespace Core.Entities
 
         [InverseProperty("Areas")]
         public virtual ICollection<Stables> Stables { get; set; } = new List<Stables>();
+
+
+        [InverseProperty("Areas")]
+        public virtual ICollection<Feeds> Feeds { get; set; } = new List<Feeds>();
     }
 }

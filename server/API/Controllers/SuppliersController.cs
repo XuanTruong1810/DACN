@@ -12,7 +12,7 @@ namespace API.Controllers
         private readonly ISupplierService supplierService = supplierService;
 
         [HttpGet]
-        
+
         public async Task<IActionResult> Get([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
         {
             BasePagination<SupplierModelView>? data = await supplierService.GetSupplierAsync(pageIndex, pageSize);

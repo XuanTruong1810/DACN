@@ -14,12 +14,18 @@ namespace Infrastructure.Context
         public DbSet<PigIntakes> PigIntakes { get; set; }
 
         public DbSet<Pigs> Pigs { get; set; }
-
+        public DbSet<Feeds> Feeds { get; set; }
+        public DbSet<FeedTypes> FeedTypes { get; set; }
+        public DbSet<FeedInTakes> FeedInTakes { get; set; }
+        public DbSet<FeedInTakeDetails> FeedInTakeDetails { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+            /// Key
+            builder.Entity<FeedInTakeDetails>()
+                .HasKey(d => new { d.FeedInTakeId, d.FeedId });
             /// Create tables
             builder.Entity<ApplicationUser>().ToTable("Users");
             builder.Entity<Areas>().ToTable("Areas");
@@ -27,6 +33,10 @@ namespace Infrastructure.Context
             builder.Entity<Suppliers>().ToTable("Suppliers");
             builder.Entity<PigIntakes>().ToTable("PigIntakes");
             builder.Entity<Pigs>().ToTable("Pigs");
+            builder.Entity<Feeds>().ToTable("Feeds");
+            builder.Entity<FeedTypes>().ToTable("FeedTypes");
+            builder.Entity<FeedInTakes>().ToTable("FeedInTakes");
+            builder.Entity<FeedInTakeDetails>().ToTable("FeedInTakeDetails");
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
