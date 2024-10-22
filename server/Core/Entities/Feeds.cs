@@ -8,7 +8,7 @@ namespace Core.Entities
         [ForeignKey("FeedTypes")]
         public string FeedTypeId { get; set; }
 
-        public int FeedQuantity { get; set; } = 0;
+        public decimal FeedQuantity { get; set; } = 0;
         public virtual FeedTypes FeedTypes { get; set; }
 
         [ForeignKey("Areas")]

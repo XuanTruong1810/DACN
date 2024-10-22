@@ -21,18 +21,18 @@ namespace Core.Entities
 
         // Số lượng dự kiến
         [Required]
-        public int ExpectedQuantity { get; set; }
+        public decimal ExpectedQuantity { get; set; }
 
         // số lượng giao tới
 
-        public int? ReceivedQuantity { get; set; }
+        public decimal? ReceivedQuantity { get; set; }
         // số lượng chấp thuận
 
-        public int? AcceptedQuantity { get; set; }
+        public decimal? AcceptedQuantity { get; set; }
 
         // số lượng bỏ
 
-        public int? RejectedQuantity { get; set; }
+        public decimal? RejectedQuantity { get; set; }
 
     }
 }

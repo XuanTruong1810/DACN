@@ -21,6 +21,12 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IFeedIntakeService, FeedIntakeService>();
 
+        services.AddScoped<IFeedService, FeedService>();
+        services.AddScoped<IFeedTypeService, FeedTypeService>();
+
+        services.AddScoped<IMedicationAndVaccineService, MedicationAndVaccineService>();
+        services.AddScoped<IMedicationAndVaccineIntakeService, MedicationAndVaccineIntakeService>();
+
     }
     public static void AddMapping(this IServiceCollection services)
     {

@@ -59,9 +59,9 @@ namespace Application.SeedData
 
 
 
-            if (!await roleManager.RoleExistsAsync("Dispatch"))
+            if (!await roleManager.RoleExistsAsync("FeedManager"))
             {
-                await roleManager.CreateAsync(new IdentityRole { Name = "Dispatch" });
+                await roleManager.CreateAsync(new IdentityRole { Name = "FeedManager" });
             }
             string emailFeedManager = "FeedManage@gmail.com";
             string passwordFeedManager = "FeedManage123*";

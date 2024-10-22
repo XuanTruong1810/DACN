@@ -12,7 +12,7 @@ namespace Application.DTOs
     public class FeedIntakeDeliveryDetailDTO
     {
         public string FeedId { get; set; }
-        public int ReceivedQuantity { get; set; }
-        public int AcceptedQuantity { get; set; }
+        public decimal ReceivedQuantity { get; set; }
+        public decimal AcceptedQuantity { get; set; }
     }
 }

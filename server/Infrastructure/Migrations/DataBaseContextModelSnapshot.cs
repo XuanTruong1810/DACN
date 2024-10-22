@@ -140,17 +140,17 @@ namespace Infrastructure.Migrations
                         .HasColumnType("nvarchar(450)")
                         .HasColumnOrder(1);
 
-                    b.Property<int?>("AcceptedQuantity")
-                        .HasColumnType("int");
+                    b.Property<decimal?>("AcceptedQuantity")
+                        .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("ExpectedQuantity")
-                        .HasColumnType("int");
+                    b.Property<decimal>("ExpectedQuantity")
+                        .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("ReceivedQuantity")
-                        .HasColumnType("int");
+                    b.Property<decimal?>("ReceivedQuantity")
+                        .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("RejectedQuantity")
-                        .HasColumnType("int");
+                    b.Property<decimal?>("RejectedQuantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
@@ -254,8 +254,8 @@ namespace Infrastructure.Migrations
                     b.Property<decimal>("FeedPerPig")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("FeedQuantity")
-                        .HasColumnType("int");
+                    b.Property<decimal>("FeedQuantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("FeedTypeId")
                         .IsRequired()

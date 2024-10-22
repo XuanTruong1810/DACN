@@ -19,6 +19,10 @@ namespace Infrastructure.Context
         public DbSet<FeedInTakes> FeedInTakes { get; set; }
         public DbSet<FeedInTakeDetails> FeedInTakeDetails { get; set; }
 
+        public DbSet<MedicationAndVaccines> MedicationAndVaccines { get; set; }
+        public DbSet<MedicationAndVaccineIntakes> MedicationAndVaccineIntakes { get; set; }
+        public DbSet<MedicationAndVaccineIntakeDetails> MedicationAndVaccineIntakeDetails { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -26,6 +30,9 @@ namespace Infrastructure.Context
             /// Key
             builder.Entity<FeedInTakeDetails>()
                 .HasKey(d => new { d.FeedInTakeId, d.FeedId });
+
+            builder.Entity<MedicationAndVaccineIntakeDetails>()
+                .HasKey(mav => new { mav.MedVacIntakeId, mav.MedVacId });
             /// Create tables
             builder.Entity<ApplicationUser>().ToTable("Users");
             builder.Entity<Areas>().ToTable("Areas");
@@ -37,6 +44,9 @@ namespace Infrastructure.Context
             builder.Entity<FeedTypes>().ToTable("FeedTypes");
             builder.Entity<FeedInTakes>().ToTable("FeedInTakes");
             builder.Entity<FeedInTakeDetails>().ToTable("FeedInTakeDetails");
+            builder.Entity<MedicationAndVaccines>().ToTable("MedicationAndVaccines");
+            builder.Entity<MedicationAndVaccineIntakes>().ToTable("MedicationAndVaccineIntakes");
+            builder.Entity<MedicationAndVaccineIntakeDetails>().ToTable("MedicationAndVaccineIntakeDetails");
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
