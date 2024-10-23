@@ -1,15 +1,17 @@
+using Application.DTOs;
+using Application.Models;
 using Core.Base;
 
 namespace Application.Interfaces
 {
     public interface IMedicationAndVaccineService
     {
-        // Task<BasePagination<MedVacGetModel>> GetMedVacAsync(MedVacGetDTO medVacGetDTO);
+        Task<BasePagination<MedVacGetModelView>> GetMedVacAsync(MedVacGetDTO medVacGetDTO);
 
-        // Task InsertMedVacAsync(MedVacInsertDTO medVac);
+        Task InsertMedVacAsync(MedVacDTO medVac);
 
-        // Task UpdateMedVacAsync(string medVacId, MedVacUpdateDTO medVacUpdate);
+        Task UpdateMedVacAsync(string medVacId, MedVacDTO medVacUpdate);
 
-        // Task DeleteMedVacAsync(string medVacId);
+        Task DeleteMedVacAsync(string medVacId);
     }
 }

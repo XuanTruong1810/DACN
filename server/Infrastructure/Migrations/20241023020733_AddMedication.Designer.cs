@@ -4,6 +4,7 @@ using Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DataBaseContext))]
-    partial class DataBaseContextModelSnapshot : ModelSnapshot
+    [Migration("20241023020733_AddMedication")]
+    partial class AddMedication
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -298,8 +301,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("MedVacIntakeId", "MedVacId");
-
-                    b.HasIndex("MedVacId");
 
                     b.ToTable("MedicationAndVaccineIntakeDetails", (string)null);
                 });
@@ -740,12 +741,6 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.MedicationAndVaccineIntakeDetails", b =>
                 {
-                    b.HasOne("Core.Entities.MedicationAndVaccines", "MedicationAndVaccines")
-                        .WithMany("MedicationAndVaccineIntakeDetails")
-                        .HasForeignKey("MedVacId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Core.Entities.MedicationAndVaccineIntakes", "MedicationAndVaccineIntakes")
                         .WithMany("MedicationAndVaccineIntakeDetails")
                         .HasForeignKey("MedVacIntakeId")
@@ -753,8 +748,6 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("MedicationAndVaccineIntakes");
-
-                    b.Navigation("MedicationAndVaccines");
                 });
 
             modelBuilder.Entity("Core.Entities.MedicationAndVaccineIntakes", b =>
@@ -868,11 +861,6 @@ namespace Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("Core.Entities.MedicationAndVaccineIntakes", b =>
-                {
-                    b.Navigation("MedicationAndVaccineIntakeDetails");
-                });
-
-            modelBuilder.Entity("Core.Entities.MedicationAndVaccines", b =>
                 {
                     b.Navigation("MedicationAndVaccineIntakeDetails");
                 });

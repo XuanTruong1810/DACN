@@ -82,6 +82,28 @@ namespace Application.SeedData
             }
 
 
+            if (!await roleManager.RoleExistsAsync("Veterinarian"))
+            {
+                await roleManager.CreateAsync(new IdentityRole { Name = "Veterinarian" });
+            }
+            string emailVeterinarian = "Veterinarian@gmail.com";
+            string passwordVeterinarian = "Veterinarian123.";
+            string NameVeterinarian = "Veterinarian 1";
+
+            ApplicationUser? Veterinarian = await userManager.FindByEmailAsync(emailVeterinarian);
+            if (Veterinarian is null)
+            {
+                ApplicationUser? newAccount = new ApplicationUser
+                {
+                    UserName = emailVeterinarian,
+                    Email = emailVeterinarian,
+                    EmailConfirmed = true,
+                    Name = NameVeterinarian,
+                };
+                await userManager.CreateAsync(newAccount, passwordVeterinarian);
+                await userManager.AddToRoleAsync(newAccount, "Veterinarian");
+            }
+
         }
     }
 }

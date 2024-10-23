@@ -15,6 +15,8 @@ namespace Core.Entities
         [Key, Column(Order = 1)]
         public string MedVacId { get; set; }
 
+        public virtual MedicationAndVaccines MedicationAndVaccines { get; set; }
+
 
         public decimal UnitPrice { get; set; }
 

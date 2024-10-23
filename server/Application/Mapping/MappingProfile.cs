@@ -39,6 +39,12 @@ namespace Application.Mapping
 
 
 
+            CreateMap<MedVacGetDTO, MedicationAndVaccines>().ReverseMap();
+            CreateMap<MedVacGetModelView, MedicationAndVaccines>().ReverseMap();
+
+
+
+
         }
     }
 }
