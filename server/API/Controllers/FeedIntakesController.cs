@@ -16,7 +16,9 @@ namespace API.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetFeedIntake(DateTimeOffset? date, string? supplierId, string? statusManager, string? inStock, string? id, int pageIndex, int pageSize)
         {
-            return Ok(await feedIntakeService.GetFeedIntake(date, supplierId, statusManager, inStock, id, pageIndex, pageSize));
+            BasePagination<FeedIntakeResponseModel>? data = await feedIntakeService.GetFeedIntake(date, supplierId, statusManager, inStock, id, pageIndex, pageSize);
+            return Ok(BaseResponse<BasePagination<FeedIntakeResponseModel>>.OkResponse(data));
+
         }
         [HttpPost]
         [Authorize(Roles = "FeedManager")]

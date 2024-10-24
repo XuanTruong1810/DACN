@@ -156,11 +156,17 @@ namespace Application.Services
                     .FirstOrDefaultAsync(d => d.FeedInTakeId == feedInTakeId && d.FeedId == delivery.FeedId)
                      ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, $"Chi tiết thức ăn với mã {delivery.FeedId} không tồn tại trong phiếu thức ăn.");
 
-                if (delivery.AcceptedQuantity > detail.AcceptedQuantity)
+                if (delivery.AcceptedQuantity > detail.ExpectedQuantity)
                 {
-                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, $"Số lượng chấp nhận cho thức ăn {delivery.FeedId} không được vượt quá số lượng đã chấp thuận.");
+                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, $"Số lượng chấp nhận cho thức ăn {delivery.FeedId} không được vượt quá số lượng dự kiến nhập.");
                 }
-                detail.RejectedQuantity = detail.ExpectedQuantity - delivery.AcceptedQuantity;
+                if (delivery.AcceptedQuantity > delivery.ReceivedQuantity)
+                {
+                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, $"Số lượng chấp nhận cho thức ăn {delivery.FeedId} không được vượt quá số lượng giao tới.");
+                }
+                detail.AcceptedQuantity = detail.AcceptedQuantity;
+                detail.ReceivedQuantity = detail.ReceivedQuantity;
+                detail.RejectedQuantity = detail.RejectedQuantity - delivery.AcceptedQuantity;
                 await unitOfWork.GetRepository<FeedInTakeDetails>().UpdateAsync(detail);
 
                 totalPrice += delivery.AcceptedQuantity * detail.UnitPrice;

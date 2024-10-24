@@ -1,0 +1,356 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+main {
+    width: 100%;
+}
+
+/* ROW 1 */
+.d_content1 {
+    width: 100%;
+    display: flex;
+    margin-top: 120px;
+}
+
+.d_image {
+    position: relative;
+    width: 33.3333333333%;
+    height: 450px;
+    background-image: url("/assets/image/feture1.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    margin-right: 30px;
+}
+
+.d_image1 {
+    position: relative;
+    width: 33.3333333333%;
+    height: 450px;
+    background-image: url("/assets/image/feture2.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    margin-right: 30px;
+}
+
+.d_image2 {
+    position: relative;
+    width: 33.3333333333%;
+    height: 450px;
+    background-image: url("/assets/image/feture3.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.d_icon1_content1, .d_h1_content1, .d_p_content1 {
+    margin: 0 70px;
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(25px);
+    transition: opacity 0.5s, transform 0.5s, visibility 0s 0.5s;
+}
+.d_icon1_content1 {
+    margin-top: 235px;
+}
+
+.d_icon1_content1 p {
+    color: #fff;
+    background: #94D549;
+    width: 80px;
+    height: 80px;
+    line-height: 80px;
+    text-align: center;
+    border-radius: 100px;
+    font-size: 35px;
+    margin-bottom: 15px;
+    display: inline-block;
+    transition: .5s;
+}
+
+.d_h1_content1 h1 {
+    color: #fff;
+    margin-top: 10px;
+    display: inline-block;
+    font-size: 22px;
+}
+
+.d_p_content1 p {
+    color: #fff;
+}
+
+
+.d_image:hover > .d_icon1_content1,
+.d_image:hover > .d_h1_content1,
+.d_image:hover > .d_p_content1 {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.5s, transform 0.5s;
+}
+
+.d_image1:hover > .d_icon1_content1,
+.d_image1:hover > .d_h1_content1,
+.d_image1:hover > .d_p_content1 {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.5s, transform 0.5s;
+}
+
+.d_image2:hover > .d_icon1_content1,
+.d_image2:hover > .d_h1_content1,
+.d_image2:hover > .d_p_content1 {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.5s, transform 0.5s;
+}
+
+.d_image::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 100%;
+    right: 0;
+    bottom: 0;
+    background-color: transparent; /* Để ban đầu là trong suốt */
+    transition: background-color 0.5s, top 0.5s;
+    z-index: 0; /* Đảm bảo ::before nằm dưới các nội dung khác của .d_image */
+}
+
+.d_image:hover::before {
+    background-color: #94D549A1;
+    transition: 0.5s;
+    top: 0;
+}
+
+.d_image1::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 100%;
+    right: 0;
+    bottom: 0;
+    background-color: transparent; /* Để ban đầu là trong suốt */
+    transition: background-color 0.5s, top 0.5s;
+    z-index: 0; /* Đảm bảo ::before nằm dưới các nội dung khác của .d_image */
+}
+
+.d_image1:hover::before {
+    background-color: #94D549A1;
+    transition: 0.5s;
+    top: 0;
+}
+
+.d_image2::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 100%;
+    right: 0;
+    bottom: 0;
+    background-color: transparent; /* Để ban đầu là trong suốt */
+    transition: background-color 0.5s, top 0.5s;
+    z-index: 0; /* Đảm bảo ::before nằm dưới các nội dung khác của .d_image */
+}
+
+.d_image2:hover::before {
+    background-color: #94D549A1;
+    transition: 0.5s;
+    top: 0;
+}
+
+/* ROW 2 */
+.d_content2 {
+    display: flex;
+    width: 100%;
+    margin-top: 120px;
+}
+.d_ct2_left {
+    width: 60%;
+    padding-top: 50px;
+}
+.d_h2_left {
+    width: 100%;
+}
+.d_h2_left h2 {
+    font-size: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #94d549;
+}
+.d_h1_left {
+    width: 100%;
+    margin-top: 10px;
+}
+.d_h1_left h1 {
+    font-weight: 700;
+    text-transform: capitalize;
+    color: #000;
+    font-size: 40px;
+}
+.d_p_left {
+    width: 90%;
+    margin-top: 40px;
+}
+.d_p_left p {
+    text-align: justify;
+}
+.d_ul_left {
+    width: 100%;
+    margin-top: 40px;
+}
+.d_ul_left ul {
+    list-style: none;
+}
+.d_ul_left ul li i {
+    background-color: #94D549;
+    color: white;
+    border-radius: 50%;
+    padding: 0 2px;
+}
+.d_ul_left ul li p {
+    text-align: justify;
+}
+.d_p1_left {
+    width: 90%;
+    margin-top: 40px;
+}
+.d_p1_left p {
+    text-align: justify;
+}
+.d_btn_left {
+    width: 100%;
+    margin-top: 40px;
+}
+.d_btn_left a {
+    text-decoration: none;
+    text-transform: uppercase;
+    font-size: 16px;
+    background-color: #94D549;
+    color: #fff;
+    padding: 20px 35px;
+    border-radius: 5px;
+}
+.d_btn_left a:hover {
+    background-color: #000;
+    transition: 0.5s;
+}
+/* row 2 - right */
+.d_ct2_right {
+    width: 40%;
+}
+.d_img_right {
+    width: 100%;
+}
+.d_img_right img {
+    width: 100%;
+}
+
+/* ROW 3 */
+.d_content3 {
+    width: 100%;
+    background-color: #F9F9F9;
+    margin-top: 120px;
+    padding-bottom: 120px;
+}
+.d_ct3_row1 {
+    width: 100%;
+    padding-top: 120px;
+}
+.d_h2_row1 {
+    width: 100%;
+}
+.d_h2_row1 h2{
+    font-size: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #94d549;
+    text-align: center;
+}
+.d_h1_row1 {
+    width: 100%;
+}
+.d_h1_row1 h1 {
+    font-weight: 700;
+    text-transform: capitalize;
+    color: #000;
+    font-size: 40px;
+    text-align: center;
+}
+.d_ct3_row2 {
+    width: 100%;
+    padding-top: 40px;
+}
+.d_ct3_row2_1 {
+    background-color: #fff;
+    border-left: 20px solid #f9f9f9;
+    border-bottom: 20px solid #f9f9f9;
+}
+.row_2_1 {
+    width: 100%;
+    display: flex;
+}
+.row_2_1_icon {
+    width: 30%;
+    padding-top: 40px;
+    padding-left: 10px;
+}
+.row_2_1_icon p i{
+    font-size: 25px;
+    background-color: #94D549;
+    border-radius: 50%;
+    padding: 30px;
+    color: white;
+}
+.d_ct3_row2_1:hover .row_2_1_icon p i {
+    background-color: #000;
+    transition: background-color 0.3s, transform 1s;
+    transform: rotate(360deg);
+}
+.row_2_1_title {
+    width: 70%;
+}
+.h1_title {
+    width: 100%;
+    padding-top: 30px;
+}
+.h1_title h1 {
+    text-transform: capitalize;
+    font-size: 22px;
+    font-weight: 700;
+    color: #070b17;
+    text-align: justify;
+}
+.p_title {
+    width: 100%;
+}
+.p_title p {
+    font-size: 16px;
+    text-align: justify;
+    padding: 0 30px 0 0;
+}
+/* ROW 4 */
+.d_content4 {
+    width: 100%;
+    background-color: #94D549;
+}
+/* Căn chỉnh các hình ảnh trong slider */
+.list_partner .owl-item {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 0;
+}
+
+/* Thiết lập kích thước cố định cho hình ảnh và đảm bảo chúng không bị méo */
+.list_partner img {
+    max-width: 200px;  /* Điều chỉnh chiều rộng hình ảnh */
+    max-height: auto;      /* Đảm bảo tỉ lệ hình ảnh không bị thay đổi */
+    display: block;
+    margin: 0 auto;
+}

@@ -21,13 +21,13 @@ namespace Core.Entities
         public decimal UnitPrice { get; set; }
 
         [Required]
-        public decimal ExpectedQuantity { get; set; }
+        public int ExpectedQuantity { get; set; }
 
-        public decimal? ReceivedQuantity { get; set; }
+        public int? ReceivedQuantity { get; set; }
 
-        public decimal? AcceptedQuantity { get; set; }
+        public int? AcceptedQuantity { get; set; }
 
 
-        public decimal? RejectedQuantity { get; set; }
+        public int? RejectedQuantity { get; set; }
     }
 }

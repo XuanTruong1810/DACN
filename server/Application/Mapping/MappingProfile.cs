@@ -30,6 +30,8 @@ namespace Application.Mapping
 
             CreateMap<FeedIntakeResponseModel, FeedInTakes>().ReverseMap();
 
+            CreateMap<FeedIntakeAcceptDTO, FeedInTakes>().ReverseMap();
+
             CreateMap<FeedInsertDTO, Feeds>().ReverseMap();
             CreateMap<FeedUpdateDTO, Feeds>().ReverseMap();
             CreateMap<FeedGetModel, Feeds>().ReverseMap();
@@ -41,6 +43,12 @@ namespace Application.Mapping
 
             CreateMap<MedVacGetDTO, MedicationAndVaccines>().ReverseMap();
             CreateMap<MedVacGetModelView, MedicationAndVaccines>().ReverseMap();
+
+
+            CreateMap<MedVacIntakeDTO, MedicationAndVaccines>().ReverseMap();
+
+            CreateMap<MedVacIntakeAcceptDTO, MedicationAndVaccines>().ReverseMap();
+
 
 
 
