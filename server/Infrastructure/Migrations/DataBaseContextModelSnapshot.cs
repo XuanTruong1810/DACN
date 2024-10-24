@@ -100,7 +100,7 @@ namespace Infrastructure.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("User", (string)null);
                 });
 
             modelBuilder.Entity("Core.Entities.Areas", b =>
@@ -273,6 +273,63 @@ namespace Infrastructure.Migrations
                     b.ToTable("Feeds", (string)null);
                 });
 
+            modelBuilder.Entity("Core.Entities.HealthRecordDetails", b =>
+                {
+                    b.Property<string>("HealthRecordId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("PigId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CreateBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HealthStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MedVacId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("Weight")
+                        .HasColumnType("float");
+
+                    b.HasKey("HealthRecordId", "PigId");
+
+                    b.HasIndex("MedVacId");
+
+                    b.HasIndex("PigId");
+
+                    b.ToTable("HealthRecordDetails", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.HealthRecords", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("RecordDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("HealthRecords", (string)null);
+                });
+
             modelBuilder.Entity("Core.Entities.MedicationAndVaccineIntakeDetails", b =>
                 {
                     b.Property<string>("MedVacIntakeId")
@@ -282,17 +339,17 @@ namespace Infrastructure.Migrations
                         .HasColumnType("nvarchar(450)")
                         .HasColumnOrder(1);
 
-                    b.Property<decimal?>("AcceptedQuantity")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int?>("AcceptedQuantity")
+                        .HasColumnType("int");
 
-                    b.Property<decimal>("ExpectedQuantity")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int>("ExpectedQuantity")
+                        .HasColumnType("int");
 
-                    b.Property<decimal?>("ReceivedQuantity")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int?>("ReceivedQuantity")
+                        .HasColumnType("int");
 
-                    b.Property<decimal?>("RejectedQuantity")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int?>("RejectedQuantity")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
@@ -470,7 +527,7 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("PigId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("StableId")
                         .IsRequired()
@@ -480,6 +537,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PigId")
+                        .IsUnique();
 
                     b.HasIndex("StableId");
 
@@ -580,7 +640,7 @@ namespace Infrastructure.Migrations
                         .HasDatabaseName("RoleNameIndex")
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
-                    b.ToTable("AspNetRoles", (string)null);
+                    b.ToTable("Role", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -605,7 +665,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetRoleClaims", (string)null);
+                    b.ToTable("RoleClaim", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -630,7 +690,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", (string)null);
+                    b.ToTable("UserClaim", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
@@ -652,7 +712,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", (string)null);
+                    b.ToTable("UserLogin", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
@@ -667,7 +727,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetUserRoles", (string)null);
+                    b.ToTable("UserRole", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -686,7 +746,7 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens", (string)null);
+                    b.ToTable("UserToken", (string)null);
                 });
 
             modelBuilder.Entity("Core.Entities.FeedInTakeDetails", b =>
@@ -736,6 +796,31 @@ namespace Infrastructure.Migrations
                     b.Navigation("Areas");
 
                     b.Navigation("FeedTypes");
+                });
+
+            modelBuilder.Entity("Core.Entities.HealthRecordDetails", b =>
+                {
+                    b.HasOne("Core.Entities.HealthRecords", "HealthRecords")
+                        .WithMany("HealthRecordDetails")
+                        .HasForeignKey("HealthRecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.MedicationAndVaccines", "MedicationAndVaccines")
+                        .WithMany()
+                        .HasForeignKey("MedVacId");
+
+                    b.HasOne("Core.Entities.Pigs", "Pigs")
+                        .WithMany("HealthRecordDetails")
+                        .HasForeignKey("PigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("HealthRecords");
+
+                    b.Navigation("MedicationAndVaccines");
+
+                    b.Navigation("Pigs");
                 });
 
             modelBuilder.Entity("Core.Entities.MedicationAndVaccineIntakeDetails", b =>
@@ -867,6 +952,11 @@ namespace Infrastructure.Migrations
                     b.Navigation("Feeds");
                 });
 
+            modelBuilder.Entity("Core.Entities.HealthRecords", b =>
+                {
+                    b.Navigation("HealthRecordDetails");
+                });
+
             modelBuilder.Entity("Core.Entities.MedicationAndVaccineIntakes", b =>
                 {
                     b.Navigation("MedicationAndVaccineIntakeDetails");
@@ -875,6 +965,11 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Entities.MedicationAndVaccines", b =>
                 {
                     b.Navigation("MedicationAndVaccineIntakeDetails");
+                });
+
+            modelBuilder.Entity("Core.Entities.Pigs", b =>
+                {
+                    b.Navigation("HealthRecordDetails");
                 });
 
             modelBuilder.Entity("Core.Entities.Stables", b =>

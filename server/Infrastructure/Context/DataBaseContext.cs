@@ -1,4 +1,5 @@
 using Core.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Context
@@ -23,18 +24,38 @@ namespace Infrastructure.Context
         public DbSet<MedicationAndVaccineIntakes> MedicationAndVaccineIntakes { get; set; }
         public DbSet<MedicationAndVaccineIntakeDetails> MedicationAndVaccineIntakeDetails { get; set; }
 
+        // public DbSet<HealthRecords> HealthRecords { get; set; }
+        // public DbSet<HealthRecordDetails> HealthRecordDetails { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            // Constraints
+            builder.Entity<Pigs>()
+                .HasIndex(u => u.PigId)
+                .IsUnique();
+
             /// Key
             builder.Entity<FeedInTakeDetails>()
                 .HasKey(d => new { d.FeedInTakeId, d.FeedId });
 
             builder.Entity<MedicationAndVaccineIntakeDetails>()
                 .HasKey(mav => new { mav.MedVacIntakeId, mav.MedVacId });
+
+            builder.Entity<HealthRecordDetails>()
+                .HasKey(hrd => new { hrd.HealthRecordId, hrd.PigId });
+
+
             /// Create tables
-            builder.Entity<ApplicationUser>().ToTable("Users");
+            builder.Entity<ApplicationUser>().ToTable("User");
+            builder.Entity<IdentityRole>().ToTable("Role");
+            builder.Entity<IdentityUserRole<string>>().ToTable("UserRole");
+            builder.Entity<IdentityUserClaim<string>>().ToTable("UserClaim");
+            builder.Entity<IdentityUserLogin<string>>().ToTable("UserLogin");
+            builder.Entity<IdentityUserToken<string>>().ToTable("UserToken");
+            builder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaim");
+
             builder.Entity<Areas>().ToTable("Areas");
             builder.Entity<Stables>().ToTable("Stables");
             builder.Entity<Suppliers>().ToTable("Suppliers");
@@ -47,6 +68,8 @@ namespace Infrastructure.Context
             builder.Entity<MedicationAndVaccines>().ToTable("MedicationAndVaccines");
             builder.Entity<MedicationAndVaccineIntakes>().ToTable("MedicationAndVaccineIntakes");
             builder.Entity<MedicationAndVaccineIntakeDetails>().ToTable("MedicationAndVaccineIntakeDetails");
+            builder.Entity<HealthRecords>().ToTable("HealthRecords");
+            builder.Entity<HealthRecordDetails>().ToTable("HealthRecordDetails");
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
