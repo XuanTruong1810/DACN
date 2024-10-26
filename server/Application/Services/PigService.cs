@@ -70,6 +70,9 @@ namespace Application.Services
             {
                 await unitOfWork.GetRepository<Stables>().UpdateAsync(stable);
             }
+            PigIntake.StokeDate = DateTimeOffset.Now;
+
+            await unitOfWork.GetRepository<PigIntakes>().UpdateAsync(PigIntake);
 
             await unitOfWork.SaveAsync();
         }

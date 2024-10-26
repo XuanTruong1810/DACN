@@ -34,6 +34,9 @@ namespace Core.Entities
         public DateTimeOffset? DeliveryDate { get; set; }
 
 
+        public DateTimeOffset? StokeDate { get; set; }
+
+
 
         [Required]
         public string CreateBy { get; set; }

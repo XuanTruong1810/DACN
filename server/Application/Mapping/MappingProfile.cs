@@ -51,6 +51,12 @@ namespace Application.Mapping
 
 
 
+            CreateMap<HealthRecordCreateDto, HealthRecords>().ReverseMap();
+
+            CreateMap<HealthRecordDetailDTO, HealthRecordDetails>().ReverseMap();
+
+
+
 
 
         }

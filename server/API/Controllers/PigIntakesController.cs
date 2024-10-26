@@ -47,8 +47,8 @@ namespace API.Controllers
         [Authorize(Roles = "Admin, Dispatch")]
         public async Task<IActionResult> Patch([FromQuery] string id, [FromBody] PigIntakeUpdateDTO model)
         {
-            await pigIntakeService.UpdateIntakeAsync(id, model);
-            return Ok(BaseResponse<object>.OkResponse("Updated successfully"));
+            PigDeliveryModel? result = await pigIntakeService.UpdateIntakeAsync(id, model);
+            return Ok(BaseResponse<PigDeliveryModel>.OkResponse(result));
         }
         [HttpDelete]
         [Authorize(Roles = "Admin")]
@@ -56,6 +56,14 @@ namespace API.Controllers
         {
             await pigIntakeService.DeleteAsync(id);
             return Ok(BaseResponse<object>.OkResponse("Delete successfully"));
+        }
+
+        [HttpPost("Allocate")]
+        [Authorize(Roles = "Admin,Dispatch")]
+        public async Task<IActionResult> Allocate([FromQuery] string AreasId, [FromQuery] string pigIntakeId)
+        {
+            await pigIntakeService.AllocatePigsToStableAsync(AreasId, pigIntakeId);
+            return Ok(BaseResponse<object>.OkResponse("Phân bổ heo vào chuồng thành công!"));
         }
     }
 }

@@ -292,8 +292,10 @@ namespace Infrastructure.Migrations
                     b.Property<string>("MedVacId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<DateTimeOffset>("NextCheckupDate")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("Note")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("Weight")
@@ -312,6 +314,10 @@ namespace Infrastructure.Migrations
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CreateBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset?>("CreatedTime")
                         .HasColumnType("datetimeoffset");
@@ -494,6 +500,9 @@ namespace Infrastructure.Migrations
 
                     b.Property<decimal?>("RemainingAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTimeOffset?>("StokeDate")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("SuppliersId")
                         .HasColumnType("nvarchar(450)");

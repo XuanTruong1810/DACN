@@ -33,6 +33,7 @@ namespace Application.Services
             {
                 throw new BaseException(StatusCodeHelper.Conflict, ErrorCode.Conflict, "Hóa đơn đã được chấp thuận trước");
             }
+
             mapper.Map(DTO, medVacIntake);
             medVacIntake.ApprovedTime = DateTimeOffset.Now;
 
@@ -158,6 +159,10 @@ namespace Application.Services
                 if (delivery.AcceptedQuantity > delivery.ReceivedQuantity)
                 {
                     throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, $"Số lượng chấp nhận cho thức ăn {delivery.MedVacId} không được vượt quá số lượng giao tới.");
+                }
+                if (delivery.ReceivedQuantity > detail.ExpectedQuantity)
+                {
+                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, $"Số lượng giao tới cho thức ăn {delivery.MedVacId} không được vượt quá số lượng dự kiến nhập.");
                 }
                 detail.AcceptedQuantity = delivery.AcceptedQuantity;
                 detail.ReceivedQuantity = delivery.ReceivedQuantity;

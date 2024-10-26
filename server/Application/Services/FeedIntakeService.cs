@@ -164,9 +164,13 @@ namespace Application.Services
                 {
                     throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, $"Số lượng chấp nhận cho thức ăn {delivery.FeedId} không được vượt quá số lượng giao tới.");
                 }
+                if (delivery.ReceivedQuantity > detail.ExpectedQuantity)
+                {
+                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, $"Số lượng giao tới cho thức ăn {delivery.FeedId} không được vượt quá số lượng dự kiến nhập.");
+                }
                 detail.AcceptedQuantity = detail.AcceptedQuantity;
                 detail.ReceivedQuantity = detail.ReceivedQuantity;
-                detail.RejectedQuantity = detail.RejectedQuantity - delivery.AcceptedQuantity;
+                detail.RejectedQuantity = detail.ReceivedQuantity - delivery.AcceptedQuantity;
                 await unitOfWork.GetRepository<FeedInTakeDetails>().UpdateAsync(detail);
 
                 totalPrice += delivery.AcceptedQuantity * detail.UnitPrice;

@@ -10,12 +10,12 @@ namespace API.Controllers
     {
         private readonly IPigService pigService = pigService;
 
-        [HttpPost]
-        [Authorize(Roles = "Admin,Dispatch")]
-        public async Task<IActionResult> Post(string AreasId, string id)
-        {
-            await pigService.AllocatePigsToStableAsync(AreasId, id);
-            return Ok(BaseResponse<object>.OkResponse("Created successfully"));
-        }
+        // [HttpPost]
+        // [Authorize(Roles = "Admin,Dispatch")]
+        // public async Task<IActionResult> Post(string AreasId, string id)
+        // {
+        //     await pigService.AllocatePigsToStableAsync(AreasId, id);
+        //     return Ok(BaseResponse<object>.OkResponse("Created successfully"));
+        // }
     }
 }

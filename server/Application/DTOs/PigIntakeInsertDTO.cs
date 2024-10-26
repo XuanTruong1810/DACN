@@ -5,7 +5,10 @@ namespace Application.DTOs
     public class PigIntakeInsertDTO
     {
         [Required(ErrorMessage = " ExpectedQuantity is required")]
-        public string ExpectedQuantity { get; set; }
+        public int ExpectedQuantity { get; set; }
+
+        [Required(ErrorMessage = " PigName is required")]
+        public string AreasId { get; set; }
 
     }
 }

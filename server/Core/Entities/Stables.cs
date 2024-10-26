@@ -15,5 +15,6 @@ namespace Core.Entities
         [InverseProperty("Stables")]
         public virtual ICollection<Pigs> Pigs { get; set; } = new List<Pigs>();
 
+
     }
 }
