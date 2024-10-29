@@ -168,14 +168,15 @@ namespace Application.Services
                 {
                     throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, $"Số lượng giao tới cho thức ăn {delivery.FeedId} không được vượt quá số lượng dự kiến nhập.");
                 }
-                detail.AcceptedQuantity = detail.AcceptedQuantity;
-                detail.ReceivedQuantity = detail.ReceivedQuantity;
-                detail.RejectedQuantity = detail.ReceivedQuantity - delivery.AcceptedQuantity;
+                detail.AcceptedQuantity = delivery.AcceptedQuantity;
+                detail.ReceivedQuantity = delivery.ReceivedQuantity;
+                detail.RejectedQuantity = delivery.ReceivedQuantity - delivery.AcceptedQuantity;
                 await unitOfWork.GetRepository<FeedInTakeDetails>().UpdateAsync(detail);
 
                 totalPrice += delivery.AcceptedQuantity * detail.UnitPrice;
             }
             feedInTake.TotalPrice = totalPrice;
+            feedInTake.DeliveryDate = deliveryDTOs.DeliveryDate;
             feedInTake.RemainingAmount = totalPrice - feedInTake.Deposit;
 
             await unitOfWork.GetRepository<FeedInTakes>().UpdateAsync(feedInTake);
@@ -266,14 +267,32 @@ namespace Application.Services
                     query = query.Where(t => t.CreatedTime == date.Value);
                 }
             }
-            IIncludableQueryable<FeedInTakes, Suppliers>? feedIntakesWithSupplier = query.Include(f => f.Suppliers);
+            List<FeedInTakes> feedInTakes = await query.ToListAsync();
+            List<FeedIntakeResponseModel> data = feedInTakes.Select(f => new FeedIntakeResponseModel
+            {
+                FeedInTakeId = f.Id,
+                SupplierName = f.Suppliers != null ? f.Suppliers.Name : "Chưa chọn nhà cung cấp!",
+                Deposit = f.Deposit.GetValueOrDefault(),
+                TotalPrice = f.TotalPrice.GetValueOrDefault(),
+                RemainingAmount = f.RemainingAmount.GetValueOrDefault(),
+                ApprovedTime = f.ApprovedTime.GetValueOrDefault(),
+                DeliveryDate = f.DeliveryDate.GetValueOrDefault(),
+                Stoke = f.IsInStock.GetValueOrDefault(),
+                CreatedTime = f.CreatedTime.GetValueOrDefault(),
+                feedIntakeDetailResponseModels = f.FeedInTakeDetails.Select(i => new FeedIntakeDetailResponseModel
+                {
+                    FeedId = i.FeedId,
+                    FeedName = i.Feeds.FeedName,
+                    UnitPrice = i.UnitPrice,
+                    ExpectedQuantity = i.ExpectedQuantity,
+                    ReceivedQuantity = i.ReceivedQuantity.GetValueOrDefault(),
+                    AcceptedQuantity = i.AcceptedQuantity.GetValueOrDefault(),
+                    RejectedQuantity = i.RejectedQuantity.GetValueOrDefault(),
+                }).ToList()
+            }).ToList();
 
 
-            BasePagination<FeedInTakes> basePagination = await unitOfWork.GetRepository<FeedInTakes>().GetPagination(feedIntakesWithSupplier, pageIndex, pageSize);
-
-
-            List<FeedIntakeResponseModel> feedIntakeResponseModels = mapper.Map<List<FeedIntakeResponseModel>>(basePagination.Items.ToList());
-            BasePagination<FeedIntakeResponseModel> paginationResult = new(feedIntakeResponseModels, pageSize, pageIndex, basePagination.TotalCount);
+            BasePagination<FeedIntakeResponseModel> paginationResult = new(data, pageSize, pageIndex, await query.CountAsync());
             return paginationResult;
         }
 
@@ -293,6 +312,9 @@ namespace Application.Services
 
             await unitOfWork.SaveAsync();
         }
+
+
+
 
     }
 }

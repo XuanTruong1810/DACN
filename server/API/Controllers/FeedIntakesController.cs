@@ -13,7 +13,7 @@ namespace API.Controllers
     {
         private readonly IFeedIntakeService feedIntakeService = feedIntakeService;
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin, FeedManager")]
         public async Task<IActionResult> GetFeedIntake(DateTimeOffset? date, string? supplierId, string? statusManager, string? inStock, string? id, int pageIndex, int pageSize)
         {
             BasePagination<FeedIntakeResponseModel>? data = await feedIntakeService.GetFeedIntake(date, supplierId, statusManager, inStock, id, pageIndex, pageSize);
@@ -21,14 +21,14 @@ namespace API.Controllers
 
         }
         [HttpPost]
-        [Authorize(Roles = "FeedManager")]
+        [Authorize(Roles = "Admin, FeedManager")]
         public async Task<IActionResult> CreateFeedIntake([FromBody] List<FeedIntakeInsertDTO> feedIntakeInsertDTOs)
         {
             await feedIntakeService.CreateFeedIntake(feedIntakeInsertDTOs);
             return Ok(BaseResponse<object>.OkResponse("Tạo thành công"));
         }
         [HttpGet("Recommend")]
-        [Authorize(Roles = "FeedManager")]
+        [Authorize(Roles = "Admin,FeedManager")]
         public async Task<IActionResult> GetFeedRequirementsForArea([FromQuery] string areaId, [FromQuery] int numberOfDays, [FromQuery] int pageIndex, [FromQuery] int pageSize)
         {
             BasePagination<FeedRequirementModelView>? result = await feedIntakeService.GetFeedRequirementsForArea(areaId, numberOfDays, pageIndex, pageSize);
@@ -53,8 +53,8 @@ namespace API.Controllers
         [Authorize(Roles = "Admin, FeedManager")]
         public async Task<IActionResult> FeedIntakeDelivery(string feedInTakeId, [FromBody] FeedIntakeDeliveryDTO deliveryDTOs)
         {
-            await feedIntakeService.FeedIntakeDelivery(feedInTakeId, deliveryDTOs);
-            return Ok(BaseResponse<object>.OkResponse("Đặt hóa thành công"));
+            FeedDeliveryModel? result = await feedIntakeService.FeedIntakeDelivery(feedInTakeId, deliveryDTOs);
+            return Ok(BaseResponse<FeedDeliveryModel>.OkResponse(result));
         }
 
         [HttpPost("UpdateQuantityForFeed")]

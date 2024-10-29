@@ -6,9 +6,10 @@ namespace Application.Interfaces
 {
     public interface IFeedTypeService
     {
-        Task InsertFeedTypeService(FeedTypeNonQueryDTO dto);
+        Task<FeedTypeGetModel> GetFeedById(string id);
+        Task<FeedTypeGetModel> InsertFeedTypeService(FeedTypeNonQueryDTO dto);
 
-        Task UpdateFeedTypeService(string id, FeedTypeNonQueryDTO dto);
+        Task<FeedTypeGetModel> UpdateFeedTypeService(string id, FeedTypeNonQueryDTO dto);
 
         Task DeleteFeedTypeService(string id);
         Task<BasePagination<FeedTypeGetModel>> GetFeedTypeService(FeedTypeGetDTO feedTypeGetDTO);

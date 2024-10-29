@@ -37,53 +37,60 @@ namespace Application.Services
         {
             if (string.IsNullOrWhiteSpace(id))
             {
-                throw new BaseException(Core.Stores.StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Invalid id");
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Invalid id");
             }
             Suppliers? suppliers = await unitOfWork.GetRepository<Suppliers>().GetEntities.Where(s => s.DeleteTime == null).FirstOrDefaultAsync(s => s.Id == id)
-             ?? throw new BaseException(Core.Stores.StatusCodeHelper.NotFound, ErrorCode.NotFound, "Supplier not found");
+             ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không thể tìm thấy nhà cung cấp này");
             return mapper.Map<SupplierModelView>(suppliers);
         }
-        public async Task AddSupplierAsync(SupplierDTO supplierModel)
+        public async Task<SupplierModelView> AddSupplierAsync(SupplierDTO supplierModel)
         {
-            Suppliers supplierExist = await unitOfWork.GetRepository<Suppliers>().GetEntities.FirstOrDefaultAsync(s => s.Name == supplierModel.Name);
-            if (supplierExist != null)
+            Suppliers? supplierExist = await unitOfWork.GetRepository<Suppliers>().GetEntities
+            .FirstOrDefaultAsync(s => s.Name.ToLower() == supplierModel.Name.ToLower()
+            && s.DeleteTime == null);
+            if (supplierExist is not null)
             {
-                throw new BaseException(Core.Stores.StatusCodeHelper.Conflict, ErrorCode.Conflict, "Supplier already exist");
+                throw new BaseException(StatusCodeHelper.Conflict, ErrorCode.Conflict, "Nhà cung cấp này đã tồn tại");
             }
             Suppliers? supplier = mapper.Map<Suppliers>(supplierModel);
             await unitOfWork.GetRepository<Suppliers>().InsertAsync(supplier);
             await unitOfWork.SaveAsync();
 
+            return mapper.Map<SupplierModelView>(supplierExist);
+
         }
 
-        public async Task UpdateSupplierAsync(string id, SupplierDTO supplierModel)
+        public async Task<SupplierModelView> UpdateSupplierAsync(string id, SupplierDTO supplierModel)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
-                throw new BaseException(Core.Stores.StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Invalid id");
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Invalid id");
             }
             Suppliers? supplier = await unitOfWork.GetRepository<Suppliers>().GetByIdAsync(id)
-             ?? throw new BaseException(Core.Stores.StatusCodeHelper.NotFound, ErrorCode.NotFound, "Supplier not found");
+             ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Supplier not found");
 
 
             Suppliers? existingSupplier = await unitOfWork.GetRepository<Suppliers>()
                 .GetEntities.FirstOrDefaultAsync(s => s.Name == supplierModel.Name && s.Id != id);
             if (existingSupplier != null)
             {
-                throw new BaseException(Core.Stores.StatusCodeHelper.Conflict, ErrorCode.Conflict, "Supplier already exist");
+                throw new BaseException(StatusCodeHelper.Conflict, ErrorCode.Conflict, "Nhà cung cấp này đã tồn tại");
             }
+
             mapper.Map(supplierModel, supplier);
             await unitOfWork.SaveAsync();
+
+            return mapper.Map<SupplierModelView>(supplier);
 
         }
         public async Task DeleteSupplierAsync(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
-                throw new BaseException(Core.Stores.StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Invalid id");
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Invalid id");
             }
             Suppliers? supplier = await unitOfWork.GetRepository<Suppliers>().GetByIdAsync(id)
-             ?? throw new BaseException(Core.Stores.StatusCodeHelper.NotFound, ErrorCode.NotFound, "Supplier not found");
+             ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Supplier not found");
             supplier.DeleteTime = DateTimeOffset.Now;
 
             await unitOfWork.GetRepository<Suppliers>().UpdateAsync(supplier);

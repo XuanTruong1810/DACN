@@ -37,10 +37,11 @@ namespace Application.Mapping
             CreateMap<FeedGetModel, Feeds>().ReverseMap();
 
             CreateMap<FeedTypeNonQueryDTO, FeedTypes>().ReverseMap();
+            CreateMap<FeedTypeGetModel, FeedTypes>().ReverseMap();
 
 
 
-
+            CreateMap<MedVacDTO, MedicationAndVaccines>().ReverseMap();
             CreateMap<MedVacGetDTO, MedicationAndVaccines>().ReverseMap();
             CreateMap<MedVacGetModelView, MedicationAndVaccines>().ReverseMap();
 

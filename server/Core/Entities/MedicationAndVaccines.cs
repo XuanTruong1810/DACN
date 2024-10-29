@@ -15,8 +15,7 @@ namespace Core.Entities
         public string Description { get; set; }
 
         public string CreateBy { get; set; }
-        public int DaysUsableAfterImport { get; set; }
-        public DateTimeOffset ExpiryDate { get; set; }
+        public int? DaysUsableAfterImport { get; set; }
         [InverseProperty("MedicationAndVaccines")]
         public virtual ICollection<MedicationAndVaccineIntakeDetails> MedicationAndVaccineIntakeDetails { get; set; } = new List<MedicationAndVaccineIntakeDetails>();
     }

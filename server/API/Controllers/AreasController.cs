@@ -29,23 +29,23 @@ namespace API.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Post([FromBody] AreaDTO areaModel)
         {
-            await areaService.CreateAsync(areaModel);
-            return Ok(BaseResponse<object>.OkResponse("Created successfully"));
+            AreaModelView? result = await areaService.CreateAsync(areaModel);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, BaseResponse<AreaModelView>.CreatedResponse(result));
         }
 
         [HttpPatch]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Patch([FromQuery] string id, [FromBody] AreaDTO areaModel)
         {
-            await areaService.UpdateAsync(id, areaModel);
-            return Ok(BaseResponse<object>.OkResponse("Updated successfully"));
+            AreaModelView? result = await areaService.UpdateAsync(id, areaModel);
+            return Ok(BaseResponse<AreaModelView>.OkResponse(result));
         }
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(string id)
         {
             await areaService.DeleteAsync(id);
-            return Ok(BaseResponse<object>.OkResponse("Deleted successfully"));
+            return Ok(BaseResponse<object>.OkResponse("Xóa Khu vực thành công!"));
         }
     }
 }

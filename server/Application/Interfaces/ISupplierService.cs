@@ -6,8 +6,8 @@ public interface ISupplierService
 {
     Task<BasePagination<SupplierModelView>> GetSupplierAsync(int pageIndex, int pageSize);
     Task<SupplierModelView> GetSupplierByIdAsync(string id);
-    Task AddSupplierAsync(SupplierDTO supplierModel);
-    Task UpdateSupplierAsync(string id, SupplierDTO supplierModel);
+    Task<SupplierModelView> AddSupplierAsync(SupplierDTO supplierModel);
+    Task<SupplierModelView> UpdateSupplierAsync(string id, SupplierDTO supplierModel);
     Task DeleteSupplierAsync(string id);
 
 }

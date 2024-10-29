@@ -33,4 +33,12 @@ public class BaseResponse<T>
     {
         return new BaseResponse<T>(StatusCodeHelper.Success, "Success", data);
     }
+    public static BaseResponse<T> CreatedResponse(string message)
+    {
+        return new BaseResponse<T>(StatusCodeHelper.Created, "Created", message);
+    }
+    public static BaseResponse<T> CreatedResponse(T data)
+    {
+        return new BaseResponse<T>(StatusCodeHelper.Created, "Created", data);
+    }
 }

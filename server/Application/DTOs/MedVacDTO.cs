@@ -17,9 +17,7 @@ namespace Application.DTOs
 
         public string? Description { get; set; }
 
-        public string? DaysUsableAfterImport { get; set; }
-        [Required(ErrorMessage = "Hết hạn thuốc hoặc chích không được để trống!")]
-        public DateTimeOffset ExpiryDate { get; set; }
+        public int? DaysUsableAfterImport { get; set; }
 
 
     }

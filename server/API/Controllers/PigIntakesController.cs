@@ -55,7 +55,7 @@ namespace API.Controllers
         public async Task<IActionResult> Delete([FromQuery] string id)
         {
             await pigIntakeService.DeleteAsync(id);
-            return Ok(BaseResponse<object>.OkResponse("Delete successfully"));
+            return Ok(BaseResponse<object>.OkResponse("Xóa thành công!"));
         }
 
         [HttpPost("Allocate")]

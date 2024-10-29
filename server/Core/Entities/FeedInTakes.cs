@@ -6,7 +6,7 @@ namespace Core.Entities
     public class FeedInTakes : BaseEntity
     {
         [ForeignKey("Suppliers")]
-        public string SuppliersId { get; set; }
+        public string? SuppliersId { get; set; }
 
         public virtual Suppliers Suppliers { get; set; }
 

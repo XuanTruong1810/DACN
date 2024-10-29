@@ -8,9 +8,12 @@ namespace Application.Interfaces
     {
         Task<BasePagination<MedVacGetModelView>> GetMedVacAsync(MedVacGetDTO medVacGetDTO);
 
-        Task InsertMedVacAsync(MedVacDTO medVac);
 
-        Task UpdateMedVacAsync(string medVacId, MedVacDTO medVacUpdate);
+        Task<MedVacGetModelView> GetMedVacById(string medVacId);
+
+        Task<MedVacGetModelView> InsertMedVacAsync(MedVacDTO medVac);
+
+        Task<MedVacGetModelView> UpdateMedVacAsync(string medVacId, MedVacDTO medVacUpdate);
 
         Task DeleteMedVacAsync(string medVacId);
     }

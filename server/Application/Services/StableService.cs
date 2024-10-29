@@ -19,43 +19,53 @@ public class StableService(IUnitOfWork unitOfWork, IMapper mapper) : IStableServ
     {
         if (string.IsNullOrWhiteSpace(id))
         {
-            throw new BaseException(Core.Stores.StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Id is required");
+            throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Id is required");
         }
         Stables? stable = await unitOfWork.GetRepository<Stables>().GetByIdAsync(id)
-        ?? throw new BaseException(Core.Stores.StatusCodeHelper.NotFound, ErrorCode.NotFound, "Stable not found");
+        ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Stable not found");
         if (stable.CurrentOccupancy > 0)
         {
-            throw new BaseException(Core.Stores.StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Stable is not empty");
+            throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Stable is not empty");
         }
         stable.DeleteTime = DateTimeOffset.Now;
         await unitOfWork.GetRepository<Stables>().UpdateAsync(stable);
         await unitOfWork.SaveAsync();
     }
-    public async Task InsertStable(StableDTO stableModel)
+    public async Task<StableModelView> InsertStable(StableDTO stableModel)
     {
         Stables? stable = await unitOfWork.GetRepository<Stables>().GetEntities.FirstOrDefaultAsync(s => s.Name == stableModel.Name);
         if (stable != null)
         {
-            throw new BaseException(Core.Stores.StatusCodeHelper.Conflict, ErrorCode.Conflict, "Stable already exist");
+            throw new BaseException(StatusCodeHelper.Conflict, ErrorCode.Conflict, "Stable already exist");
         }
         Stables? stables = mapper.Map<Stables>(stableModel);
         await unitOfWork.GetRepository<Stables>().InsertAsync(stables);
         await unitOfWork.SaveAsync();
+        return mapper.Map<StableModelView>(stables);
     }
 
-    public async Task UpdateStable(string id, StableDTO stableModel)
+    public async Task<StableModelView> UpdateStable(string id, StableDTO stableModel)
     {
         if (string.IsNullOrWhiteSpace(id))
         {
-            throw new BaseException(Core.Stores.StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Id is required");
+            throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Id is required");
         }
-        Stables? stable = await unitOfWork.GetRepository<Stables>().GetEntities.FirstOrDefaultAsync(s => s.Name == stableModel.Name && s.Id != id);
-        if (stable != null)
+        Stables? stable = await unitOfWork.GetRepository<Stables>().GetEntities
+        .Where(s => s.Id == id)
+        .FirstOrDefaultAsync()
+        ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Lỗi không tìm thấy chuồng!");
+
+        if (stable.Name.ToLower().Equals(stableModel.Name.ToLower(), StringComparison.OrdinalIgnoreCase))
         {
-            throw new BaseException(Core.Stores.StatusCodeHelper.Conflict, ErrorCode.Conflict, "Stable already exist");
+            throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Tên chuồng đã tồn tại!");
         }
+
         mapper.Map(stableModel, stable);
+
+        await unitOfWork.GetRepository<Stables>().UpdateAsync(stable);
         await unitOfWork.SaveAsync();
+
+        return mapper.Map<StableModelView>(stable);
     }
 
     public async Task<BasePagination<StableModelView>> GetAllStablesByArea(int pageIndex, int pageSize, string areaId)
@@ -87,4 +97,19 @@ public class StableService(IUnitOfWork unitOfWork, IMapper mapper) : IStableServ
         return paginationResult;
     }
 
+    public async Task<StableModelView> GetStableById(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Id không được để trống");
+        }
+
+        Stables? stable = await unitOfWork.GetRepository<Stables>()
+        .GetEntities
+        .Where(s => s.DeleteTime == null && s.Id == id)
+        .FirstOrDefaultAsync()
+        ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Chuồng không tìm thấy");
+
+        return mapper.Map<StableModelView>(stable);
+    }
 }

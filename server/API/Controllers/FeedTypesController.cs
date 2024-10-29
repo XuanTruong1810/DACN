@@ -19,20 +19,27 @@ namespace API.Controllers
             BasePagination<FeedTypeGetModel>? feedType = await feedTypeService.GetFeedTypeService(dto);
             return Ok(BaseResponse<BasePagination<FeedTypeGetModel>>.OkResponse(feedType));
         }
+        [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,FeedManager")]
+        public async Task<IActionResult> GetById(string id)
+        {
+            FeedTypeGetModel? feedType = await feedTypeService.GetFeedById(id);
+            return Ok(BaseResponse<FeedTypeGetModel>.OkResponse(feedType));
+        }
         [HttpPost]
         [Authorize(Roles = "Admin,FeedManager")]
 
         public async Task<IActionResult> Post([FromBody] FeedTypeNonQueryDTO dto)
         {
-            await feedTypeService.InsertFeedTypeService(dto);
-            return Ok(BaseResponse<object>.OkResponse("Thêm loại thức ăn thành công"));
+            FeedTypeGetModel? result = await feedTypeService.InsertFeedTypeService(dto);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, BaseResponse<FeedTypeGetModel>.CreatedResponse(result));
         }
         [HttpPatch]
         [Authorize(Roles = "Admin,FeedManager")]
         public async Task<IActionResult> Patch([FromQuery] string id, [FromBody] FeedTypeNonQueryDTO dto)
         {
-            await feedTypeService.UpdateFeedTypeService(id, dto);
-            return Ok(BaseResponse<object>.OkResponse("Cập nhật thành công"));
+            FeedTypeGetModel? result = await feedTypeService.UpdateFeedTypeService(id, dto);
+            return Ok(BaseResponse<FeedTypeGetModel>.OkResponse(result));
         }
         [HttpDelete]
         [Authorize(Roles = "Admin,FeedManager")]

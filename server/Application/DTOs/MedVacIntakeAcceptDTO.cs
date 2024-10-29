@@ -4,7 +4,7 @@ namespace Application.DTOs
 {
     public class MedVacIntakeAcceptDTO
     {
-        public string SupplierId { get; set; }
+        public string SuppliersId { get; set; }
         public decimal Deposit { get; set; }
         public List<MedVacIntakeAcceptDetailDTO> MedVacIntakeAcceptDetails { get; set; }
     }

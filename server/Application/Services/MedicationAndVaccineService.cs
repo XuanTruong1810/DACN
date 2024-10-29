@@ -40,7 +40,7 @@ namespace Application.Services
             await unitOfWork.GetRepository<MedicationAndVaccines>().UpdateAsync(medVac);
             await unitOfWork.SaveAsync();
         }
-        public async Task InsertMedVacAsync(MedVacDTO medVac)
+        public async Task<MedVacGetModelView> InsertMedVacAsync(MedVacDTO medVac)
         {
             string? userID = httpContextAccessor.HttpContext?.User?
             .FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -52,7 +52,7 @@ namespace Application.Services
             .Where(mv => mv.MedVacName == medVac.MedVacName)
             .FirstOrDefault();
 
-            if (medVac != null)
+            if (medVacExists != null)
             {
                 throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Thuốc hoặc chích đã tồn tại!");
             }
@@ -62,9 +62,11 @@ namespace Application.Services
 
             await unitOfWork.GetRepository<MedicationAndVaccines>().InsertAsync(medVacInsert);
             await unitOfWork.SaveAsync();
+
+            return mapper.Map<MedVacGetModelView>(medVacInsert);
         }
 
-        public async Task UpdateMedVacAsync(string medVacId, MedVacDTO medVacUpdate)
+        public async Task<MedVacGetModelView> UpdateMedVacAsync(string medVacId, MedVacDTO medVacUpdate)
         {
             if (string.IsNullOrWhiteSpace(medVacId))
             {
@@ -91,29 +93,25 @@ namespace Application.Services
 
             await unitOfWork.GetRepository<MedicationAndVaccines>().UpdateAsync(medVac);
             await unitOfWork.SaveAsync();
+
+            return mapper.Map<MedVacGetModelView>(medVac);
         }
 
         public async Task<BasePagination<MedVacGetModelView>> GetMedVacAsync(MedVacGetDTO medVacGetDTO)
         {
             IQueryable<MedicationAndVaccines> query = unitOfWork.GetRepository<MedicationAndVaccines>().GetEntities;
+            query = query.Where(mv => mv.DeleteTime == null);
 
-            if (medVacGetDTO.Id != null)
+            if (medVacGetDTO.MedVacName != null)
             {
-                query = query.Where(mv => mv.Id == medVacGetDTO.Id);
+                query = query.Where(mv => mv.MedVacName.Contains(medVacGetDTO.MedVacName));
             }
-            else
+            if (medVacGetDTO.Type.HasValue)
             {
+                string? typeString = medVacGetDTO.Type.Value.ToString();
+                query = query.Where(mv => mv.Type == typeString);
+            }
 
-                if (medVacGetDTO.MedVacName != null)
-                {
-                    query = query.Where(mv => mv.MedVacName.Contains(medVacGetDTO.MedVacName));
-                }
-                if (medVacGetDTO.Type.HasValue)
-                {
-                    string? typeString = medVacGetDTO.Type.Value.ToString();
-                    query = query.Where(mv => mv.Type == typeString);
-                }
-            }
 
             List<MedicationAndVaccines>? medicationAndVaccines = await query.ToListAsync();
 
@@ -122,8 +120,7 @@ namespace Application.Services
             {
                 Id = mv.Id,
                 MedVacName = mv.MedVacName,
-                DaysUsableAfterImport = mv.DaysUsableAfterImport,
-                ExpiryDate = mv.ExpiryDate,
+                DaysUsableAfterImport = mv.DaysUsableAfterImport.GetValueOrDefault(),
                 Type = mv.Type,
                 Quantity = mv.Quantity,
                 Manufacturer = mv.Manufacturer,
@@ -132,6 +129,24 @@ namespace Application.Services
 
             BasePagination<MedVacGetModelView> pagination = new(medVacGetModelViews, medVacGetDTO.PageSize, medVacGetDTO.PageIndex, await query.CountAsync());
             return pagination;
+        }
+        public async Task<MedVacGetModelView> GetMedVacById(string medVacId)
+        {
+            if (string.IsNullOrWhiteSpace(medVacId))
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Id không được để trống!");
+            }
+            MedicationAndVaccines? medVac = await unitOfWork
+            .GetRepository<MedicationAndVaccines>()
+            .GetByIdAsync(medVacId) ??
+            throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Thuốc hoặc chích không tồn tại!");
+
+            if (medVac.DeleteTime.HasValue)
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Thuốc hoặc chích đã được xóa!");
+            }
+
+            return mapper.Map<MedVacGetModelView>(medVac);
         }
     }
 }

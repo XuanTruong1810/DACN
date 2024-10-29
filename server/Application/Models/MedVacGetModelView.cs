@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Application.Models
 {
     public class MedVacGetModelView
@@ -12,7 +14,7 @@ namespace Application.Models
         public string Manufacturer { get; set; }
         // mô tả
         public string Description { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int DaysUsableAfterImport { get; set; }
-        public DateTimeOffset ExpiryDate { get; set; }
     }
 }

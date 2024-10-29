@@ -29,29 +29,25 @@ namespace Application.Services
         public async Task<BasePagination<FeedGetModel>> GetFeedAsync(FeedGetDTO feedGetDTO)
         {
             IQueryable<Feeds> query = unitOfWork.GetRepository<Feeds>().GetEntities;
-            if (!string.IsNullOrWhiteSpace(feedGetDTO.FeedId))
-            {
-                query = query.Where(f => f.Id == feedGetDTO.FeedId);
-            }
-            else
-            {
-                if (!string.IsNullOrWhiteSpace(feedGetDTO.FeedTypeId))
-                {
-                    query = query.Where(f => f.FeedTypeId == feedGetDTO.FeedTypeId);
-                }
+            query = query.Where(f => f.DeleteTime == null);
 
-                if (!string.IsNullOrWhiteSpace(feedGetDTO.AreasId))
-                {
-                    query = query.Where(f => f.AreasId == feedGetDTO.AreasId);
-                }
-
-                if (!string.IsNullOrWhiteSpace(feedGetDTO.FeedQuantitySort))
-                {
-                    query = feedGetDTO.FeedQuantitySort.ToLower() == "desc"
-                        ? query.OrderByDescending(f => f.FeedQuantity)
-                        : query.OrderBy(f => f.FeedQuantity);
-                }
+            if (!string.IsNullOrWhiteSpace(feedGetDTO.FeedTypeId))
+            {
+                query = query.Where(f => f.FeedTypeId == feedGetDTO.FeedTypeId);
             }
+
+            if (!string.IsNullOrWhiteSpace(feedGetDTO.AreasId))
+            {
+                query = query.Where(f => f.AreasId == feedGetDTO.AreasId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(feedGetDTO.FeedQuantitySort))
+            {
+                query = feedGetDTO.FeedQuantitySort.ToLower() == "desc"
+                    ? query.OrderByDescending(f => f.FeedQuantity)
+                    : query.OrderBy(f => f.FeedQuantity);
+            }
+
             List<Feeds>? feeds = await query.ToListAsync();
             List<FeedGetModel>? data = feeds.Select(f => new FeedGetModel
             {
@@ -66,7 +62,24 @@ namespace Application.Services
             return basePagination;
         }
 
-        public async Task InsertFeedAsync(FeedInsertDTO feed)
+        public async Task<FeedGetModel> GetFeedById(string feedId)
+        {
+            if (string.IsNullOrWhiteSpace(feedId))
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Id không được để trống");
+            }
+
+            Feeds? feedExist = await unitOfWork.GetRepository<Feeds>().GetEntities
+                .Where(f => f.DeleteTime == null && f.Id == feedId)
+                .FirstOrDefaultAsync()
+                ?? throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Không tìm thấy thức ăn này");
+
+            return mapper.Map<FeedGetModel>(feedExist);
+
+
+        }
+
+        public async Task<FeedGetModel> InsertFeedAsync(FeedInsertDTO feed)
         {
             Feeds? feedExist = await unitOfWork.GetRepository<Feeds>().GetEntities
                 .Where(f => feed.FeedName == f.FeedName)
@@ -83,10 +96,12 @@ namespace Application.Services
 
             await unitOfWork.SaveAsync();
 
+            return mapper.Map<FeedGetModel>(newFeed);
+
 
         }
 
-        public async Task UpdateFeedAsync(string feedId, FeedUpdateDTO feedUpdate)
+        public async Task<FeedGetModel> UpdateFeedAsync(string feedId, FeedUpdateDTO feedUpdate)
         {
             if (string.IsNullOrWhiteSpace(feedId))
             {
@@ -115,6 +130,10 @@ namespace Application.Services
 
 
             await unitOfWork.SaveAsync();
+
+            return mapper.Map<FeedGetModel>(feedExist);
         }
+
+
     }
 }

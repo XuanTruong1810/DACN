@@ -8,8 +8,6 @@ namespace Application.DTOs
     }
     public class MedVacGetDTO
     {
-        public string? Id { get; set; }
-
         public string? MedVacName { get; set; }
 
         public MedVacType? Type { get; set; }

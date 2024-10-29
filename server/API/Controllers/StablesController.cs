@@ -14,35 +14,47 @@ namespace API.Controllers
         private readonly IStableService stableService = stableService;
 
         [HttpGet]
-        // [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Get([FromQuery] string areaId, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
         {
             BasePagination<StableModelView>? result = await stableService.GetAllStablesByArea(pageIndex, pageSize, areaId);
             return Ok(BaseResponse<BasePagination<StableModelView>>.OkResponse(result));
+
         }
+        [HttpGet("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetStableById(string id)
+        {
+            StableModelView? result = await stableService.GetStableById(id);
+            return Ok(BaseResponse<StableModelView>.OkResponse(result));
+        }
+
+
         [HttpPost]
-        // [Authorize]
+        [Authorize(Roles = "Admin")]
 
         public async Task<IActionResult> Post(StableDTO stableDTO)
         {
-            await stableService.InsertStable(stableDTO);
-            return Ok(BaseResponse<object>.OkResponse("Created successfully"));
+            StableModelView? result = await stableService.InsertStable(stableDTO);
+            return CreatedAtAction(nameof(GetStableById), new { id = result.Id }, BaseResponse<StableModelView>.CreatedResponse(result));
         }
-        [HttpPut("{id}")]
-        // [Authorize]
 
-        public async Task<IActionResult> Put(string id, StableDTO stableDTO)
+        [HttpPatch("{id}")]
+        [Authorize(Roles = "Admin")]
+
+        public async Task<IActionResult> Patch(string id, StableDTO stableDTO)
         {
-            await stableService.UpdateStable(id, stableDTO);
-            return Ok(BaseResponse<object>.OkResponse("Update successfully")); ;
+            StableModelView? result = await stableService.UpdateStable(id, stableDTO);
+            return Ok(BaseResponse<StableModelView>.OkResponse(result)); ;
         }
+
         [HttpDelete("{id}")]
-        // [Authorize]
+        [Authorize(Roles = "Admin")]
 
         public async Task<IActionResult> Delete(string id)
         {
             await stableService.DeleteStable(id);
-            return Ok(BaseResponse<object>.OkResponse("Delete successfully"));
+            return Ok(BaseResponse<object>.OkResponse("Xóa chuồng thành công"));
         }
     }
 }

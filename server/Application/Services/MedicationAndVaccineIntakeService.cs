@@ -174,6 +174,7 @@ namespace Application.Services
             }
 
             medVacIntake.TotalPrice = totalPrice;
+            medVacIntake.DeliveryDate = DateTimeOffset.Now;
             medVacIntake.RemainingAmount = totalPrice - medVacIntake.Deposit;
 
             await unitOfWork.GetRepository<MedicationAndVaccineIntakes>().UpdateAsync(medVacIntake);
@@ -189,10 +190,7 @@ namespace Application.Services
         }
 
 
-        public Task<BasePagination<MedVacIntakeResponseModel>> GetMedVacIntake(DateTimeOffset? date, string? supplierId, string? statusManager, string? inStock, string? id, int pageIndex, int pageSize)
-        {
-            throw new NotImplementedException();
-        }
+
 
         public async Task UpdateQuantityForMedVac(string medVacIntakeId)
         {
@@ -238,6 +236,63 @@ namespace Application.Services
             await unitOfWork.GetRepository<MedicationAndVaccineIntakes>().UpdateAsync(medVacInTake);
 
             await unitOfWork.SaveAsync();
+        }
+        public async Task<BasePagination<MedVacIntakeResponseModel>> GetMedVacIntake(DateTimeOffset? date, string? supplierId, string? statusManager, string? inStock, string? id, int pageIndex, int pageSize)
+        {
+            IQueryable<MedicationAndVaccineIntakes> query = unitOfWork.GetRepository<MedicationAndVaccineIntakes>().GetEntities;
+
+            query = query.Where(d => d.DeleteTime == null);
+            if (!string.IsNullOrEmpty(id))
+            {
+                query = query.Where(i => i.Id == id);
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(supplierId))
+                {
+                    query = query.Where(i => i.SuppliersId == supplierId);
+
+                }
+                if (!string.IsNullOrEmpty(statusManager))
+                {
+                    query = query.Where(i => i.ApprovedTime != null);
+                }
+                if (!string.IsNullOrEmpty(inStock))
+                {
+                    query = query.Where(i => i.IsInStock != null);
+                }
+                if (date.HasValue)
+                {
+                    query = query.Where(t => t.CreatedTime == date.Value);
+                }
+            }
+            List<MedicationAndVaccineIntakes> MedicationAndVaccineIntakes = await query.ToListAsync();
+            List<MedVacIntakeResponseModel> data = MedicationAndVaccineIntakes.Select(f => new MedVacIntakeResponseModel
+            {
+                MedVacIntakeId = f.Id,
+                SupplierName = f.Suppliers != null ? f.Suppliers.Name : "Chưa chọn nhà cung cấp!",
+                Deposit = f.Deposit.GetValueOrDefault(),
+                TotalPrice = f.TotalPrice.GetValueOrDefault(),
+                RemainingAmount = f.RemainingAmount.GetValueOrDefault(),
+                ApprovedTime = f.ApprovedTime.GetValueOrDefault(),
+                DeliveryDate = f.DeliveryDate.GetValueOrDefault(),
+                Stoke = f.IsInStock.GetValueOrDefault(),
+                CreatedTime = f.CreatedTime.GetValueOrDefault(),
+                medVacIntakeDetailResponseModels = f.MedicationAndVaccineIntakeDetails.Select(i => new MedVacIntakeDetailResponseModel
+                {
+                    MedVacID = i.MedVacId,
+                    MedVacName = i.MedicationAndVaccines.MedVacName,
+                    UnitPrice = i.UnitPrice,
+                    ExpectedQuantity = i.ExpectedQuantity,
+                    ReceivedQuantity = i.ReceivedQuantity.GetValueOrDefault(),
+                    AcceptedQuantity = i.AcceptedQuantity.GetValueOrDefault(),
+                    RejectedQuantity = i.RejectedQuantity.GetValueOrDefault(),
+                }).ToList()
+            }).ToList();
+
+
+            BasePagination<MedVacIntakeResponseModel> paginationResult = new(data, pageSize, pageIndex, await query.CountAsync());
+            return paginationResult;
         }
 
 

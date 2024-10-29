@@ -20,20 +20,26 @@ namespace API.Controllers
             BasePagination<MedVacGetModelView>? medVac = await medicationAndVaccineService.GetMedVacAsync(medVacGetDTO);
             return Ok(BaseResponse<BasePagination<MedVacGetModelView>>.OkResponse(medVac));
         }
+        [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Veterinarian")]
+        public async Task<IActionResult> GetMedVacById(string id)
+        {
+            MedVacGetModelView? result = await medicationAndVaccineService.GetMedVacById(id);
+            return Ok(BaseResponse<MedVacGetModelView>.OkResponse(result));
+        }
         [HttpPost]
         [Authorize(Roles = "Admin,Veterinarian")]
         public async Task<IActionResult> InsertMedVacAsync([FromBody] MedVacDTO medVac)
         {
-            await medicationAndVaccineService.InsertMedVacAsync(medVac);
-            return Ok(BaseResponse<object>.OkResponse("Thêm thành công!"));
+            MedVacGetModelView? result = await medicationAndVaccineService.InsertMedVacAsync(medVac);
+            return CreatedAtAction(nameof(GetMedVacById), new { id = result.Id }, BaseResponse<MedVacGetModelView>.CreatedResponse(result));
         }
-
-        [HttpPut]
+        [HttpPatch]
         [Authorize(Roles = "Admin,Veterinarian")]
         public async Task<IActionResult> UpdateMedVacAsync([FromQuery] string medVacId, [FromBody] MedVacDTO medVacUpdate)
         {
-            await medicationAndVaccineService.UpdateMedVacAsync(medVacId, medVacUpdate);
-            return Ok(BaseResponse<object>.OkResponse("Cập nhật thành công!"));
+            MedVacGetModelView? result = await medicationAndVaccineService.UpdateMedVacAsync(medVacId, medVacUpdate);
+            return Ok(BaseResponse<MedVacGetModelView>.OkResponse(result));
         }
         [HttpDelete]
         [Authorize(Roles = "Admin,Veterinarian")]

@@ -43,7 +43,7 @@ namespace Application.Services
                  throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Area not found");
             return mapper.Map<AreaModelView>(area);
         }
-        public async Task CreateAsync(AreaDTO area)
+        public async Task<AreaModelView> CreateAsync(AreaDTO area)
         {
             Areas? existingArea = await unitOfWork.GetRepository<Areas>()
                 .GetEntities
@@ -58,8 +58,10 @@ namespace Application.Services
             Areas? areaToCreate = mapper.Map<Areas>(area);
             await unitOfWork.GetRepository<Areas>().InsertAsync(areaToCreate);
             await unitOfWork.SaveAsync();
+
+            return mapper.Map<AreaModelView>(areaToCreate);
         }
-        public async Task UpdateAsync(string id, AreaDTO area)
+        public async Task<AreaModelView> UpdateAsync(string id, AreaDTO area)
         {
             Areas? areaToUpdate = await unitOfWork.GetRepository<Areas>().GetByIdAsync(id)
              ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Area not found");
@@ -76,11 +78,14 @@ namespace Application.Services
             mapper.Map(area, areaToUpdate);
             await unitOfWork.GetRepository<Areas>().UpdateAsync(areaToUpdate);
             await unitOfWork.SaveAsync();
+
+            return mapper.Map<AreaModelView>(areaToUpdate);
         }
         public async Task DeleteAsync(string id)
         {
             Areas? areaToDelete = await unitOfWork.GetRepository<Areas>().GetByIdAsync(id)
              ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Area not found");
+
             areaToDelete.DeleteTime = DateTimeOffset.UtcNow;
             await unitOfWork.GetRepository<Areas>().UpdateAsync(areaToDelete);
             await unitOfWork.SaveAsync();

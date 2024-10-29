@@ -14,11 +14,12 @@ namespace API.Controllers
         private readonly IMedicationAndVaccineIntakeService medicationAndVaccineIntakeService = medicationAndVaccineIntakeService;
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetFeedIntake(DateTimeOffset? date, string? supplierId, string? statusManager, string? inStock, string? id, int pageIndex, int pageSize)
+        public async Task<IActionResult> GetMedVacIntake(DateTimeOffset? date, string? supplierId, string? statusManager, string? inStock, string? id, int pageIndex, int pageSize)
         {
             BasePagination<MedVacIntakeResponseModel>? data = await medicationAndVaccineIntakeService.GetMedVacIntake(date, supplierId, statusManager, inStock, id, pageIndex, pageSize);
             return Ok(BaseResponse<BasePagination<MedVacIntakeResponseModel>>.OkResponse(data));
         }
+
         [HttpPost]
         [Authorize(Roles = "Admin,Veterinarian")]
         public async Task<IActionResult> CreateMedVacIntake([FromBody] List<MedVacIntakeDTO> DTO)
@@ -46,7 +47,7 @@ namespace API.Controllers
         public async Task<IActionResult> MedVacIntakeDelivery(string medVacIntakeId, [FromBody] MedVacDeliveryDTO DTO)
         {
             await medicationAndVaccineIntakeService.MedVacIntakeDelivery(medVacIntakeId, DTO);
-            return Ok(BaseResponse<object>.OkResponse("Đặt hóa thành công"));
+            return Ok(BaseResponse<object>.OkResponse("Hóa đơn đã giao thành công"));
         }
 
         [HttpPatch("UpdateQuantityForMedVac")]

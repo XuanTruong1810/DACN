@@ -13,5 +13,7 @@ namespace Application.Interfaces
         Task UpdateQuantityForFeed(string feedIntakeId);
         Task<BasePagination<FeedIntakeResponseModel>> GetFeedIntake(DateTimeOffset? date, string? supplierId, string? statusManager, string? inStock, string? id, int pageIndex, int pageSize);
         Task CancelFeedIntake(string id);
+
+
     }
 }

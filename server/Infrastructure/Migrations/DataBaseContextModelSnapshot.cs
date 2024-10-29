@@ -193,7 +193,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("SuppliersId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal?>("TotalPrice")
@@ -398,7 +397,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("SuppliersId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal?>("TotalPrice")
@@ -426,7 +424,7 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("CreatedTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<int>("DaysUsableAfterImport")
+                    b.Property<int?>("DaysUsableAfterImport")
                         .HasColumnType("int");
 
                     b.Property<DateTimeOffset?>("DeleteTime")
@@ -435,9 +433,6 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset>("ExpiryDate")
-                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Manufacturer")
                         .IsRequired()
@@ -781,9 +776,7 @@ namespace Infrastructure.Migrations
                 {
                     b.HasOne("Core.Entities.Suppliers", "Suppliers")
                         .WithMany()
-                        .HasForeignKey("SuppliersId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SuppliersId");
 
                     b.Navigation("Suppliers");
                 });
@@ -855,9 +848,7 @@ namespace Infrastructure.Migrations
                 {
                     b.HasOne("Core.Entities.Suppliers", "Suppliers")
                         .WithMany()
-                        .HasForeignKey("SuppliersId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SuppliersId");
 
                     b.Navigation("Suppliers");
                 });

@@ -2,7 +2,7 @@ namespace Application.DTOs
 {
     public class FeedIntakeAcceptDTO
     {
-        public string SupplierId { get; set; }
+        public string SuppliersId { get; set; }
         public decimal Deposit { get; set; }
         public List<FeedIntakeAcceptDetailDTO> FeedIntakeAcceptDetails { get; set; }
     }

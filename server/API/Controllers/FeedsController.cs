@@ -19,20 +19,27 @@ namespace API.Controllers
             BasePagination<FeedGetModel>? result = await feedService.GetFeedAsync(dto);
             return Ok(BaseResponse<BasePagination<FeedGetModel>>.OkResponse(result));
         }
+        [HttpGet("{id}")]
+        [Authorize(Roles = "Admin, FeedManager")]
+        public async Task<IActionResult> GetById(string id)
+        {
+            FeedGetModel? result = await feedService.GetFeedById(id);
+            return Ok(BaseResponse<FeedGetModel>.OkResponse(result));
+        }
         [HttpPost]
         [Authorize(Roles = "Admin, FeedManager")]
         public async Task<IActionResult> Post([FromBody] FeedInsertDTO dto)
         {
-            await feedService.InsertFeedAsync(dto);
-            return Ok(BaseResponse<object>.OkResponse("Thêm thành công!"));
+            FeedGetModel? result = await feedService.InsertFeedAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = result.FeedId }, BaseResponse<FeedGetModel>.CreatedResponse(result));
         }
 
         [HttpPatch]
         [Authorize(Roles = "Admin, FeedManager")]
         public async Task<IActionResult> Patch([FromQuery] string id, [FromBody] FeedUpdateDTO? dto)
         {
-            await feedService.UpdateFeedAsync(id, dto);
-            return Ok(BaseResponse<object>.OkResponse("Cập nhật thành công!"));
+            FeedGetModel? result = await feedService.UpdateFeedAsync(id, dto);
+            return Ok(BaseResponse<FeedGetModel>.OkResponse(result));
         }
         [HttpDelete]
         [Authorize(Roles = "Admin, FeedManager")]
