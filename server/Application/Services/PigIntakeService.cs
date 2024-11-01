@@ -120,7 +120,7 @@ namespace Application.Services
 
 
 
-        public async Task AcceptIntakeAsync(string id, PigIntakeAcceptDTO model)
+        public async Task<PigInTakeModelView> AcceptIntakeAsync(string id, PigIntakeAcceptDTO model)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -145,10 +145,12 @@ namespace Application.Services
             await unitOfWork.GetRepository<PigIntakes>().UpdateAsync(pigIntake);
             await unitOfWork.SaveAsync();
 
+            return mapper.Map<PigInTakeModelView>(pigIntake);
+
         }
 
 
-        public async Task InsertIntakeAsync(PigIntakeInsertDTO dTO)
+        public async Task<PigInTakeModelView> InsertIntakeAsync(PigIntakeInsertDTO dTO)
         {
             List<Stables>? stables = await unitOfWork
             .GetRepository<Stables>()
@@ -172,6 +174,8 @@ namespace Application.Services
             await unitOfWork.GetRepository<PigIntakes>().InsertAsync(pigIntake);
             await unitOfWork.SaveAsync();
 
+            return mapper.Map<PigInTakeModelView>(pigIntake);
+
         }
 
         public async Task DeleteAsync(string id)
@@ -194,7 +198,7 @@ namespace Application.Services
         }
 
 
-        public async Task AllocatePigsToStableAsync(string AreasId, string pigIntakeId)
+        public async Task<PigInTakeModelView> AllocatePigsToStableAsync(string AreasId, string pigIntakeId)
         {
             PigIntakes? PigIntake = await unitOfWork.GetRepository<PigIntakes>().GetByIdAsync(pigIntakeId)
                 ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy id của hóa đơn");
@@ -263,6 +267,8 @@ namespace Application.Services
             await unitOfWork.GetRepository<PigIntakes>().UpdateAsync(PigIntake);
 
             await unitOfWork.SaveAsync();
+
+            return mapper.Map<PigInTakeModelView>(PigIntake);
         }
 
 

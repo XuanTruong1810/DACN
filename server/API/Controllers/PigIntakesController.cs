@@ -32,15 +32,15 @@ namespace API.Controllers
         [Authorize(Roles = "Admin,Dispatch")]
         public async Task<IActionResult> Post([FromBody] PigIntakeInsertDTO dTO)
         {
-            await pigIntakeService.InsertIntakeAsync(dTO);
-            return Ok(BaseResponse<object>.OkResponse("Created successfully"));
+            PigInTakeModelView? result = await pigIntakeService.InsertIntakeAsync(dTO);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
         [HttpPatch("Accept")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PatchAccept([FromQuery] string id, [FromBody] PigIntakeAcceptDTO model)
         {
-            await pigIntakeService.AcceptIntakeAsync(id, model);
-            return Ok(BaseResponse<object>.OkResponse("Accepted successfully"));
+            PigInTakeModelView? result = await pigIntakeService.AcceptIntakeAsync(id, model);
+            return Ok(BaseResponse<PigInTakeModelView>.OkResponse(result));
         }
 
         [HttpPatch]
@@ -62,8 +62,8 @@ namespace API.Controllers
         [Authorize(Roles = "Admin,Dispatch")]
         public async Task<IActionResult> Allocate([FromQuery] string AreasId, [FromQuery] string pigIntakeId)
         {
-            await pigIntakeService.AllocatePigsToStableAsync(AreasId, pigIntakeId);
-            return Ok(BaseResponse<object>.OkResponse("Phân bổ heo vào chuồng thành công!"));
+            PigInTakeModelView? result = await pigIntakeService.AllocatePigsToStableAsync(AreasId, pigIntakeId);
+            return Ok(BaseResponse<PigInTakeModelView>.OkResponse(result));
         }
     }
 }

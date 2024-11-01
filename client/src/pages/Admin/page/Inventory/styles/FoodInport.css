@@ -1,0 +1,332 @@
+/* src/pages/Admin/page/Inventory/styles/FoodImport.css */
+.food-import-container {
+    padding: 32px;
+    background: #f0f2f5;
+    min-height: 100vh;
+}
+
+/* Statistics Cards */
+.statistic-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+}
+
+.statistic-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.statistic-icon {
+    font-size: 20px;
+    padding: 8px;
+    border-radius: 8px;
+    margin-right: 8px;
+}
+
+.custom-statistic .ant-statistic-title {
+    margin-bottom: 16px;
+}
+
+.custom-statistic .ant-statistic-content {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.statistic-footer {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+}
+
+/* Main Card */
+.main-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.card-title-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.card-icon {
+    font-size: 24px;
+    padding: 12px;
+    border-radius: 12px;
+    background: #e6f7ff;
+}
+
+/* Form Styles */
+.custom-select .ant-select-selector {
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    height: auto !important;
+}
+
+.area-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.area-description {
+    display: block;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.custom-input {
+    border-radius: 8px !important;
+}
+
+/* Table Styles */
+.products-section {
+    margin-top: 24px;
+}
+
+.ant-table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.ant-table-thead > tr > th {
+    background: #fafafa !important;
+    font-weight: 600;
+}
+
+.ant-table-tbody > tr:hover > td {
+    background: #e6f7ff !important;
+}
+
+.selected-row {
+    background-color: #e6f7ff;
+}
+
+.selected-row:hover > td {
+    background-color: #bae7ff !important;
+}
+
+/* Bill Card */
+.bill-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    position: sticky;
+    top: 24px;
+    background: #fff;
+}
+
+.bill-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bill-icon {
+    font-size: 24px;
+    color: #52c41a;
+}
+
+.bill-content {
+    min-height: 200px;
+}
+
+.bill-info {
+    background: #fafafa;
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.bill-items {
+    margin: 16px 0;
+    max-height: calc(100vh - 500px);
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.bill-items::-webkit-scrollbar {
+    width: 6px;
+}
+
+.bill-items::-webkit-scrollbar-thumb {
+    background: #d9d9d9;
+    border-radius: 3px;
+}
+
+.bill-item {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+    border: 1px solid #f0f0f0;
+}
+
+.bill-item:hover {
+    background: #f5f5f5;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.bill-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.bill-item-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #f0f0f0;
+}
+
+.bill-item-quantity,
+.bill-item-price,
+.bill-item-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bill-summary {
+    margin-top: 24px;
+    background: #fff;
+}
+
+.bill-total {
+    background: #f6ffed;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #b7eb8f;
+}
+
+.total-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.total-amount {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bill-actions {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.bill-actions .ant-btn {
+    height: 48px;
+    font-size: 16px;
+}
+
+/* Theme Colors */
+.primary {
+    color: #1890ff;
+}
+
+.success {
+    color: #52c41a;
+}
+
+.warning {
+    color: #faad14;
+}
+
+.danger {
+    color: #ff4d4f;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.statistics-row,
+.main-card,
+.bill-card {
+    animation: fadeIn 0.5s ease;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .food-import-container {
+        padding: 16px;
+    }
+
+    .card-title-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .bill-card {
+        position: static;
+        margin-top: 24px;
+    }
+
+    .bill-items {
+        max-height: none;
+    }
+}
+
+/* Thêm vào file CSS */
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 0 8px;
+}
+
+.table-header .ant-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.table-header .anticon {
+    font-size: 18px;
+}
+
+/* Hiệu ứng hover cho nút */
+.table-header .ant-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Animation cho bill khi hiển thị */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}

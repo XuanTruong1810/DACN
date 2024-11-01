@@ -1,0 +1,180 @@
+/* src/pages/Admin/page/Profile/Profile.css */
+.profile-container {
+    padding: 24px;
+    background: #f0f2f5;
+    min-height: 100vh;
+}
+
+.user-card {
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.avatar-section {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.user-avatar {
+    border: 4px solid #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.avatar-upload {
+    background: #fff;
+    border-radius: 50%;
+    padding: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.avatar-upload:hover {
+    background: #f0f0f0;
+}
+
+.user-name {
+    margin: 16px 0 4px !important;
+}
+
+.user-role {
+    margin-bottom: 16px;
+}
+
+.user-details {
+    padding: 0 16px;
+}
+
+.detail-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.detail-item:hover {
+    background: #f5f5f5;
+}
+
+.detail-icon {
+    font-size: 20px;
+    color: #1890ff;
+    margin-right: 12px;
+    margin-top: 4px;
+}
+
+.edit-card {
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Form styles */
+.ant-form-item-label {
+    font-weight: 500;
+}
+
+.ant-input-affix-wrapper {
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+.ant-input-affix-wrapper:hover {
+    border-color: #1890ff;
+}
+
+.ant-btn {
+    border-radius: 6px;
+    height: 38px;
+    padding: 0 20px;
+}
+
+/* Tab styles */
+.ant-tabs-nav {
+    margin-bottom: 24px !important;
+}
+
+.ant-tabs-tab {
+    padding: 12px 0 !important;
+}
+
+.ant-tabs-tab-btn {
+    font-size: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .profile-container {
+        padding: 16px;
+    }
+
+    .user-card,
+    .edit-card {
+        margin-bottom: 16px;
+    }
+}
+
+/* Thêm vào Profile.css */
+
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.profile-form,
+.password-form {
+    max-width: 100%;
+}
+
+.form-actions {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.security-card {
+    height: 100%;
+    background: #fafafa;
+}
+
+.security-card .ant-card-head {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.site-form-item-icon {
+    color: rgba(0, 0, 0, 0.25);
+}
+
+/* Password strength indicator */
+.password-strength {
+    margin-top: 8px;
+}
+
+.password-strength .ant-progress-bg {
+    transition: all 0.3s ease;
+}
+
+/* Form validation styles */
+.ant-form-item-has-error .ant-input-affix-wrapper {
+    background: #fff1f0;
+}
+
+.ant-form-item-has-success .ant-input-affix-wrapper {
+    background: #f6ffed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .form-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .security-card {
+        margin-top: 24px;
+    }
+}
