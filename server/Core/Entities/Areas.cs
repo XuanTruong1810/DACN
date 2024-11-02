@@ -8,6 +8,9 @@ namespace Core.Entities
         [Required]
         public string Name { get; set; }
         public string Description { get; set; }
+        public int TotalHouses { get; set; }
+        public int OccupiedHouses { get; set; }
+        public string Status { get; set; }
 
         [InverseProperty("Areas")]
         public virtual ICollection<Stables> Stables { get; set; } = new List<Stables>();

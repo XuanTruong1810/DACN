@@ -6,7 +6,6 @@ namespace Application.Models
 
         public string FeedName { get; set; }
 
-
         public string Area { get; set; }
 
         public string FeedTypeName { get; set; }

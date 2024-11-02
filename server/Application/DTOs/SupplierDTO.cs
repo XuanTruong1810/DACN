@@ -14,5 +14,10 @@ namespace Application.DTOs
         public string Phone { get; set; }
         [Required(ErrorMessage = "Loại nhà cung cấp dịch vụ là bắt buộc")]
         public string TypeSuppier { get; set; }
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+        public string Email { get; set; }
+        [Required(ErrorMessage = "Trạng thái là bắt buộc")]
+        public string Status { get; set; }
     }
 }
