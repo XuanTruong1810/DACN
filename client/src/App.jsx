@@ -15,7 +15,6 @@ import FoodCategoriesPage from "./pages/Admin/page/FoodCategories/FoodCategories
 import AreasPage from "./pages/Admin/page/Areas/AreasPage";
 import HousesPage from "./pages/Admin/page/Houses/HousesPage";
 import FoodsPage from "./pages/Admin/page/Foods/FoodsPage";
-import MedicinesPage from "./pages/Admin/page/Medicines/MedicinesPage";
 import CreateExport from "./pages/Admin/page/Exports/CreateExport";
 import ExportList from "./pages/Admin/page/Exports/ExportList";
 import DeadPigsPage from "./pages/Admin/page/DeadPigs/DeadPigsPage";
@@ -56,7 +55,7 @@ function App() {
             <Route path="Areas" element={<AreasPage />} />
             <Route path="Houses" element={<HousesPage />} />
             <Route path="inventory/foods" element={<FoodsPage />} />
-            <Route path="inventory/medicines" element={<MedicinesPage />} />
+
             <Route path="exports/create" element={<CreateExport />} />
             <Route path="exports/pigs" element={<ExportList />} />
             <Route path="exports/daily-food" element={<DailyFoodExport />} />

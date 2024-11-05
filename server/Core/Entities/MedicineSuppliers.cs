@@ -10,8 +10,6 @@ namespace Core.Entities
         public string MedicineUnitId { get; set; }
         [ForeignKey("Suppliers")]
         public string SupplierId { get; set; }
-        public decimal DefaultPrice { get; set; }  // Giá nhập mặc định
-        public bool IsMainSupplier { get; set; }  // Nhà cung cấp chính
         public string Note { get; set; }
 
         // Navigation properties

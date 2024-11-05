@@ -22,11 +22,13 @@ namespace Infrastructure.Context
 
         public DbSet<MedicineSupplier> MedicineSuppliers { get; set; }
         public DbSet<RequestMedicine> RequestMedicines { get; set; }
-        public DbSet<ImportMedicine> ImportMedicines { get; set; }
-        public DbSet<ImportOrderDetail> ImportOrderDetails { get; set; }
+        public DbSet<MedicineImport> MedicineImports { get; set; }
+        public DbSet<MedicineImportDetail> MedicineImportDetails { get; set; }
+        public DbSet<RequestMedicineDetail> RequestMedicineDetails { get; set; }
+        public DbSet<MedicineUnit> MedicineUnits { get; set; }
+        public DbSet<Unit> Units { get; set; }
 
-        // public DbSet<HealthRecords> HealthRecords { get; set; }
-        // public DbSet<HealthRecordDetails> HealthRecordDetails { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -41,11 +43,14 @@ namespace Infrastructure.Context
             builder.Entity<FeedInTakeDetails>()
                 .HasKey(d => new { d.FeedInTakeId, d.FeedId });
 
-            builder.Entity<ImportOrderDetail>()
-                .HasKey(d => new { d.ImportId, d.MedicineUnitId });
+            builder.Entity<RequestMedicineDetail>()
+                .HasKey(d => new { d.RequestMedicineId, d.MedicineUnitId });
 
             builder.Entity<MedicineSupplier>()
-                .HasKey(ms => new { ms.MedicineId, ms.SupplierId });
+                .HasIndex(d => new { d.MedicineUnitId, d.SupplierId })
+                .IsUnique();
+
+
 
             /// Create tables
             builder.Entity<ApplicationUser>().ToTable("User");
@@ -65,10 +70,13 @@ namespace Infrastructure.Context
             builder.Entity<FeedTypes>().ToTable("FeedTypes");
             builder.Entity<FeedInTakes>().ToTable("FeedInTakes");
             builder.Entity<FeedInTakeDetails>().ToTable("FeedInTakeDetails");
-            builder.Entity<MedicineSupplier>().ToTable("MedicineSuppliers");
-            builder.Entity<RequestMedicine>().ToTable("RequestMedicines");
-            builder.Entity<ImportMedicine>().ToTable("ImportMedicines");
-            builder.Entity<ImportOrderDetail>().ToTable("ImportOrderDetails");
+
+            builder.Entity<RequestMedicine>().ToTable("RequestMedicine");
+            builder.Entity<RequestMedicineDetail>().ToTable("RequestMedicineDetail");
+            builder.Entity<MedicineImport>().ToTable("MedicineImport");
+            builder.Entity<MedicineImportDetail>().ToTable("MedicineImportDetail");
+            builder.Entity<MedicineUnit>().ToTable("MedicineUnit");
+            builder.Entity<Unit>().ToTable("Unit");
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

@@ -41,20 +41,20 @@ namespace Application.Mapping
 
 
 
-            CreateMap<MedVacDTO, MedicationAndVaccines>().ReverseMap();
-            CreateMap<MedVacGetDTO, MedicationAndVaccines>().ReverseMap();
-            CreateMap<MedVacGetModelView, MedicationAndVaccines>().ReverseMap();
+            // CreateMap<MedVacDTO, MedicationAndVaccines>().ReverseMap();
+            // CreateMap<MedVacGetDTO, MedicationAndVaccines>().ReverseMap();
+            // CreateMap<MedVacGetModelView, MedicationAndVaccines>().ReverseMap();
 
 
-            CreateMap<MedVacIntakeDTO, MedicationAndVaccines>().ReverseMap();
+            // CreateMap<MedVacIntakeDTO, MedicationAndVaccines>().ReverseMap();
 
-            CreateMap<MedVacIntakeAcceptDTO, MedicationAndVaccines>().ReverseMap();
+            // CreateMap<MedVacIntakeAcceptDTO, MedicationAndVaccines>().ReverseMap();
 
 
 
-            CreateMap<HealthRecordCreateDto, HealthRecords>().ReverseMap();
+            // CreateMap<HealthRecordCreateDto, HealthRecords>().ReverseMap();
 
-            CreateMap<HealthRecordDetailDTO, HealthRecordDetails>().ReverseMap();
+            // CreateMap<HealthRecordDetailDTO, HealthRecordDetails>().ReverseMap();
 
 
 

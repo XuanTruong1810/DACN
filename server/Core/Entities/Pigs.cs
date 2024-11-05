@@ -15,7 +15,7 @@ namespace Core.Entities
         public virtual Stables Stables { get; set; }
 
 
-        [InverseProperty("Pigs")]
-        public virtual ICollection<HealthRecordDetails> HealthRecordDetails { get; set; } = new List<HealthRecordDetails>();
+        // [InverseProperty("Pigs")]
+        // public virtual ICollection<HealthRecordDetails> HealthRecordDetails { get; set; } = new List<HealthRecordDetails>();
     }
 }
