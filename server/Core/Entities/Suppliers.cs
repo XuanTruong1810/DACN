@@ -9,6 +9,10 @@ public class Suppliers : BaseEntity
     public string Phone { get; set; }
     public string TypeSuppier { get; set; }
     public string Status { get; set; }
+    [InverseProperty("Suppliers")]
+    public virtual ICollection<MedicineSupplier> MedicineSuppliers { get; set; }
+    [InverseProperty("Suppliers")]
+    public virtual ICollection<MedicineImport> Imports { get; set; }
 
 
     [InverseProperty("Suppliers")]

@@ -43,35 +43,6 @@ namespace Application.Services
             FeedTypeGetModel? result = mapper.Map<FeedTypeGetModel>(feedType);
             return result;
         }
-
-        public async Task<BasePagination<FeedTypeGetModel>> GetFeedTypeService(FeedTypeGetDTO dto)
-        {
-            IQueryable<FeedTypes> query = unitOfWork.GetRepository<FeedTypes>().GetEntities;
-            query = query.Where(f => f.DeleteTime == null);
-            if (!string.IsNullOrWhiteSpace(dto.Id))
-            {
-                query = query.Where(f => f.Id == dto.Id);
-            }
-            else
-            {
-                if (!string.IsNullOrWhiteSpace(dto.Name))
-                {
-                    query = query.Where(ft => ft.FeedTypeName.Contains(dto.Name));
-                }
-            }
-            int count = await query.CountAsync();
-
-            List<FeedTypes>? feedTypes = await query.ToListAsync();
-
-            List<FeedTypeGetModel>? data = feedTypes.Select(ft => new FeedTypeGetModel
-            {
-                Id = ft.Id,
-                FeedTypeName = ft.FeedTypeName
-            }).ToList();
-            BasePagination<FeedTypeGetModel> basePagination = new(data, dto.PageSize.GetValueOrDefault(), dto.PageIndex.GetValueOrDefault(), count);
-            return basePagination;
-        }
-
         public async Task<FeedTypeGetModel> InsertFeedTypeService(FeedTypeNonQueryDTO dto)
         {
             FeedTypes? feedTypes = await unitOfWork.GetRepository<FeedTypes>()
@@ -105,6 +76,7 @@ namespace Application.Services
             }
 
             mapper.Map(dto, feedType);
+            feedType.UpdatedTime = DateTimeOffset.Now;
 
             await unitOfWork.GetRepository<FeedTypes>().UpdateAsync(feedType);
 
@@ -112,6 +84,44 @@ namespace Application.Services
 
             return mapper.Map<FeedTypeGetModel>(feedType);
 
+        }
+
+        public async Task<BasePagination<FeedTypeGetModel>> GetFeedTypesAsync(
+            int pageIndex,
+            int pageSize,
+            string searchTerm,
+            string status = "all")
+        {
+
+            var query = unitOfWork.GetRepository<FeedTypes>()
+                .GetEntities
+                .Where(x => x.DeleteTime == null);
+
+            // Apply search
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                searchTerm = searchTerm.ToLower();
+                query = query.Where(x =>
+                    x.FeedTypeName.ToLower().Contains(searchTerm) ||
+                    x.Description.ToLower().Contains(searchTerm)
+                );
+            }
+
+            // Apply status filter
+            if (!string.IsNullOrEmpty(status) && status != "all")
+            {
+                query = query.Where(x => x.Status == status);
+            }
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(x => x.CreatedTime)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => mapper.Map<FeedTypeGetModel>(x))
+                .ToListAsync();
+
+            return new BasePagination<FeedTypeGetModel>(items, pageSize, pageIndex, totalCount);
         }
     }
 }

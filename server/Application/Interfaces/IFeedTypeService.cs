@@ -12,6 +12,6 @@ namespace Application.Interfaces
         Task<FeedTypeGetModel> UpdateFeedTypeService(string id, FeedTypeNonQueryDTO dto);
 
         Task DeleteFeedTypeService(string id);
-        Task<BasePagination<FeedTypeGetModel>> GetFeedTypeService(FeedTypeGetDTO feedTypeGetDTO);
+        Task<BasePagination<FeedTypeGetModel>> GetFeedTypesAsync(int pageIndex, int pageSize, string searchTerm, string status);
     }
 }

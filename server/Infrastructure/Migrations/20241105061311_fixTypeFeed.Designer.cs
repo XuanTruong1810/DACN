@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DataBaseContext))]
-    [Migration("20241027120632_FixForeignKeyIntake")]
-    partial class FixForeignKeyIntake
+    [Migration("20241105061311_fixTypeFeed")]
+    partial class fixTypeFeed
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -125,6 +125,16 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("OccupiedHouses")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TotalHouses")
+                        .HasColumnType("int");
+
                     b.Property<DateTimeOffset?>("UpdatedTime")
                         .HasColumnType("datetimeoffset");
 
@@ -222,9 +232,20 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("DeleteTime")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("FeedTypeName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TotalProducts")
+                        .HasColumnType("int");
 
                     b.Property<DateTimeOffset?>("UpdatedTime")
                         .HasColumnType("datetimeoffset");
@@ -427,7 +448,7 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("CreatedTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<int>("DaysUsableAfterImport")
+                    b.Property<int?>("DaysUsableAfterImport")
                         .HasColumnType("int");
 
                     b.Property<DateTimeOffset?>("DeleteTime")
@@ -436,9 +457,6 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset>("ExpiryDate")
-                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Manufacturer")
                         .IsRequired()
@@ -606,11 +624,19 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("DeleteTime")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

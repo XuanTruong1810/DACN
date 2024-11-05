@@ -7,9 +7,12 @@ namespace Core.Entities
     {
         [Required]
         public string Name { get; set; }
+        [Required]
         public string Description { get; set; }
+        [Required]
         public int TotalHouses { get; set; }
-        public int OccupiedHouses { get; set; }
+        public int OccupiedHouses { get; set; } = 0;
+        [Required]
         public string Status { get; set; }
 
         [InverseProperty("Areas")]

@@ -2,7 +2,7 @@ namespace Application.Models
 {
     public class FeedGetModel
     {
-        public string FeedId { get; set; }
+        public string Id { get; set; }
 
         public string FeedName { get; set; }
 

@@ -122,6 +122,16 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("OccupiedHouses")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TotalHouses")
+                        .HasColumnType("int");
+
                     b.Property<DateTimeOffset?>("UpdatedTime")
                         .HasColumnType("datetimeoffset");
 
@@ -219,9 +229,20 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("DeleteTime")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("FeedTypeName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TotalProducts")
+                        .HasColumnType("int");
 
                     b.Property<DateTimeOffset?>("UpdatedTime")
                         .HasColumnType("datetimeoffset");
@@ -600,11 +621,19 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("DeleteTime")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

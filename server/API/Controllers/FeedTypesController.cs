@@ -14,9 +14,12 @@ namespace API.Controllers
         private readonly IFeedTypeService feedTypeService = feedTypeService;
         [HttpGet]
         [Authorize(Roles = "Admin,FeedManager")]
-        public async Task<IActionResult> Get([FromQuery] FeedTypeGetDTO dto)
+        public async Task<IActionResult> Get([FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string searchTerm = "",
+        [FromQuery] string status = "all")
         {
-            BasePagination<FeedTypeGetModel>? feedType = await feedTypeService.GetFeedTypeService(dto);
+            BasePagination<FeedTypeGetModel>? feedType = await feedTypeService.GetFeedTypesAsync(pageIndex, pageSize, searchTerm, status);
             return Ok(BaseResponse<BasePagination<FeedTypeGetModel>>.OkResponse(feedType));
         }
         [HttpGet("{id}")]

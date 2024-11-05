@@ -13,8 +13,9 @@ import {
   Row,
   Col,
   Select,
-  //   DatePicker,
   Dropdown,
+  Tag,
+  Tooltip,
 } from "antd";
 import {
   EditOutlined,
@@ -27,23 +28,11 @@ import {
   StopOutlined,
   CheckOutlined,
 } from "@ant-design/icons";
-// import styled from "styled-components";
+import axios from "axios";
+import { debounce } from "lodash";
 
 const { Title } = Typography;
-// const { RangePicker } = DatePicker;
 const { Option } = Select;
-
-// const StyledCard = styled(Card)`
-//   margin-bottom: 20px;
-//   border-radius: 8px;
-//   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-// `;
-
-// const StyledTable = styled(Table)`
-//   .ant-table-thead > tr > th {
-//     background: #f0f5ff;
-//   }
-// `;
 
 const FoodsPage = () => {
   const [foods, setFoods] = useState([]);
@@ -53,236 +42,286 @@ const FoodsPage = () => {
   const [form] = Form.useForm();
   const [filters, setFilters] = useState({
     search: "",
-    type: [],
-    manufacturer: [],
+    feedType: [],
+    area: [],
     quantityRange: null,
   });
   const [showFilter, setShowFilter] = useState(false);
+  const [feedTypes, setFeedTypes] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [selectedArea, setSelectedArea] = useState("all");
+  const [selectedFeedType, setSelectedFeedType] = useState("all");
+  const [originalData, setOriginalData] = useState([]);
+  const [tempFilters, setTempFilters] = useState({
+    search: "",
+    feedType: undefined,
+    area: undefined,
+    quantitySort: undefined,
+  });
 
-  // Fake Data
-  const fakeData = [
-    {
-      id: 1,
-      name: "Cám hỗn hợp cao cấp",
-      quantity: 100,
-      description: "Thức ăn hỗn hợp giàu dinh dưỡng cho heo",
-      type: "Thức ăn khô",
-      manufacturer: "Công ty TNHH Thức ăn chăn nuôi A",
-    },
-    {
-      id: 2,
-      name: "Bắp xay",
-      quantity: 150,
-      description: "Bắp xay nhuyễn dùng để trộn thức ăn",
-      type: "Nguyên liệu",
-      manufacturer: "Công ty TNHH B",
-    },
-    {
-      id: 3,
-      name: "Cám con cai sữa",
-      quantity: 80,
-      description: "Thức ăn đặc biệt cho heo con cai sữa",
-      type: "Thức ăn khô",
-      manufacturer: "Công ty TNHH C",
-    },
-  ];
-
-  useEffect(() => {
-    // Giả lập API call
-    setLoading(true);
-    setTimeout(() => {
-      setFoods(fakeData);
-      setLoading(false);
-    }, 1000);
-  }, []);
-
-  const columns = [
-    {
-      title: "Tên thức ăn",
-      dataIndex: "name",
-      key: "name",
-      sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
-      title: "Loại",
-      dataIndex: "type",
-      key: "type",
-      filters: [
-        { text: "Thức ăn khô", value: "Thức ăn khô" },
-        { text: "Nguyên liệu", value: "Nguyên liệu" },
-      ],
-      onFilter: (value, record) => record.type === value,
-    },
-    {
-      title: "Số lượng (kg)",
-      dataIndex: "quantity",
-      key: "quantity",
-      sorter: (a, b) => a.quantity - b.quantity,
-    },
-    {
-      title: "Nhà sản xuất",
-      dataIndex: "manufacturer",
-      key: "manufacturer",
-    },
-    {
-      title: "Mô tả",
-      dataIndex: "description",
-      key: "description",
-      ellipsis: true,
-    },
-    {
-      title: "Thao tác",
-      key: "action",
-      width: 80,
-      fixed: "right",
-      render: (_, record) => {
-        const actionItems = [
-          {
-            key: "view",
-            label: "Xem chi tiết",
-            icon: <EyeOutlined />,
-            onClick: () => handleView(record),
-          },
-          {
-            key: "edit",
-            label: "Chỉnh sửa",
-            icon: <EditOutlined />,
-            onClick: () => handleEdit(record),
-          },
-          {
-            key: "divider1",
-            type: "divider",
-          },
-          {
-            key: "status",
-            label: record.status === "active" ? "Ngừng sử dụng" : "Kích hoạt",
-            icon:
-              record.status === "active" ? <StopOutlined /> : <CheckOutlined />,
-            onClick: () => handleToggleStatus(record),
-            danger: record.status === "active",
-          },
-          {
-            key: "divider2",
-            type: "divider",
-          },
-          {
-            key: "delete",
-            label: "Xóa",
-            icon: <DeleteOutlined />,
-            danger: true,
-            onClick: () => handleDelete(record.id),
-          },
-        ];
-
-        return (
-          <Dropdown
-            menu={{ items: actionItems }}
-            trigger={["click"]}
-            placement="bottomRight"
-            overlayStyle={{ width: "180px" }}
-          >
-            <Button
-              type="text"
-              icon={<MoreOutlined />}
-              className="action-btn"
-              style={{
-                fontSize: "16px",
-                width: "32px",
-                height: "32px",
-                borderRadius: "6px",
-              }}
-            />
-          </Dropdown>
-        );
-      },
-    },
-  ];
-
-  const handleSubmit = async (values) => {
-    setLoading(true);
+  // Fetch Foods Data
+  const fetchFoods = async () => {
     try {
-      if (editingFood) {
-        // Giả lập cập nhật
-        const updatedFoods = foods.map((food) =>
-          food.id === editingFood.id ? { ...values, id: food.id } : food
-        );
-        setFoods(updatedFoods);
-        message.success("Cập nhật thức ăn thành công");
+      setLoading(true);
+      let url = `${import.meta.env.VITE_API_URL}/api/v1/feeds?`;
+
+      // Thêm các params từ filters
+      if (filters.search) {
+        url += `&search=${filters.search}`;
+      }
+      if (filters.feedType) {
+        url += `&feedTypeId=${filters.feedType}`;
+      }
+      if (filters.area) {
+        url += `&areasId=${filters.area}`;
+      }
+      if (filters.quantitySort) {
+        url += `&feedQuantitySort=${filters.quantitySort}`;
+      }
+
+      const response = await axios({
+        url: url,
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      console.log(response);
+      if (response.status === 200) {
+        setFoods(response.data.data.items);
       } else {
-        // Giả lập thêm mới
-        const newFood = {
-          ...values,
-          id: foods.length + 1,
-        };
-        setFoods([...foods, newFood]);
-        message.success("Thêm thức ăn mới thành công");
+        message.error("Không thể tải danh sách thức ăn");
       }
     } catch (error) {
-      console.log(error);
-      message.error("Có lỗi xảy ra");
+      console.error("Error fetching feeds:", error);
+      message.error(
+        error.response?.data?.message ||
+          "Có lỗi xảy ra khi tải danh sách thức ăn"
+      );
     } finally {
       setLoading(false);
-      setIsModalVisible(false);
-      form.resetFields();
-      setEditingFood(null);
     }
   };
 
-  const handleEdit = (food) => {
-    setEditingFood(food);
-    form.setFieldsValue(food);
-    setIsModalVisible(true);
+  // Fetch FeedTypes
+  const fetchFeedTypes = async () => {
+    try {
+      const response = await axios({
+        url: `${import.meta.env.VITE_API_URL}/api/v1/feedtypes`,
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      console.log(response.data.data.items);
+      if (response.status == 200) {
+        setFeedTypes(response.data.data.items);
+      }
+    } catch (error) {
+      console.error("Error fetching feed types:", error);
+      message.error("Không thể tải danh sách loại thức ăn");
+    }
   };
 
-  const handleDelete = (id) => {
-    Modal.confirm({
-      title: "Xác nhận xóa",
-      content: "Bạn có chắc chắn muốn xóa thức ăn này?",
-      okText: "Xóa",
-      cancelText: "Hủy",
-      okButtonProps: { danger: true },
-      onOk: async () => {
-        try {
-          // Giả lập API call
-          setFoods(foods.filter((food) => food.id !== id));
-          message.success("Xóa thức ăn thành công");
-        } catch (error) {
-          console.log(error);
-          message.error("Có lỗi xảy ra khi xóa");
+  // Fetch Areas
+  const fetchAreas = async () => {
+    try {
+      const response = await axios({
+        url: `${import.meta.env.VITE_API_URL}/api/v1/areas`,
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      console.log(response.data.data.items);
+      if (response.status == 200) {
+        setAreas(response.data.data.items);
+      }
+    } catch (error) {
+      console.error("Error fetching areas:", error);
+      message.error("Không thể tải danh sách khu vực");
+    }
+  };
+
+  // Add new feed
+  const handleAdd = async (values) => {
+    try {
+      setLoading(true);
+      const response = await axios({
+        url: `${import.meta.env.VITE_API_URL}/api/v1/feeds`,
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        data: values,
+      });
+      console.log(response);
+      if (response.status === 201) {
+        message.success("Thêm thức ăn thành công");
+        setIsModalVisible(false);
+        form.resetFields();
+        fetchFoods(); // Refresh data
+      } else {
+        message.error("Không thể thêm thức ăn");
+      }
+    } catch (error) {
+      console.error("Error adding feed:", error);
+      message.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi thêm thức ăn"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update feed
+  const handleUpdate = async (values) => {
+    try {
+      setLoading(true);
+      const response = await axios({
+        url: `${import.meta.env.VITE_API_URL}/api/v1/feeds`,
+        params: {
+          id: editingFood.id,
+        },
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        data: values,
+      });
+
+      if (response.status === 200) {
+        message.success("Cập nhật thức ăn thành công");
+        setIsModalVisible(false);
+        setEditingFood(null);
+        form.resetFields();
+        fetchFoods(); // Refresh data
+      } else {
+        message.error("Không thể cập nhật thức ăn");
+      }
+    } catch (error) {
+      console.error("Error updating feed:", error);
+      message.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi cập nhật thức ăn"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete feed
+  const handleDelete = async (id) => {
+    try {
+      const response = await axios({
+        url: `${import.meta.env.VITE_API_URL}/api/v1/feeds`,
+        method: "DELETE",
+        params: {
+          id: id,
+        },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.status === 200) {
+        message.success("Xóa thức ăn thành công");
+        fetchFoods(); // Refresh data
+      } else {
+        message.error("Không thể xóa thức ăn");
+      }
+    } catch (error) {
+      console.error("Error deleting feed:", error);
+      message.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi xóa thức ăn"
+      );
+    }
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchFoods();
+    fetchFeedTypes();
+    fetchAreas();
+  }, []);
+
+  // Handle form submit
+  const handleSubmit = (values) => {
+    if (editingFood) {
+      handleUpdate(values);
+    } else {
+      handleAdd(values);
+    }
+  };
+
+  // Handle edit button click
+  const handleEdit = async (record) => {
+    try {
+      setLoading(true);
+      console.log("Editing record:", record);
+
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/feeds/${record.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
-      },
-    });
+      );
+
+      if (response.status === 200) {
+        const feedDetail = response.data.data;
+
+        if (feedTypes.length === 0) await fetchFeedTypes();
+        if (areas.length === 0) await fetchAreas();
+
+        const feedType = feedTypes.find(
+          (type) => type.feedTypeName === feedDetail.feedTypeName
+        );
+        const areaObj = areas.find((a) => a.name === feedDetail.area);
+
+        setEditingFood(feedDetail);
+        form.setFieldsValue({
+          feedName: feedDetail.feedName,
+          feedTypeId: feedType?.id,
+          areasId: areaObj?.id,
+          feedPerPig: feedDetail.feedPerPig,
+          feedQuantity: feedDetail.feedQuantity,
+        });
+        setIsModalVisible(true);
+      }
+    } catch (error) {
+      console.error("Error in handleEdit:", error);
+      message.error("Không thể tải thông tin thức ăn");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Handle view details
   const handleView = (record) => {
-    // Hiển thị modal xem chi tiết
     Modal.info({
       title: "Chi tiết thức ăn",
       width: 600,
       content: (
-        <div style={{ padding: "20px 0" }}>
+        <div>
           <p>
-            <strong>Tên thức ăn:</strong> {record.name}
+            <strong>Tên thức ăn:</strong> {record.feedName}
           </p>
           <p>
-            <strong>Loại:</strong> {record.type}
+            <strong>Loại thức ăn:</strong> {record.feedTypeName}
           </p>
           <p>
-            <strong>Số lượng:</strong> {record.quantity} kg
+            <strong>Khu vực:</strong> {record.area}
           </p>
           <p>
-            <strong>Nhà sản xuất:</strong> {record.manufacturer}
+            <strong>Số lượng:</strong> {record.feedQuantity?.toFixed(2)} kg
           </p>
           <p>
-            <strong>Mô tả:</strong> {record.description}
-          </p>
-          <p>
-            <strong>Trạng thái:</strong>{" "}
-            {record.status === "active" ? "Đang sử dụng" : "Ngừng sử dụng"}
+            <strong>Định lượng/Heo:</strong> {record.feedPerPig?.toFixed(2)} kg
           </p>
         </div>
       ),
-      okText: "Đóng",
     });
   };
 
@@ -315,141 +354,130 @@ const FoodsPage = () => {
     });
   };
 
-  // Thêm các options cho filters
-  const typeOptions = ["Thức ăn khô", "Nguyên liệu", "Thức ăn tươi", "Vitamin"];
-  const manufacturerOptions = [
-    "Công ty TNHH A",
-    "Công ty TNHH B",
-    "Công ty TNHH C",
-  ];
-  const quantityRanges = [
-    { label: "0-50 kg", value: [0, 50] },
-    { label: "51-100 kg", value: [51, 100] },
-    { label: "101-200 kg", value: [101, 200] },
-    { label: ">200 kg", value: [201, Infinity] },
-  ];
+  const FilterSection = () => {
+    const handleApplyFilters = () => {
+      setFilters(tempFilters);
+    };
 
-  // Hàm lọc dữ liệu
-  const getFilteredData = () => {
-    return foods.filter((food) => {
-      const matchSearch =
-        food.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-        food.description.toLowerCase().includes(filters.search.toLowerCase());
+    const handleResetFilters = () => {
+      setTempFilters({
+        search: "",
+        feedType: undefined,
+        area: undefined,
+        quantitySort: undefined,
+      });
+      setFilters({
+        search: "",
+        feedType: undefined,
+        area: undefined,
+        quantitySort: undefined,
+      });
+      form.resetFields(["search", "feedType", "area", "quantitySort"]);
+    };
 
-      const matchType =
-        filters.type.length === 0 || filters.type.includes(food.type);
+    const debouncedSearch = debounce((value) => {
+      setTempFilters((prev) => ({
+        ...prev,
+        search: value,
+      }));
+    }, 300);
 
-      const matchManufacturer =
-        filters.manufacturer.length === 0 ||
-        filters.manufacturer.includes(food.manufacturer);
+    return (
+      <Form form={form}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="Tìm kiếm theo tên" name="search">
+              <Input
+                placeholder="Nhập tên thức ăn..."
+                prefix={<SearchOutlined />}
+                onChange={(e) => {
+                  const { value } = e.target;
+                  debouncedSearch(value);
+                }}
+                allowClear
+              />
+            </Form.Item>
+          </Col>
 
-      const matchQuantity =
-        !filters.quantityRange ||
-        (food.quantity >= filters.quantityRange[0] &&
-          food.quantity <= filters.quantityRange[1]);
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="Loại thức ăn" name="feedType">
+              <Select
+                placeholder="Chọn loại thức ăn"
+                allowClear
+                onChange={(value) => {
+                  setTempFilters((prev) => ({
+                    ...prev,
+                    feedType: value,
+                  }));
+                }}
+              >
+                {feedTypes.map((type) => (
+                  <Select.Option key={type.id} value={type.id}>
+                    {type.feedTypeName}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
 
-      return matchSearch && matchType && matchManufacturer && matchQuantity;
-    });
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="Khu vực" name="area">
+              <Select
+                placeholder="Chọn khu vực"
+                allowClear
+                onChange={(value) => {
+                  setTempFilters((prev) => ({
+                    ...prev,
+                    area: value,
+                  }));
+                }}
+              >
+                {areas.map((area) => (
+                  <Select.Option key={area.id} value={area.id}>
+                    {area.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="Sắp xếp theo số lượng" name="quantitySort">
+              <Select
+                placeholder="Sắp xếp theo số lượng"
+                allowClear
+                onChange={(value) => {
+                  setTempFilters((prev) => ({
+                    ...prev,
+                    quantitySort: value,
+                  }));
+                }}
+              >
+                <Select.Option value="asc">Tăng dần</Select.Option>
+                <Select.Option value="desc">Giảm dần</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+
+          <Col xs={24}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "8px",
+              }}
+            >
+              <Button onClick={handleResetFilters}>Đặt lại</Button>
+              <Button type="primary" onClick={handleApplyFilters}>
+                Áp dụng
+              </Button>
+            </div>
+          </Col>
+        </Row>
+      </Form>
+    );
   };
 
-  // Thêm phần Filter Component
-  const FilterSection = () => (
-    <div
-      style={{
-        padding: "16px",
-        border: "1px solid #f0f0f0",
-        borderRadius: "8px",
-        background: "#fafafa",
-      }}
-    >
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} md={6}>
-          <Input
-            placeholder="Tìm kiếm theo tên hoặc mô tả"
-            prefix={<SearchOutlined />}
-            value={filters.search}
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            allowClear
-          />
-        </Col>
-
-        <Col xs={24} sm={12} md={6}>
-          <Select
-            mode="multiple"
-            style={{ width: "100%" }}
-            placeholder="Lọc theo loại thức ăn"
-            value={filters.type}
-            onChange={(value) => setFilters({ ...filters, type: value })}
-            allowClear
-          >
-            {typeOptions.map((type) => (
-              <Option key={type} value={type}>
-                {type}
-              </Option>
-            ))}
-          </Select>
-        </Col>
-
-        <Col xs={24} sm={12} md={6}>
-          <Select
-            mode="multiple"
-            style={{ width: "100%" }}
-            placeholder="Lọc theo nhà sản xuất"
-            value={filters.manufacturer}
-            onChange={(value) =>
-              setFilters({ ...filters, manufacturer: value })
-            }
-            allowClear
-          >
-            {manufacturerOptions.map((manu) => (
-              <Option key={manu} value={manu}>
-                {manu}
-              </Option>
-            ))}
-          </Select>
-        </Col>
-
-        <Col xs={24} sm={12} md={6}>
-          <Select
-            style={{ width: "100%" }}
-            placeholder="Lọc theo số lượng"
-            onChange={(value) =>
-              setFilters({ ...filters, quantityRange: value })
-            }
-            allowClear
-          >
-            {quantityRanges.map((range) => (
-              <Option key={range.label} value={range.value}>
-                {range.label}
-              </Option>
-            ))}
-          </Select>
-        </Col>
-      </Row>
-
-      <Row justify="end" style={{ marginTop: 16 }}>
-        <Space>
-          <Button
-            onClick={() =>
-              setFilters({
-                search: "",
-                type: [],
-                manufacturer: [],
-                quantityRange: null,
-              })
-            }
-          >
-            Xóa bộ lọc
-          </Button>
-          <Button type="primary" icon={<FilterOutlined />}>
-            Áp dụng
-          </Button>
-        </Space>
-      </Row>
-    </div>
-  );
-
-  // Thêm CSS cho nút action
   const styles = `
     .action-btn:hover {
       background-color: rgba(0, 0, 0, 0.04);
@@ -464,7 +492,6 @@ const FoodsPage = () => {
     }
   `;
 
-  // Thêm style vào component
   useEffect(() => {
     const styleSheet = document.createElement("style");
     styleSheet.innerText = styles;
@@ -473,6 +500,220 @@ const FoodsPage = () => {
       document.head.removeChild(styleSheet);
     };
   }, []);
+
+  // Thêm useEffect để theo dõi thay đổi của filters
+  useEffect(() => {
+    fetchFoods();
+  }, [filters]);
+
+  // Cập nhật useEffect để fetch data
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch feeds
+        const feedsResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/v1/feeds`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (feedsResponse.data.isSuccess) {
+          // Đảm bảo data là một mảng
+          const feedsData = feedsResponse.data.data.items || [];
+          setFoods(feedsData);
+          setOriginalData(feedsData);
+        }
+
+        // Fetch areas
+        const areasResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/v1/areas`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (areasResponse.data.isSuccess) {
+          const areasData = areasResponse.data.data.items || [];
+          setAreas(areasData);
+        }
+
+        // Fetch feed types
+        const feedTypesResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/v1/feedtypes`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (feedTypesResponse.data.isSuccess) {
+          const feedTypesData = feedTypesResponse.data.data.items || [];
+          setFeedTypes(feedTypesData);
+        }
+      } catch (error) {
+        message.error("Có lỗi xảy ra khi tải dữ liệu");
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Định nghĩa columns cho Table
+  const columns = [
+    {
+      title: "Tên thức ăn",
+      dataIndex: "feedName",
+      key: "feedName",
+      render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
+    },
+    {
+      title: "Loại thức ăn",
+      dataIndex: "feedTypeName",
+      key: "feedTypeName",
+      render: (text) => <Tag color="blue">{text}</Tag>,
+    },
+    {
+      title: "Khu vực",
+      dataIndex: "area",
+      key: "area",
+      render: (text) => <Tag color="green">{text}</Tag>,
+    },
+    {
+      title: "Số lượng (kg)",
+      dataIndex: "feedQuantity",
+      key: "feedQuantity",
+      render: (amount) => amount?.toFixed(2),
+    },
+    {
+      title: "Định lượng/Heo (kg)",
+      dataIndex: "feedPerPig",
+      key: "feedPerPig",
+      render: (amount) => amount?.toFixed(2),
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      width: 120,
+      align: "center",
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Chỉnh sửa">
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
+          <Tooltip title="Xóa">
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => {
+                Modal.confirm({
+                  title: "Xác nhận xóa",
+                  content: "Bạn có chắc chắn muốn xóa thức ăn này?",
+                  okText: "Xóa",
+                  okType: "danger",
+                  cancelText: "Hủy",
+                  onOk: () => handleDelete(record.id),
+                });
+              }}
+            />
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
+
+  // Cập nhật useEffect để tạo filters cho columns khi feedTypes và areas thay đổi
+  useEffect(() => {
+    const updatedColumns = [...columns];
+
+    // Cập nhật filters cho cột feedTypes
+    if (feedTypes.length > 0) {
+      const feedTypeColumn = updatedColumns.find(
+        (col) => col.key === "feedTypes"
+      );
+      if (feedTypeColumn) {
+        feedTypeColumn.filters = feedTypes.map((type) => ({
+          text: type.feedTypeName,
+          value: type.id,
+        }));
+      }
+    }
+
+    // Cập nhật filters cho cột areas
+    if (areas.length > 0) {
+      const areaColumn = updatedColumns.find((col) => col.key === "areas");
+      if (areaColumn) {
+        areaColumn.filters = areas.map((area) => ({
+          text: area.areaName,
+          value: area.id,
+        }));
+      }
+    }
+
+    setColumns(updatedColumns);
+  }, [feedTypes, areas]);
+
+  // Thêm state cho columns
+  const [tableColumns, setColumns] = useState(columns);
+
+  // Thêm hàm để fetch chi tiết feed nếu cần
+  const fetchFeedDetail = async (id) => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/feeds/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.data.isSuccess) {
+        const feedDetail = response.data.data;
+        setEditingFood(feedDetail);
+        form.setFieldsValue({
+          feedName: feedDetail.feedName,
+          feedTypeId: feedDetail.feedTypeId,
+          areasId: feedDetail.areasId,
+          feedPerPig: feedDetail.feedPerPig,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching feed detail:", error);
+      message.error("Không thể tải thông tin thức ăn");
+    }
+  };
+
+  // Thêm useEffect để load feedTypes và areas nếu chưa có
+  useEffect(() => {
+    const loadFormData = async () => {
+      if (isModalVisible) {
+        // Đảm bảo feedTypes và areas đã được load
+        if (feedTypes.length === 0) {
+          await fetchFeedTypes();
+        }
+        if (areas.length === 0) {
+          await fetchAreas();
+        }
+      }
+    };
+
+    loadFormData();
+  }, [isModalVisible]);
 
   return (
     <div style={{ padding: "24px" }}>
@@ -532,7 +773,7 @@ const FoodsPage = () => {
 
         <Table
           columns={columns}
-          dataSource={getFilteredData()}
+          dataSource={foods}
           rowKey="id"
           loading={loading}
           pagination={{
@@ -540,11 +781,15 @@ const FoodsPage = () => {
             showSizeChanger: true,
             showTotal: (total) => `Tổng số ${total} mục`,
           }}
+          onChange={(pagination, filters, sorter) => {
+            // Handle table change
+            console.log("Table Change:", { pagination, filters, sorter });
+          }}
         />
       </Card>
 
       <Modal
-        title={editingFood ? "Sửa thông tin thức ăn" : "Thêm thức ăn mới"}
+        title={editingFood ? "Cập nhật thức ăn" : "Thêm thức ăn mới"}
         open={isModalVisible}
         onCancel={() => {
           setIsModalVisible(false);
@@ -552,11 +797,21 @@ const FoodsPage = () => {
           setEditingFood(null);
         }}
         footer={null}
-        width={600}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          initialValues={{
+            feedName: editingFood?.feedName,
+            feedTypeId: editingFood?.feedTypeId,
+            areasId: editingFood?.areasId,
+            feedPerPig: editingFood?.feedPerPig,
+            feedQuantity: editingFood?.feedQuantity,
+          }}
+        >
           <Form.Item
-            name="name"
+            name="feedName"
             label="Tên thức ăn"
             rules={[{ required: true, message: "Vui lòng nhập tên thức ăn" }]}
           >
@@ -564,31 +819,45 @@ const FoodsPage = () => {
           </Form.Item>
 
           <Form.Item
-            name="type"
+            name="feedTypeId"
             label="Loại thức ăn"
             rules={[{ required: true, message: "Vui lòng chọn loại thức ăn" }]}
           >
-            <Input />
+            <Select>
+              {feedTypes.map((type) => (
+                <Select.Option key={type.id} value={type.id}>
+                  {type.feedTypeName}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <Form.Item
-            name="quantity"
-            label="Số lượng (kg)"
-            rules={[{ required: true, message: "Vui lòng nhập số lượng" }]}
+            name="areasId"
+            label="Khu vực"
+            rules={[{ required: true, message: "Vui lòng chọn khu vực" }]}
           >
-            <InputNumber min={0} style={{ width: "100%" }} />
+            <Select>
+              {areas.map((area) => (
+                <Select.Option key={area.id} value={area.id}>
+                  {area.name}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
+
+          {editingFood && (
+            <Form.Item name="feedQuantity" label="Số lượng hiện tại (kg)">
+              <InputNumber disabled style={{ width: "100%" }} precision={2} />
+            </Form.Item>
+          )}
 
           <Form.Item
-            name="manufacturer"
-            label="Nhà sản xuất"
-            rules={[{ required: true, message: "Vui lòng nhập nhà sản xuất" }]}
+            name="feedPerPig"
+            label="Định lượng/Heo (kg)"
+            rules={[{ required: true, message: "Vui lòng nhập định lượng" }]}
           >
-            <Input />
-          </Form.Item>
-
-          <Form.Item name="description" label="Mô tả">
-            <Input.TextArea rows={4} />
+            <InputNumber min={0} style={{ width: "100%" }} precision={2} />
           </Form.Item>
 
           <Form.Item>

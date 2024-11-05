@@ -21,7 +21,7 @@ namespace API.Controllers
         }
         [HttpGet("{id}")]
         [Authorize(Roles = "Admin, FeedManager")]
-        public async Task<IActionResult> GetById(string id)
+        public async Task<IActionResult> GetFeedById(string id)
         {
             FeedGetModel? result = await feedService.GetFeedById(id);
             return Ok(BaseResponse<FeedGetModel>.OkResponse(result));
@@ -31,7 +31,7 @@ namespace API.Controllers
         public async Task<IActionResult> Post([FromBody] FeedInsertDTO dto)
         {
             FeedGetModel? result = await feedService.InsertFeedAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = result.FeedId }, BaseResponse<FeedGetModel>.CreatedResponse(result));
+            return CreatedAtAction(nameof(GetFeedById), new { id = result.Id }, BaseResponse<FeedGetModel>.CreatedResponse(result));
         }
 
         [HttpPatch]

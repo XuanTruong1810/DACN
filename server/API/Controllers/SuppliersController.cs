@@ -14,9 +14,18 @@ namespace API.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Get([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> Get([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10,
+            [FromQuery] string? searchTerm = null,
+            [FromQuery] string[]? typeSuppliers = null,
+            [FromQuery] string? status = null)
         {
-            BasePagination<SupplierModelView>? data = await supplierService.GetSupplierAsync(pageIndex, pageSize);
+            BasePagination<SupplierModelView>? data = await supplierService.GetSupplierAsync(
+                pageIndex,
+                pageSize,
+                searchTerm,
+                typeSuppliers,
+                status
+            );
             return Ok(BaseResponse<BasePagination<SupplierModelView>>.OkResponse(data));
         }
         [HttpGet("{id}")]
@@ -32,6 +41,7 @@ namespace API.Controllers
         {
             SupplierModelView? result = await supplierService.AddSupplierAsync(supplierModel);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, BaseResponse<SupplierModelView>.CreatedResponse(result));
+
         }
         [HttpPatch]
         [Authorize(Roles = "Admin")]
@@ -45,7 +55,7 @@ namespace API.Controllers
         public async Task<IActionResult> DeleteSupplier([FromQuery] string id)
         {
             await supplierService.DeleteSupplierAsync(id);
-            return Ok(BaseResponse<object>.OkResponse("Xóa chuồng thành công!"));
+            return Ok(BaseResponse<object>.OkResponse("Xóa nhà cung cấp thành công!"));
         }
     }
 }

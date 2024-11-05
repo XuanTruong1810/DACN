@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Table,
   Card,
@@ -18,6 +18,8 @@ import {
   Badge,
   Typography,
   Progress,
+  Descriptions,
+  Statistic,
 } from "antd";
 import {
   PlusOutlined,
@@ -29,52 +31,43 @@ import {
   EnvironmentOutlined,
   HomeOutlined,
 } from "@ant-design/icons";
+import axios from "axios";
 
 const { Text } = Typography;
 
 const AreasPage = () => {
   const [loading, setLoading] = useState(false);
-  const [, setSearchText] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [statusFilter, setStatusFilter] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingArea, setEditingArea] = useState(null);
   const [form] = Form.useForm();
+  const [areas, setAreas] = useState([]);
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+  const [viewingArea, setViewingArea] = useState(null);
 
-  // Mock data - thay thế bằng API call thực tế
-  const [areas] = useState([
-    {
-      id: 1,
-      name: "Khu A",
-      description: "Khu vực chăn nuôi heo thịt",
-      totalHouses: 5,
-      occupiedHouses: 3,
-      status: "active",
-      capacity: 1000,
-      currentOccupancy: 750,
-      manager: "Nguyễn Văn A",
-    },
-    {
-      id: 2,
-      name: "Khu B",
-      description: "Khu vực chăn nuôi heo nái",
-      totalHouses: 3,
-      occupiedHouses: 3,
-      status: "active",
-      capacity: 500,
-      currentOccupancy: 500,
-      manager: "Trần Thị B",
-    },
-    {
-      id: 3,
-      name: "Khu C",
-      description: "Khu vực cách ly",
-      totalHouses: 2,
-      occupiedHouses: 0,
-      status: "maintenance",
-      capacity: 200,
-      currentOccupancy: 0,
-      manager: "Phạm Văn C",
-    },
-  ]);
+  useEffect(() => {
+    fetchAreas();
+  }, []);
+
+  const fetchAreas = async () => {
+    try {
+      setLoading(true);
+      const response = await axios({
+        url: `${import.meta.env.VITE_API_URL}/api/v1/areas`,
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      setAreas(response.data.data.items);
+    } catch (error) {
+      console.error("Failed to fetch areas:", error);
+      message.error("Không thể tải dữ liệu khu vực");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status) => {
     const colors = {
@@ -95,6 +88,16 @@ const AreasPage = () => {
     };
     return texts[status] || "Không xác định";
   };
+
+  const filteredAreas = useMemo(() => {
+    return areas.filter((area) => {
+      const matchesSearch =
+        area.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        area.description.toLowerCase().includes(searchText.toLowerCase());
+      const matchesStatus = !statusFilter || area.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [areas, searchText, statusFilter]);
 
   const columns = [
     {
@@ -146,11 +149,6 @@ const AreasPage = () => {
           />
         </Space>
       ),
-    },
-    {
-      title: "Người quản lý",
-      dataIndex: "manager",
-      key: "manager",
     },
     {
       title: "Trạng thái",
@@ -235,8 +233,8 @@ const AreasPage = () => {
   ];
 
   const handleView = (record) => {
-    // Xử lý xem chi tiết
-    console.log("View:", record);
+    setViewingArea(record);
+    setIsViewModalVisible(true);
   };
 
   const handleEdit = (record) => {
@@ -251,14 +249,13 @@ const AreasPage = () => {
   };
 
   const handleDelete = async (id) => {
-    console.log(id);
     try {
       setLoading(true);
-      // Gọi API xóa
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/v1/areas/${id}`);
       message.success("Xóa khu vực thành công");
+      fetchAreas();
     } catch (error) {
-      console.log(error);
+      console.error("Failed to delete area:", error);
       message.error("Có lỗi xảy ra khi xóa khu vực");
     } finally {
       setLoading(false);
@@ -266,11 +263,48 @@ const AreasPage = () => {
   };
 
   const handleSubmit = async (values) => {
-    console.log(values);
     try {
       setLoading(true);
-      // Gọi API thêm/sửa
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const formData = {
+        ...values,
+        occupiedHouses: 0,
+      };
+
+      if (editingArea) {
+        const response = await axios({
+          url: `${import.meta.env.VITE_API_URL}/api/v1/areas/`,
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+          params: {
+            id: editingArea.id,
+          },
+          data: formData,
+        });
+
+        // Cập nhật area trong state
+        setAreas((prev) =>
+          prev.map((area) =>
+            area.id === editingArea.id ? response.data.data : area
+          )
+        );
+      } else {
+        const response = await axios({
+          url: `${import.meta.env.VITE_API_URL}/api/v1/areas`,
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+          data: formData,
+        });
+
+        // Thêm area mới vào state
+        setAreas((prev) => [...prev, response.data.data]);
+      }
+
       message.success(
         `${editingArea ? "Cập nhật" : "Thêm"} khu vực thành công`
       );
@@ -278,9 +312,10 @@ const AreasPage = () => {
       form.resetFields();
       setEditingArea(null);
     } catch (error) {
-      console.log(error);
+      console.error("Failed to submit area:", error);
       message.error(
-        `Có lỗi xảy ra khi ${editingArea ? "cập nhật" : "thêm"} khu vực`
+        error.response?.data?.message ||
+          `Có lỗi xảy ra khi ${editingArea ? "cập nhật" : "thêm"} khu vực`
       );
     } finally {
       setLoading(false);
@@ -331,11 +366,12 @@ const AreasPage = () => {
         bodyStyle={{ padding: "16px" }}
         style={{ marginBottom: "16px", borderRadius: "8px" }}
       >
-        <Row justify="space-between" align="middle">
+        <Row gutter={[16, 16]} align="middle">
           <Col xs={24} sm={12} md={8} lg={6}>
             <Input.Search
               placeholder="Tìm kiếm theo tên khu vực..."
               allowClear
+              value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               style={{ width: "100%" }}
               prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
@@ -346,14 +382,29 @@ const AreasPage = () => {
               style={{ width: "100%" }}
               placeholder="Lọc theo trạng thái"
               allowClear
+              value={statusFilter}
+              onChange={(value) => setStatusFilter(value)}
               options={[
                 { value: "active", label: "Đang hoạt động" },
                 { value: "maintenance", label: "Đang bảo trì" },
                 { value: "inactive", label: "Ngừng hoạt động" },
-                { value: "full", label: "Đã đầy" },
+                { value: "ready", label: "Sẵn sàng" },
               ]}
             />
           </Col>
+          {(searchText || statusFilter) && (
+            <Col>
+              <Button
+                type="link"
+                onClick={() => {
+                  setSearchText("");
+                  setStatusFilter(null);
+                }}
+              >
+                Xóa bộ lọc
+              </Button>
+            </Col>
+          )}
         </Row>
       </Card>
 
@@ -361,7 +412,7 @@ const AreasPage = () => {
       <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: "8px" }}>
         <Table
           columns={columns}
-          dataSource={areas}
+          dataSource={filteredAreas}
           rowKey="id"
           loading={loading}
           pagination={{
@@ -393,14 +444,20 @@ const AreasPage = () => {
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
-          initialValues={{ status: "active" }}
+          initialValues={{
+            status: "active",
+            occupiedHouses: 0,
+          }}
         >
           <Form.Item
             name="name"
             label="Tên khu vực"
             rules={[{ required: true, message: "Vui lòng nhập tên khu vực" }]}
           >
-            <Input prefix={<EnvironmentOutlined />} />
+            <Input
+              prefix={<EnvironmentOutlined />}
+              placeholder="Ví dụ: Khu A - Heo nái"
+            />
           </Form.Item>
 
           <Form.Item
@@ -408,38 +465,20 @@ const AreasPage = () => {
             label="Mô tả"
             rules={[{ required: true, message: "Vui lòng nhập mô tả" }]}
           >
-            <Input.TextArea rows={4} />
+            <Input.TextArea
+              rows={4}
+              placeholder="Ví dụ: Khu vực dành cho heo nái mang thai và nuôi con"
+            />
           </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="totalHouses"
-                label="Số lượng chuồng"
-                rules={[
-                  { required: true, message: "Vui lòng nhập số lượng chuồng" },
-                ]}
-              >
-                <Input type="number" min={1} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="capacity"
-                label="Sức chứa tối đa"
-                rules={[{ required: true, message: "Vui lòng nhập sức chứa" }]}
-              >
-                <Input type="number" min={1} />
-              </Form.Item>
-            </Col>
-          </Row>
-
           <Form.Item
-            name="manager"
-            label="Người quản lý"
-            rules={[{ required: true, message: "Vui lòng nhập người quản lý" }]}
+            name="totalHouses"
+            label="Số lượng chuồng"
+            rules={[
+              { required: true, message: "Vui lòng nhập số lượng chuồng" },
+            ]}
           >
-            <Input />
+            <Input type="number" min={1} placeholder="Ví dụ: 30" />
           </Form.Item>
 
           <Form.Item
@@ -451,6 +490,7 @@ const AreasPage = () => {
               <Select.Option value="active">Đang hoạt động</Select.Option>
               <Select.Option value="maintenance">Đang bảo trì</Select.Option>
               <Select.Option value="inactive">Ngừng hoạt động</Select.Option>
+              <Select.Option value="ready">Sẵn sàng</Select.Option>
             </Select>
           </Form.Item>
 
@@ -471,6 +511,122 @@ const AreasPage = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Modal chi tiết */}
+      <Modal
+        title={
+          <Space>
+            <EnvironmentOutlined style={{ color: "#1890ff" }} />
+            <span
+              style={{ fontSize: "18px", fontWeight: 600, color: "#262626" }}
+            >
+              Chi tiết khu vực
+            </span>
+          </Space>
+        }
+        open={isViewModalVisible}
+        onCancel={() => {
+          setIsViewModalVisible(false);
+          setViewingArea(null);
+        }}
+        footer={[
+          <Button
+            key="close"
+            onClick={() => {
+              setIsViewModalVisible(false);
+              setViewingArea(null);
+            }}
+          >
+            Đóng
+          </Button>,
+        ]}
+        width={600}
+        centered
+      >
+        {viewingArea && (
+          <div className="area-details">
+            <Descriptions bordered column={1}>
+              <Descriptions.Item label="Tên khu vực">
+                <Text strong>{viewingArea.name}</Text>
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Mô tả">
+                {viewingArea.description}
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Trạng thái">
+                <Tag color={getStatusColor(viewingArea.status)}>
+                  {getStatusText(viewingArea.status)}
+                </Tag>
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Thông tin chuồng trại">
+                <Space
+                  direction="vertical"
+                  size="small"
+                  style={{ width: "100%" }}
+                >
+                  <Row justify="space-between">
+                    <Col>Tổng số chuồng:</Col>
+                    <Col>
+                      <Text strong>{viewingArea.totalHouses}</Text>
+                    </Col>
+                  </Row>
+                  <Row justify="space-between">
+                    <Col>Số chuồng đang sử dụng:</Col>
+                    <Col>
+                      <Text strong>{viewingArea.occupiedHouses}</Text>
+                    </Col>
+                  </Row>
+                  <Progress
+                    percent={Math.round(
+                      (viewingArea.occupiedHouses / viewingArea.totalHouses) *
+                        100
+                    )}
+                    size="small"
+                    status={
+                      viewingArea.occupiedHouses === viewingArea.totalHouses
+                        ? "exception"
+                        : "active"
+                    }
+                  />
+                </Space>
+              </Descriptions.Item>
+            </Descriptions>
+
+            <div style={{ marginTop: "24px" }}>
+              <Row gutter={[16, 16]}>
+                <Col span={12}>
+                  <Card size="small">
+                    <Statistic
+                      title="Tỷ lệ sử dụng"
+                      value={Math.round(
+                        (viewingArea.occupiedHouses / viewingArea.totalHouses) *
+                          100
+                      )}
+                      suffix="%"
+                      valueStyle={{ color: "#1890ff" }}
+                      prefix={<HomeOutlined />}
+                    />
+                  </Card>
+                </Col>
+                <Col span={12}>
+                  <Card size="small">
+                    <Statistic
+                      title="Chuồng trống"
+                      value={
+                        viewingArea.totalHouses - viewingArea.occupiedHouses
+                      }
+                      valueStyle={{ color: "#52c41a" }}
+                      prefix={<HomeOutlined />}
+                    />
+                  </Card>
+                </Col>
+              </Row>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* eslint-disable-next-line react/no-unknown-property */}
@@ -544,6 +700,27 @@ const AreasPage = () => {
 
         .ant-progress-bg {
           border-radius: 4px !important;
+        }
+
+        .area-details .ant-descriptions-item-label {
+          width: 180px;
+          background-color: #fafafa;
+        }
+
+        .area-details .ant-card {
+          border-radius: 6px;
+        }
+
+        .area-details .ant-statistic {
+          text-align: center;
+        }
+
+        .area-details .ant-descriptions {
+          background: white;
+        }
+
+        .area-details .ant-descriptions-item-content {
+          padding: 12px 16px;
         }
       `}</style>
     </Layout>

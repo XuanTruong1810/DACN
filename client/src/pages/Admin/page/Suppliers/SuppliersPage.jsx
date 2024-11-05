@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   Card,
@@ -15,8 +15,6 @@ import {
   Row,
   Col,
   Dropdown,
-  DatePicker,
-  Badge,
 } from "antd";
 import {
   PlusOutlined,
@@ -32,13 +30,26 @@ import {
   CheckOutlined,
   FilterOutlined,
   ClearOutlined,
-  SortAscendingOutlined,
 } from "@ant-design/icons";
+import axios from "axios";
 
-const { RangePicker } = DatePicker;
+// Định nghĩa constants cho supplier types
+
+const SUPPLIER_TYPE_LABELS = {
+  feed: "Thức ăn",
+  medicine: "Thuốc",
+  pig: "Heo",
+};
+
+const SUPPLIER_TYPE_COLORS = {
+  feed: "#f50", // màu cam đậm
+  medicine: "#108ee9", // màu xanh dương
+  pig: "#87d068", // màu xanh lá
+};
 
 const SuppliersPage = () => {
   const [loading, setLoading] = useState(false);
+  const [suppliers, setSuppliers] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
@@ -46,30 +57,91 @@ const SuppliersPage = () => {
   const [filters, setFilters] = useState({
     type: [],
     status: [],
-    createdAt: [],
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+  const [tempFilters, setTempFilters] = useState({
+    type: [],
+    status: [],
+  });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editForm] = Form.useForm();
 
-  // Mock data - thay thế bằng API call thực tế
-  const [suppliers] = useState([
-    {
-      id: 1,
-      name: "Công ty TNHH Thức ăn chăn nuôi A",
-      phone: "0123456789",
-      email: "contact@companya.com",
-      address: "Số 123, Đường ABC, Quận XYZ, TP.HCM",
-      type: "Thức ăn",
-      status: "active",
-    },
-    {
-      id: 2,
-      name: "Công ty CP Thuốc thú y B",
-      phone: "0987654321",
-      email: "info@companyb.com",
-      address: "Số 456, Đường DEF, Quận UVW, Hà Nội",
-      type: "Thuốc",
-      status: "inactive",
-    },
+  // Fetch suppliers data
+  const fetchSuppliers = async (params = {}) => {
+    try {
+      setLoading(true);
+      console.log("Current searchTerm:", searchTerm); // Debug log
+
+      const queryParams = new URLSearchParams();
+
+      // Thêm các params cơ bản
+      queryParams.append("pageIndex", params.current || pagination.current);
+      queryParams.append("pageSize", params.pageSize || pagination.pageSize);
+
+      // Thêm searchTerm nếu có giá trị
+      if (searchTerm && searchTerm.trim() !== "") {
+        queryParams.append("searchTerm", searchTerm.trim());
+      }
+
+      // Thêm từng typeSupplier vào query params
+      if (filters.type && filters.type.length > 0) {
+        filters.type.forEach((type) => {
+          queryParams.append("typeSuppliers", type);
+        });
+      }
+
+      // Thêm status nếu có
+      if (filters.status && filters.status.length > 0) {
+        queryParams.append("status", filters.status[0]);
+      }
+
+      const finalUrl = `${
+        import.meta.env.VITE_API_URL
+      }/api/v1/suppliers?${queryParams.toString()}`;
+      console.log("Calling API:", finalUrl); // Debug log
+
+      const response = await axios({
+        url: finalUrl,
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      console.log("API Response:", response.data);
+
+      const { items, totalCount, currentPage, pageSize } = response.data.data;
+      setSuppliers(items);
+      setPagination({
+        current: currentPage,
+        pageSize: pageSize,
+        total: totalCount,
+      });
+    } catch (error) {
+      console.error("Failed to fetch suppliers:", error);
+      message.error("Không thể tải dữ liệu nhà cung cấp");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch and when filters change
+  useEffect(() => {
+    fetchSuppliers({
+      current: pagination.current,
+      pageSize: pagination.pageSize,
+    });
+  }, [
+    searchTerm,
+    JSON.stringify(filters),
+    pagination.current,
+    pagination.pageSize,
   ]);
 
   const columns = [
@@ -115,11 +187,34 @@ const SuppliersPage = () => {
     },
     {
       title: "Loại",
-      dataIndex: "type",
-      key: "type",
-      render: (type) => (
-        <Tag color={type === "Thức ăn" ? "green" : "blue"}>{type}</Tag>
-      ),
+      dataIndex: "typeSuppier",
+      key: "typeSuppier",
+      render: (typeSuppier) => {
+        let types = Array.isArray(typeSuppier) ? typeSuppier : [typeSuppier];
+
+        return types.map((type, index) => {
+          let color;
+          switch (type) {
+            case "feed":
+              color = SUPPLIER_TYPE_COLORS.feed;
+              break;
+            case "medicine":
+              color = SUPPLIER_TYPE_COLORS.medicine;
+              break;
+            case "pig":
+              color = SUPPLIER_TYPE_COLORS.pig;
+              break;
+            default:
+              color = "#d9d9d9";
+          }
+
+          return (
+            <Tag color={color} key={index}>
+              {SUPPLIER_TYPE_LABELS[type]}
+            </Tag>
+          );
+        });
+      },
     },
     {
       title: "Trạng thái",
@@ -149,7 +244,7 @@ const SuppliersPage = () => {
             key: "edit",
             label: "Chỉnh sửa",
             icon: <EditOutlined />,
-            onClick: () => handleEdit(record),
+            onClick: () => handleEditClick(record),
           },
           {
             type: "divider",
@@ -160,13 +255,13 @@ const SuppliersPage = () => {
                 label: "Ngừng hợp tác",
                 icon: <StopOutlined />,
                 danger: true,
-                onClick: () => handleStatusChange(record.id, "inactive"),
+                onClick: () => handleStatusChange(record, "inactive"),
               }
             : {
                 key: "activate",
                 label: "Kích hoạt lại",
                 icon: <CheckOutlined />,
-                onClick: () => handleStatusChange(record.id, "active"),
+                onClick: () => handleStatusChange(record, "active"),
               },
           {
             type: "divider",
@@ -176,24 +271,7 @@ const SuppliersPage = () => {
             label: "Xóa nhà cung cấp",
             icon: <DeleteOutlined />,
             danger: true,
-            onClick: () => {
-              Modal.confirm({
-                title: "Xác nhận xóa",
-                content: "Bạn có chắc chắn muốn xóa nhà cung cấp này?",
-                okText: "Xóa",
-                cancelText: "Hủy",
-                okButtonProps: {
-                  danger: true,
-                  size: "middle",
-                },
-                cancelButtonProps: {
-                  size: "middle",
-                },
-                onOk: () => handleDelete(record.id),
-                okType: "danger",
-                centered: true,
-              });
-            },
+            onClick: () => confirmDelete(record),
           },
         ];
 
@@ -221,45 +299,48 @@ const SuppliersPage = () => {
     },
   ];
 
-  const handleEdit = (supplier) => {
-    setEditingSupplier(supplier);
-    form.setFieldsValue(supplier);
-    setIsModalVisible(true);
-  };
-
-  const handleDelete = async (id) => {
-    console.log(id);
+  const handleDelete = async (supplierId) => {
     try {
-      setLoading(true);
-      // Gọi API xóa
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      message.success("Xóa nhà cung cấp thành công");
+      const response = await axios({
+        url: `${import.meta.env.VITE_API_URL}/api/v1/suppliers/`,
+        method: "DELETE",
+        params: { id: supplierId },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.status === 200) {
+        // Cập nhật state bằng cách lọc bỏ supplier đã xóa
+        setSuppliers((prevSuppliers) =>
+          prevSuppliers.filter((supplier) => supplier.id !== supplierId)
+        );
+
+        // Cập nhật total trong pagination
+        setPagination((prev) => ({
+          ...prev,
+          total: prev.total - 1,
+        }));
+
+        message.success("Xóa nhà cung cấp thành công");
+      }
     } catch (error) {
-      console.log(error);
-      message.error("Có lỗi xảy ra khi xóa nhà cung cấp");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (values) => {
-    console.log(values);
-    try {
-      setLoading(true);
-      // Gọi API tạo/cập nhật
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      message.success(
-        `${editingSupplier ? "Cập nhật" : "Thêm"} nhà cung cấp thành công`
+      console.error("Error deleting supplier:", error.response?.data);
+      message.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi xóa nhà cung cấp"
       );
-      setIsModalVisible(false);
-      form.resetFields();
-      setEditingSupplier(null);
-    } catch (error) {
-      console.log(error);
-      message.error("Có lỗi xảy ra khi lưu nhà cung cấp");
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const confirmDelete = (record) => {
+    Modal.confirm({
+      title: "Xác nhận xóa nhà cung cấp",
+      content: `Bạn có chắc chắn muốn xóa nhà cung cấp "${record.name}" không?`,
+      okText: "Xóa",
+      okType: "danger",
+      cancelText: "Hủy",
+      onOk: () => handleDelete(record.id),
+    });
   };
 
   const handleView = (record) => {
@@ -267,16 +348,141 @@ const SuppliersPage = () => {
     console.log("View:", record);
   };
 
-  const handleStatusChange = async (id, newStatus) => {
+  const handleStatusChange = async (record, newStatus) => {
     try {
-      setLoading(true);
-      // Gọi API cập nhật trạng thái
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      message.success("Cập nhật trạng thái thành công");
+      const response = await axios({
+        url: `${import.meta.env.VITE_API_URL}/api/v1/suppliers`,
+        method: "PATCH",
+        params: { id: record.id },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        data: {
+          name: record.name,
+          email: record.email,
+          phone: record.phone,
+          address: record.address,
+          typeSuppier: record.typeSuppier,
+          status: newStatus,
+        },
+      });
+
+      if (response.status === 200) {
+        const updatedSupplier = response.data.data;
+
+        // Cập nhật state
+        setSuppliers((prevSuppliers) =>
+          prevSuppliers.map((supplier) =>
+            supplier.id === record.id ? updatedSupplier : supplier
+          )
+        );
+
+        message.success(
+          newStatus === "active" ? "Đã kích hoạt hợp tác" : "Đã ngưng hợp tác"
+        );
+      }
     } catch (error) {
-      message.error("Có lỗi xảy ra khi cập nhật trạng thái");
-    } finally {
-      setLoading(false);
+      console.error("Error updating supplier status:", error.response?.data);
+      message.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi cập nhật trạng thái"
+      );
+    }
+  };
+
+  const confirmStatusChange = (record, newStatus) => {
+    const isDeactivating = newStatus === "inactive";
+    Modal.confirm({
+      title: isDeactivating
+        ? "Xác nhận ngưng hợp tác"
+        : "Xác nhận kích hoạt hợp tác",
+      content: `Bạn có chắc chắn muốn ${
+        isDeactivating ? "ngưng" : "kích hoạt"
+      } hợp tác với "${record.name}" không?`,
+      okText: "Xác nhận",
+      okType: isDeactivating ? "danger" : "primary",
+      cancelText: "Hủy",
+      onOk: () => handleStatusChange(record, newStatus),
+    });
+  };
+
+  const handleAddSupplier = async (values) => {
+    try {
+      const response = await axios({
+        url: `${import.meta.env.VITE_API_URL}/api/v1/suppliers`,
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        data: values,
+      });
+
+      // Kiểm tra status code 201 (Created)
+      if (response.status === 201) {
+        console.log(response.data.data);
+        const newSupplier = response.data.data;
+
+        message.success("Thêm nhà cung cấp thành công");
+        setIsModalVisible(false);
+        form.resetFields();
+
+        // Cập nhật state trực tiếp
+        setSuppliers((prev) => [newSupplier, ...prev]);
+
+        // Cập nhật tổng số lượng trong pagination
+        setPagination((prev) => ({
+          ...prev,
+          total: prev.total + 1,
+        }));
+      }
+    } catch (error) {
+      console.error("Error adding supplier:", error.response?.data);
+      message.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi thêm nhà cung cấp"
+      );
+    }
+  };
+
+  const handleEditClick = (record) => {
+    setEditingSupplier(record);
+    editForm.setFieldsValue(record);
+    setIsEditModalVisible(true);
+  };
+
+  const handleUpdateSupplier = async (values) => {
+    try {
+      const response = await axios({
+        url: `${import.meta.env.VITE_API_URL}/api/v1/suppliers`,
+        method: "PATCH",
+        params: { id: editingSupplier.id },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        data: values,
+      });
+
+      if (response.status === 200) {
+        const updatedSupplier = response.data.data;
+
+        // Cập nhật state suppliers
+        setSuppliers((prevSuppliers) =>
+          prevSuppliers.map((supplier) =>
+            supplier.id === editingSupplier.id ? updatedSupplier : supplier
+          )
+        );
+
+        message.success("Cập nhật thông tin thành công");
+        setIsEditModalVisible(false);
+        setEditingSupplier(null);
+        editForm.resetFields();
+      }
+    } catch (error) {
+      console.error("Error updating supplier:", error.response?.data);
+      message.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi cập nhật thông tin"
+      );
     }
   };
 
@@ -298,11 +504,7 @@ const SuppliersPage = () => {
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => {
-                setEditingSupplier(null);
-                form.resetFields();
-                setIsModalVisible(true);
-              }}
+              onClick={() => setIsModalVisible(true)}
             >
               Thêm nhà cung cấp
             </Button>
@@ -320,7 +522,13 @@ const SuppliersPage = () => {
             <Input.Search
               placeholder="Tìm kiếm theo tên, SĐT, email..."
               allowClear
-              onChange={(e) => setSearchText(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onSearch={(value) => {
+                console.log("Searching for:", value);
+                setSearchTerm(value);
+                setPagination((prev) => ({ ...prev, current: 1 }));
+              }}
               style={{ width: "100%" }}
               prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
             />
@@ -334,13 +542,14 @@ const SuppliersPage = () => {
                   mode="multiple"
                   maxTagCount="responsive"
                   allowClear
-                  onChange={(value) =>
-                    setFilters((prev) => ({ ...prev, type: value }))
-                  }
+                  value={tempFilters.type}
+                  onChange={(value) => {
+                    setTempFilters((prev) => ({ ...prev, type: value }));
+                  }}
                   options={[
-                    { label: "Thức ăn", value: "Thức ăn" },
-                    { label: "Thuốc", value: "Thuốc" },
-                    { label: "Khác", value: "Khác" },
+                    { label: "Thức ăn", value: "feed" },
+                    { label: "Thuốc", value: "medicine" },
+                    { label: "Heo", value: "pig" },
                   ]}
                 />
               </Col>
@@ -348,12 +557,14 @@ const SuppliersPage = () => {
                 <Select
                   style={{ width: 180 }}
                   placeholder="Trạng thái"
-                  mode="multiple"
-                  maxTagCount="responsive"
                   allowClear
-                  onChange={(value) =>
-                    setFilters((prev) => ({ ...prev, status: value }))
-                  }
+                  value={tempFilters.status[0]}
+                  onChange={(value) => {
+                    setTempFilters((prev) => ({
+                      ...prev,
+                      status: value ? [value] : [],
+                    }));
+                  }}
                   options={[
                     { label: "Đang hợp tác", value: "active" },
                     { label: "Ngừng hợp tác", value: "inactive" },
@@ -361,24 +572,19 @@ const SuppliersPage = () => {
                 />
               </Col>
               <Col>
-                <RangePicker
-                  style={{ width: 240 }}
-                  placeholder={["Từ ngày", "Đến ngày"]}
-                  onChange={(dates) =>
-                    setFilters((prev) => ({ ...prev, createdAt: dates }))
-                  }
-                />
-              </Col>
-              <Col>
                 <Space>
                   <Button
                     icon={<ClearOutlined />}
                     onClick={() => {
+                      setTempFilters({
+                        type: [],
+                        status: [],
+                      });
                       setFilters({
                         type: [],
                         status: [],
-                        createdAt: [],
                       });
+                      setPagination((prev) => ({ ...prev, current: 1 }));
                     }}
                   >
                     Xóa lọc
@@ -387,8 +593,9 @@ const SuppliersPage = () => {
                     type="primary"
                     icon={<FilterOutlined />}
                     onClick={() => {
-                      // Xử lý lọc dữ liệu
-                      console.log("Filters:", filters);
+                      // Áp dụng bộ lọc
+                      setFilters({ ...tempFilters }); // Tạo object mới để đảm bảo reference thay đổi
+                      setPagination((prev) => ({ ...prev, current: 1 }));
                     }}
                   >
                     Áp dụng
@@ -404,13 +611,20 @@ const SuppliersPage = () => {
       <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: "8px" }}>
         <Table
           columns={columns}
-          dataSource={suppliers}
-          rowKey="id"
+          dataSource={suppliers || []}
+          rowKey={(record) => record.id}
           loading={loading}
           pagination={{
-            pageSize: 10,
+            ...pagination,
             showSizeChanger: true,
             showTotal: (total) => `Tổng số ${total} nhà cung cấp`,
+            onChange: (page, pageSize) => {
+              setPagination((prev) => ({
+                ...prev,
+                current: page,
+                pageSize: pageSize,
+              }));
+            },
           }}
           scroll={{ x: 1000 }}
         />
@@ -418,7 +632,8 @@ const SuppliersPage = () => {
 
       {/* Modal giữ nguyên */}
 
-      <style jsx global>{`
+      {/* eslint-disable-next-line react/no-unknown-property */}
+      <style jsx>{`
         .ant-input-search .ant-input-prefix {
           margin-right: 8px;
         }
@@ -496,6 +711,207 @@ const SuppliersPage = () => {
           gap: 8px !important;
         }
       `}</style>
+
+      <Modal
+        title="Thêm nhà cung cấp mới"
+        open={isModalVisible}
+        onCancel={() => {
+          setIsModalVisible(false);
+          form.resetFields();
+        }}
+        footer={null}
+      >
+        <Form form={form} layout="vertical" onFinish={handleAddSupplier}>
+          <Form.Item
+            name="name"
+            label="Tên nhà cung cấp"
+            rules={[
+              { required: true, message: "Vui lòng nhập tên nhà cung cấp" },
+            ]}
+          >
+            <Input placeholder="Nhập tên nhà cung cấp" />
+          </Form.Item>
+
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: "Vui lòng nhập email" },
+              { type: "email", message: "Email không hợp lệ" },
+            ]}
+          >
+            <Input placeholder="Nhập email" />
+          </Form.Item>
+
+          <Form.Item
+            name="phone"
+            label="Số điện thoại"
+            rules={[
+              { required: true, message: "Vui lòng nhập số điện thoại" },
+              {
+                pattern: /^[0-9]{10,11}$/,
+                message: "Số điện thoại không hợp lệ",
+              },
+            ]}
+          >
+            <Input placeholder="Nhập số điện thoại" />
+          </Form.Item>
+
+          <Form.Item
+            name="address"
+            label="Địa chỉ"
+            rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}
+          >
+            <Input.TextArea placeholder="Nhập địa chỉ" />
+          </Form.Item>
+
+          <Form.Item
+            name="typeSuppier"
+            label="Loại nhà cung cấp"
+            rules={[
+              { required: true, message: "Vui lòng chọn loại nhà cung cấp" },
+            ]}
+          >
+            <Select placeholder="Chọn loại nhà cung cấp">
+              <Select.Option value="feed">Thức ăn</Select.Option>
+              <Select.Option value="medicine">Thuốc</Select.Option>
+              <Select.Option value="pig">Heo</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="status"
+            label="Trạng thái"
+            initialValue="active"
+            rules={[{ required: true }]}
+          >
+            <Select>
+              <Select.Option value="active">Đang hợp tác</Select.Option>
+              <Select.Option value="inactive">Ngừng hợp tác</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item className="text-right">
+            <Space>
+              <Button
+                onClick={() => {
+                  setIsModalVisible(false);
+                  form.resetFields();
+                }}
+              >
+                Hủy
+              </Button>
+              <Button type="primary" htmlType="submit">
+                Thêm mới
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="Cập nhật thông tin nhà cung cấp"
+        open={isEditModalVisible}
+        onCancel={() => {
+          setIsEditModalVisible(false);
+          setEditingSupplier(null);
+          editForm.resetFields();
+        }}
+        footer={null}
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+          onFinish={handleUpdateSupplier}
+          initialValues={editingSupplier}
+        >
+          <Form.Item
+            name="name"
+            label="Tên nhà cung cấp"
+            rules={[
+              { required: true, message: "Vui lòng nhập tên nhà cung cấp" },
+            ]}
+          >
+            <Input placeholder="Nhập tên nhà cung cấp" />
+          </Form.Item>
+
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: "Vui lòng nhập email" },
+              { type: "email", message: "Email không hợp lệ" },
+            ]}
+          >
+            <Input placeholder="Nhập email" />
+          </Form.Item>
+
+          <Form.Item
+            name="phone"
+            label="Số điện thoại"
+            rules={[
+              { required: true, message: "Vui lòng nhập số điện thoại" },
+              {
+                pattern: /^[0-9]{10,11}$/,
+                message: "Số điện thoại không hợp lệ",
+              },
+            ]}
+          >
+            <Input placeholder="Nhập số điện thoại" />
+          </Form.Item>
+
+          <Form.Item
+            name="address"
+            label="Địa chỉ"
+            rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}
+          >
+            <Input.TextArea placeholder="Nhập địa chỉ" />
+          </Form.Item>
+
+          <Form.Item
+            name="typeSuppier"
+            label="Loại nhà cung cấp"
+            rules={[
+              { required: true, message: "Vui lòng chọn loại nhà cung cấp" },
+            ]}
+          >
+            <Select placeholder="Chọn loại nhà cung cấp">
+              <Select.Option value="feed">Thức ăn</Select.Option>
+              <Select.Option value="medicine">Thuốc</Select.Option>
+              <Select.Option value="pig">Heo</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="status"
+            label="Trạng thái"
+            initialValue="active"
+            rules={[{ required: true }]}
+          >
+            <Select>
+              <Select.Option value="active">Đang hợp tác</Select.Option>
+              <Select.Option value="inactive">Ngừng hợp tác</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item className="text-right">
+            <Space>
+              <Button
+                onClick={() => {
+                  setIsEditModalVisible(false);
+                  setEditingSupplier(null);
+                  editForm.resetFields();
+                }}
+              >
+                Hủy
+              </Button>
+              <Button type="primary" htmlType="submit">
+                Cập nhật
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </Layout>
   );
 };

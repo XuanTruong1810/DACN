@@ -20,9 +20,10 @@ namespace Infrastructure.Context
         public DbSet<FeedInTakes> FeedInTakes { get; set; }
         public DbSet<FeedInTakeDetails> FeedInTakeDetails { get; set; }
 
-        public DbSet<MedicationAndVaccines> MedicationAndVaccines { get; set; }
-        public DbSet<MedicationAndVaccineIntakes> MedicationAndVaccineIntakes { get; set; }
-        public DbSet<MedicationAndVaccineIntakeDetails> MedicationAndVaccineIntakeDetails { get; set; }
+        public DbSet<MedicineSupplier> MedicineSuppliers { get; set; }
+        public DbSet<RequestMedicine> RequestMedicines { get; set; }
+        public DbSet<ImportMedicine> ImportMedicines { get; set; }
+        public DbSet<ImportOrderDetail> ImportOrderDetails { get; set; }
 
         // public DbSet<HealthRecords> HealthRecords { get; set; }
         // public DbSet<HealthRecordDetails> HealthRecordDetails { get; set; }
@@ -40,12 +41,11 @@ namespace Infrastructure.Context
             builder.Entity<FeedInTakeDetails>()
                 .HasKey(d => new { d.FeedInTakeId, d.FeedId });
 
-            builder.Entity<MedicationAndVaccineIntakeDetails>()
-                .HasKey(mav => new { mav.MedVacIntakeId, mav.MedVacId });
+            builder.Entity<ImportOrderDetail>()
+                .HasKey(d => new { d.ImportId, d.MedicineUnitId });
 
-            builder.Entity<HealthRecordDetails>()
-                .HasKey(hrd => new { hrd.HealthRecordId, hrd.PigId });
-
+            builder.Entity<MedicineSupplier>()
+                .HasKey(ms => new { ms.MedicineId, ms.SupplierId });
 
             /// Create tables
             builder.Entity<ApplicationUser>().ToTable("User");
@@ -65,11 +65,10 @@ namespace Infrastructure.Context
             builder.Entity<FeedTypes>().ToTable("FeedTypes");
             builder.Entity<FeedInTakes>().ToTable("FeedInTakes");
             builder.Entity<FeedInTakeDetails>().ToTable("FeedInTakeDetails");
-            builder.Entity<MedicationAndVaccines>().ToTable("MedicationAndVaccines");
-            builder.Entity<MedicationAndVaccineIntakes>().ToTable("MedicationAndVaccineIntakes");
-            builder.Entity<MedicationAndVaccineIntakeDetails>().ToTable("MedicationAndVaccineIntakeDetails");
-            builder.Entity<HealthRecords>().ToTable("HealthRecords");
-            builder.Entity<HealthRecordDetails>().ToTable("HealthRecordDetails");
+            builder.Entity<MedicineSupplier>().ToTable("MedicineSuppliers");
+            builder.Entity<RequestMedicine>().ToTable("RequestMedicines");
+            builder.Entity<ImportMedicine>().ToTable("ImportMedicines");
+            builder.Entity<ImportOrderDetail>().ToTable("ImportOrderDetails");
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

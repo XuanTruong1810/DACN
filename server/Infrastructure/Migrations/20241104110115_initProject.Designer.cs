@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DataBaseContext))]
-    [Migration("20241024160215_Project_Change_Name")]
-    partial class Project_Change_Name
+    [Migration("20241104110115_initProject")]
+    partial class initProject
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -125,6 +125,16 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("OccupiedHouses")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TotalHouses")
+                        .HasColumnType("int");
+
                     b.Property<DateTimeOffset?>("UpdatedTime")
                         .HasColumnType("datetimeoffset");
 
@@ -196,7 +206,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("SuppliersId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal?>("TotalPrice")
@@ -295,8 +304,10 @@ namespace Infrastructure.Migrations
                     b.Property<string>("MedVacId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<DateTimeOffset>("NextCheckupDate")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("Note")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("Weight")
@@ -315,6 +326,10 @@ namespace Infrastructure.Migrations
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CreateBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset?>("CreatedTime")
                         .HasColumnType("datetimeoffset");
@@ -395,7 +410,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("SuppliersId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal?>("TotalPrice")
@@ -423,7 +437,7 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("CreatedTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<int>("DaysUsableAfterImport")
+                    b.Property<int?>("DaysUsableAfterImport")
                         .HasColumnType("int");
 
                     b.Property<DateTimeOffset?>("DeleteTime")
@@ -432,9 +446,6 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset>("ExpiryDate")
-                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Manufacturer")
                         .IsRequired()
@@ -497,6 +508,9 @@ namespace Infrastructure.Migrations
 
                     b.Property<decimal?>("RemainingAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTimeOffset?>("StokeDate")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("SuppliersId")
                         .HasColumnType("nvarchar(450)");
@@ -599,11 +613,19 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("DeleteTime")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -775,9 +797,7 @@ namespace Infrastructure.Migrations
                 {
                     b.HasOne("Core.Entities.Suppliers", "Suppliers")
                         .WithMany()
-                        .HasForeignKey("SuppliersId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SuppliersId");
 
                     b.Navigation("Suppliers");
                 });
@@ -849,9 +869,7 @@ namespace Infrastructure.Migrations
                 {
                     b.HasOne("Core.Entities.Suppliers", "Suppliers")
                         .WithMany()
-                        .HasForeignKey("SuppliersId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SuppliersId");
 
                     b.Navigation("Suppliers");
                 });
