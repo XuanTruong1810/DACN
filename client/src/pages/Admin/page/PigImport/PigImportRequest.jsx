@@ -18,6 +18,7 @@ import {
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import axios from "axios";
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -28,63 +29,89 @@ const PigImportRequest = () => {
   const [availableHouses, setAvailableHouses] = useState([]);
   const [selectedQuantity, setSelectedQuantity] = useState(0);
   const [totalAvailableSpace, setTotalAvailableSpace] = useState(0);
-
-  // Giả lập dữ liệu chuồng trại
-  const fakeHouses = [
-    {
-      id: 1,
-      areaName: "Khu A",
-      houseName: "Chuồng A1",
-      totalCapacity: 100,
-      currentQuantity: 70,
-      availableSpace: 30,
-      status: "active",
-      lastCleaned: "2024-03-15",
-      type: "growing",
-    },
-    {
-      id: 2,
-      areaName: "Khu A",
-      houseName: "Chuồng A2",
-      totalCapacity: 100,
-      currentQuantity: 50,
-      availableSpace: 50,
-      status: "active",
-      lastCleaned: "2024-03-14",
-      type: "growing",
-    },
-    {
-      id: 3,
-      areaName: "Khu B",
-      houseName: "Chuồng B1",
-      totalCapacity: 80,
-      currentQuantity: 0,
-      availableSpace: 80,
-      status: "ready",
-      lastCleaned: "2024-03-16",
-      type: "growing",
-    },
-  ];
+  const [areaIdA, setAreaIdA] = useState(null);
 
   useEffect(() => {
-    // Giả lập API call để lấy danh sách chuồng
-    setLoading(true);
-    setTimeout(() => {
-      // Lọc ra các chuồng còn trống
-      const availableHouses = fakeHouses.filter(
-        (house) => house.availableSpace > 0
-      );
-      setAvailableHouses(availableHouses);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
 
-      // Tính tổng số chỗ trống
-      const total = availableHouses.reduce(
-        (sum, house) => sum + house.availableSpace,
-        0
-      );
-      setTotalAvailableSpace(total);
+        // 1. Fetch areas để lấy ID của khu A
+        const areasResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/v1/areas`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
 
-      setLoading(false);
-    }, 1000);
+        const areaA = areasResponse.data.data.items.find((area) =>
+          area.name.toLowerCase().includes("a")
+        );
+
+        if (!areaA) {
+          message.error("Không tìm thấy khu vực A");
+          return;
+        }
+
+        setAreaIdA(areaA.id);
+
+        // 2. Fetch stables của khu A
+        const stablesResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/v1/Stables?areaId=${areaA.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        // Format lại data cho phù hợp với response API
+        const formattedStables = stablesResponse.data.data.items.map(
+          (stable) => ({
+            id: stable.id,
+            areaName: stable.areaName,
+            name: stable.name,
+            capacity: stable.capacity,
+            currentOccupancy: stable.currentOccupancy,
+            availableSpace: stable.capacity - stable.currentOccupancy,
+            status:
+              stable.status === "Available"
+                ? "active"
+                : stable.status === "UnderMaintenance"
+                ? "maintenance"
+                : stable.status === "Cleaning"
+                ? "cleaning"
+                : "ready",
+            temperature: stable.temperature,
+            humidity: stable.humidity,
+          })
+        );
+
+        // Lọc ra các chuồng còn trống và đang hoạt động
+        const availableStables = formattedStables.filter(
+          (stable) => stable.availableSpace > 0 && stable.status === "active"
+        );
+
+        setAvailableHouses(availableStables);
+
+        // Tính tổng số chỗ trống
+        const total = availableStables.reduce(
+          (sum, stable) => sum + stable.availableSpace,
+          0
+        );
+        setTotalAvailableSpace(total);
+      } catch (error) {
+        message.error(
+          error.response?.data?.message || "Không thể tải dữ liệu chuồng"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const columns = [
@@ -95,19 +122,19 @@ const PigImportRequest = () => {
     },
     {
       title: "Chuồng",
-      dataIndex: "houseName",
-      key: "houseName",
+      dataIndex: "name",
+      key: "name",
     },
     {
       title: "Sức chứa tối đa",
-      dataIndex: "totalCapacity",
-      key: "totalCapacity",
+      dataIndex: "capacity",
+      key: "capacity",
       render: (value) => `${value} con`,
     },
     {
       title: "Số lượng hiện tại",
-      dataIndex: "currentQuantity",
-      key: "currentQuantity",
+      dataIndex: "currentOccupancy",
+      key: "currentOccupancy",
       render: (value) => `${value} con`,
     },
     {
@@ -119,12 +146,22 @@ const PigImportRequest = () => {
       ),
     },
     {
+      title: "Nhiệt độ",
+      dataIndex: "temperature",
+      key: "temperature",
+    },
+    {
+      title: "Độ ẩm",
+      dataIndex: "humidity",
+      key: "humidity",
+    },
+    {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
       render: (status) => {
         const statusConfig = {
-          active: { color: "processing", text: "Đang sử dụng" },
+          active: { color: "processing", text: "Đang hoạt động" },
           ready: { color: "success", text: "Sẵn sàng" },
           cleaning: { color: "warning", text: "Đang vệ sinh" },
           maintenance: { color: "error", text: "Đang bảo trì" },
@@ -133,12 +170,6 @@ const PigImportRequest = () => {
         return <Tag color={config.color}>{config.text}</Tag>;
       },
     },
-    {
-      title: "Vệ sinh lần cuối",
-      dataIndex: "lastCleaned",
-      key: "lastCleaned",
-      render: (date) => dayjs(date).format("DD/MM/YYYY"),
-    },
   ];
 
   const handleQuantityChange = (value) => {
@@ -146,9 +177,9 @@ const PigImportRequest = () => {
   };
 
   const handleSubmit = async (values) => {
-    setLoading(true);
     try {
-      // Kiểm tra số lượng
+      setLoading(true);
+
       if (values.quantity > totalAvailableSpace) {
         message.error(
           `Số lượng yêu cầu (${values.quantity}) vượt quá số chỗ trống có sẵn (${totalAvailableSpace})`
@@ -156,34 +187,32 @@ const PigImportRequest = () => {
         return;
       }
 
-      const formattedData = {
-        ...values,
-        requestDate: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-        expectedDate: values.expectedDate?.format("YYYY-MM-DD"),
-        expectedTime: values.expectedTime?.format("HH:mm"),
-        documents: values.documents?.fileList?.map((file) => ({
-          name: file.name,
-          url: file.url || file.response?.url,
-        })),
-        status: "pending",
-        requestedBy: "Current User", // Thay bằng user thật
-        availableHouses: availableHouses.map((house) => ({
-          id: house.id,
-          name: house.houseName,
-          availableSpace: house.availableSpace,
-        })),
+      const formData = {
+        areasId: areaIdA,
+        expectedQuantity: values.quantity,
+        age: values.age,
+        weight: values.averageWeight,
+        healthStatus: values.healthStatus,
+        note: values.notes,
       };
 
-      // Giả lập API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log("Submitted data:", formattedData);
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/v1/PigIntakes`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
       message.success("Đã tạo yêu cầu nhập heo thành công!");
       form.resetFields();
       setSelectedQuantity(0);
     } catch (error) {
-      console.error("Error:", error);
-      message.error("Có lỗi xảy ra khi tạo yêu cầu!");
+      message.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi tạo yêu cầu!"
+      );
     } finally {
       setLoading(false);
     }

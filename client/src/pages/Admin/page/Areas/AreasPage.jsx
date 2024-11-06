@@ -60,6 +60,7 @@ const AreasPage = () => {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
+      console.log(response.data.data.items);
       setAreas(response.data.data.items);
     } catch (error) {
       console.error("Failed to fetch areas:", error);
@@ -138,11 +139,11 @@ const AreasPage = () => {
           />
           <Progress
             percent={Math.round(
-              (record.currentOccupancy / record.capacity) * 100
+              (record.occupiedHouses / record.totalHouses) * 100
             )}
             size="small"
             status={
-              record.currentOccupancy === record.capacity
+              record.occupiedHouses === record.totalHouses
                 ? "exception"
                 : "active"
             }

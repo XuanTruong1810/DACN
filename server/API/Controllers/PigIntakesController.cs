@@ -14,7 +14,7 @@ namespace API.Controllers
         private readonly IPigIntakeService pigIntakeService = pigIntakeService;
 
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Dispatch")]
         public async Task<IActionResult> Get([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, string? filter = null)
         {
             BasePagination<PigInTakeModelView>? data = await pigIntakeService.GetAllAsync(pageIndex, pageSize, filter);
@@ -22,7 +22,7 @@ namespace API.Controllers
 
         }
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Dispatch")]
         public async Task<IActionResult> GetById(string id)
         {
             PigInTakeModelView? data = await pigIntakeService.GetPigIntakeByIdAsync(id);

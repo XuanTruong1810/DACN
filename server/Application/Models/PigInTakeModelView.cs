@@ -19,6 +19,8 @@ namespace Application.Models
         public decimal TotalPrice { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 
+        public decimal RemainingAmount { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 
         public int ExpectedQuantity { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -40,6 +42,8 @@ namespace Application.Models
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 
         public DateTimeOffset StokeDate { get; set; }
+
+        public DateTimeOffset CreatedTime { get; set; }
 
     }
 }

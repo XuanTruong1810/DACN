@@ -203,72 +203,92 @@ namespace Application.Services
             PigIntakes? PigIntake = await unitOfWork.GetRepository<PigIntakes>().GetByIdAsync(pigIntakeId)
                 ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy id của hóa đơn");
 
+            if (!PigIntake.DeliveryDate.HasValue)
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Hóa đơn này chưa được giao hàng!");
+            }
+
+            if (PigIntake.StokeDate.HasValue)
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Hóa đơn này đã được nhập kho!");
+            }
+
             List<Stables>? availableStables = await unitOfWork.GetRepository<Stables>()
                 .GetEntities
                 .Where(s => s.Capacity > s.CurrentOccupancy && s.AreasId == AreasId)
+                .OrderBy(s => s.CurrentOccupancy)
                 .ToListAsync();
 
-            if (availableStables == null || availableStables.Count == 0)
+            if (!availableStables.Any())
             {
-                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Không có chuồng trại khả dụng");
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Không có chuồng trại khả dụng trong khu vực này");
             }
 
+            int totalAvailableSpace = availableStables.Sum(s => s.Capacity - s.CurrentOccupancy);
             int? pigAccept = PigIntake.AcceptedQuantity
                 ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy số lượng hóa đơn đã chấp nhận");
 
-            List<Pigs> pigsList = new List<Pigs>();
-            int stableIndex = 0;
-            int availableStablesCount = availableStables.Count;
+            if (totalAvailableSpace < pigAccept)
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                    $"Không đủ chỗ trống trong khu vực. Cần {pigAccept} chỗ, hiện chỉ còn {totalAvailableSpace} chỗ trống");
+            }
 
-            // Đếm tổng số heo hiện có trong tất cả chuồng
             int totalExistingPigsCount = await unitOfWork.GetRepository<Pigs>()
                 .GetEntities
                 .CountAsync();
 
+            List<Pigs> pigsList = new List<Pigs>();
+            int stableIndex = 0;
+
             for (int i = 1; i <= pigAccept; i++)
             {
-                if (stableIndex >= availableStablesCount)
-                {
-                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Không đủ chuồng trại để phân bổ số lượng heo");
-                }
-
                 Stables currentStable = availableStables[stableIndex];
 
-                // Tạo mã PigId với tổng số heo hiện có cộng thêm chỉ số i
-                string pigCode = $"{PigIntake.DeliveryDate:yyyyMMdd}_{totalExistingPigsCount + i}";
+                if (currentStable.CurrentOccupancy >= currentStable.Capacity)
+                {
+                    stableIndex++;
+                    if (stableIndex >= availableStables.Count)
+                    {
+                        throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                            "Lỗi phân bổ: Không đủ chuồng trại");
+                    }
+                    currentStable = availableStables[stableIndex];
+                }
 
-                Console.WriteLine(pigCode);
+                string pigCode = $"{PigIntake.DeliveryDate:yyyyMMdd}_{totalExistingPigsCount + i}";
 
                 Pigs newPig = new Pigs
                 {
                     PigId = pigCode,
                     StableId = currentStable.Id,
                 };
-
                 pigsList.Add(newPig);
 
                 currentStable.CurrentOccupancy++;
-
-                if (currentStable.CurrentOccupancy >= currentStable.Capacity)
-                {
-                    stableIndex++;
-                }
             }
 
-            await unitOfWork.GetRepository<Pigs>().AddRangeAsync(pigsList);
-
-            foreach (Stables stable in availableStables)
+            try
             {
-                await unitOfWork.GetRepository<Stables>().UpdateAsync(stable);
+                await unitOfWork.GetRepository<Pigs>().AddRangeAsync(pigsList);
+
+                foreach (var stable in availableStables.Where(s => s.CurrentOccupancy > 0))
+                {
+                    await unitOfWork.GetRepository<Stables>().UpdateAsync(stable);
+                }
+
+                PigIntake.StokeDate = DateTimeOffset.Now;
+                await unitOfWork.GetRepository<PigIntakes>().UpdateAsync(PigIntake);
+
+                await unitOfWork.SaveAsync();
+
+                return mapper.Map<PigInTakeModelView>(PigIntake);
             }
-
-            PigIntake.StokeDate = DateTimeOffset.Now;
-
-            await unitOfWork.GetRepository<PigIntakes>().UpdateAsync(PigIntake);
-
-            await unitOfWork.SaveAsync();
-
-            return mapper.Map<PigInTakeModelView>(PigIntake);
+            catch (Exception ex)
+            {
+                throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError,
+                    "Lỗi khi cập nhật dữ liệu: " + ex.Message);
+            }
         }
 
 

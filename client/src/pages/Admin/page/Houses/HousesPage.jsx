@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Table,
   Card,
@@ -36,10 +37,11 @@ const { Text } = Typography;
 
 const HousesPage = () => {
   const [loading, setLoading] = useState(false);
-  //   const [searchText, setSearchText] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingHouse, setEditingHouse] = useState(null);
   const [form] = Form.useForm();
+  const [houses, setHouses] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [filters, setFilters] = useState({
     area: [],
     status: [],
@@ -47,67 +49,11 @@ const HousesPage = () => {
     occupancy: null,
   });
 
-  // Mock data - thay thế bằng API call thực tế
-  const [houses] = useState([
-    {
-      id: 1,
-      name: "Chuồng A1",
-      area: "Khu A",
-      type: "Heo thịt",
-      capacity: 100,
-      currentOccupancy: 80,
-      status: "active",
-      temperature: 25,
-      humidity: 70,
-      lastCleaned: "2024-03-15",
-      nextMaintenance: "2024-04-15",
-    },
-    {
-      id: 2,
-      name: "Chuồng B2",
-      area: "Khu B",
-      type: "Heo nái",
-      capacity: 50,
-      currentOccupancy: 50,
-      status: "full",
-      temperature: 26,
-      humidity: 65,
-      lastCleaned: "2024-03-14",
-      nextMaintenance: "2024-04-14",
-    },
-    {
-      id: 3,
-      name: "Chuồng C1",
-      area: "Khu C",
-      type: "Cách ly",
-      capacity: 20,
-      currentOccupancy: 0,
-      status: "maintenance",
-      temperature: 24,
-      humidity: 60,
-      lastCleaned: "2024-03-13",
-      nextMaintenance: "2024-03-20",
-    },
-  ]);
-
-  // Mock data cho select options
-  const areaOptions = [
-    { value: "Khu A", label: "Khu A" },
-    { value: "Khu B", label: "Khu B" },
-    { value: "Khu C", label: "Khu C" },
-  ];
-
-  const typeOptions = [
-    { value: "Heo thịt", label: "Heo thịt" },
-    { value: "Heo nái", label: "Heo nái" },
-    { value: "Cách ly", label: "Cách ly" },
-  ];
-
+  // Define options for selects
   const statusOptions = [
-    { value: "active", label: "Đang hoạt động" },
-    { value: "full", label: "Đã đầy" },
-    { value: "maintenance", label: "Đang bảo trì" },
-    { value: "inactive", label: "Ngừng hoạt động" },
+    { value: 1, label: "Đang hoạt động" },
+    { value: 2, label: "Đang bảo trì" },
+    { value: 3, label: "Ngưng hoạt động" },
   ];
 
   const occupancyOptions = [
@@ -117,22 +63,162 @@ const HousesPage = () => {
     { value: "full", label: "Đã đầy" },
   ];
 
+  // Fetch houses data
+  const fetchHouses = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/Stables`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log(response);
+      const formattedHouses = response.data.data.items.map((house) => ({
+        id: house.id,
+        name: house.name,
+        area: house.areaName,
+        capacity: house.capacity,
+        currentOccupancy: house.currentOccupancy,
+        status: house.status,
+        temperature: house.temperature,
+        humidity: house.humidity,
+      }));
+
+      setHouses(formattedHouses);
+    } catch (error) {
+      message.error(
+        error.response?.data?.message || "Không thể tải dữ liệu chuồng"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch areas data
+  const fetchAreas = async () => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/areas`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      const formattedAreas = response.data.data.items.map((area) => ({
+        value: area.id,
+        label: area.name,
+      }));
+
+      setAreas(formattedAreas);
+    } catch (error) {
+      message.error("Không thể tải dữ liệu khu vực");
+    }
+  };
+
+  useEffect(() => {
+    fetchHouses();
+    fetchAreas();
+  }, []);
+
+  // Handle submit form
+  const handleSubmit = async (values) => {
+    console.log(values);
+    try {
+      setLoading(true);
+      const formData = {
+        name: values.name,
+        areasId: values.area,
+        capacity: values.capacity,
+        currentOccupancy: values.currentOccupancy || 0,
+        temperature: values.temperature,
+        humidity: values.humidity,
+        status:
+          values.status == 1
+            ? "Available"
+            : values.status == 2
+            ? "UnderMaintenance"
+            : "StopWorking",
+      };
+
+      if (editingHouse) {
+        await axios.patch(
+          `${import.meta.env.VITE_API_URL}/api/v1/stables/${editingHouse.id}`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        message.success("Cập nhật chuồng thành công");
+      } else {
+        await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/v1/stables`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        message.success("Thêm chuồng mới thành công");
+      }
+
+      fetchHouses();
+      setIsModalVisible(false);
+      form.resetFields();
+      setEditingHouse(null);
+    } catch (error) {
+      message.error(error.response?.data?.message || "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle delete house
+  const handleDelete = async (id) => {
+    try {
+      setLoading(true);
+      await axios.delete(
+        `${import.meta.env.VITE_API_URL}/api/v1/stables/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      message.success("Xóa chuồng thành công");
+      fetchHouses();
+    } catch (error) {
+      message.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi xóa chuồng"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusColor = (status) => {
     const colors = {
-      active: "success",
-      inactive: "default",
-      maintenance: "warning",
-      full: "error",
+      Available: "#52c41a",
+      Full: "#f5222d", // màu đỏ
+      UnderMaintenance: "#faad14", // màu vàng
+      StopWorking: "#f5222d",
     };
     return colors[status] || "default";
   };
 
   const getStatusText = (status) => {
     const texts = {
-      active: "Đang hoạt động",
-      inactive: "Ngừng hoạt động",
-      maintenance: "Đang bảo trì",
-      full: "Đã đầy",
+      Available: "Còn trống",
+      StopWorking: "Ngừng hoạt động",
+      UnderMaintenance: "Đang bảo trì",
+      Full: "Đã đầy",
     };
     return texts[status] || "Không xác định";
   };
@@ -158,12 +244,6 @@ const HousesPage = () => {
           {text}
         </Tag>
       ),
-    },
-    {
-      title: "Loại chuồng",
-      dataIndex: "type",
-      key: "type",
-      render: (text) => <Tag>{text}</Tag>,
     },
     {
       title: "Sức chứa",
@@ -273,6 +353,72 @@ const HousesPage = () => {
     },
   ];
 
+  // Thêm hàm handleApplyFilter
+  const handleApplyFilter = async () => {
+    try {
+      setLoading(true);
+      let url = `${import.meta.env.VITE_API_URL}/api/v1/Stables`;
+
+      // Tạo object params
+      const params = new URLSearchParams();
+
+      // Thêm filter area
+      if (filters.area?.length > 0) {
+        params.append("areaId", filters.area[0]);
+      }
+
+      // Thêm filter status
+      if (filters.status?.length > 0) {
+        params.append("status", filters.status[0]);
+      }
+
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        params: params,
+      });
+
+      let filteredHouses = response.data.data.items.map((house) => ({
+        id: house.id,
+        name: house.name,
+        area: house.areaName,
+        capacity: house.capacity,
+        currentOccupancy: house.currentOccupancy,
+        status: house.status,
+        temperature: house.temperature,
+        humidity: house.humidity,
+      }));
+
+      // Lọc theo occupancy ở client side
+      if (filters.occupancy) {
+        filteredHouses = filteredHouses.filter((house) => {
+          const occupancyRate = house.currentOccupancy / house.capacity;
+          switch (filters.occupancy) {
+            case "empty":
+              return house.currentOccupancy === 0;
+            case "low":
+              return occupancyRate < 0.5;
+            case "high":
+              return (
+                occupancyRate >= 0.5 && house.currentOccupancy < house.capacity
+              );
+            case "full":
+              return house.currentOccupancy === house.capacity;
+            default:
+              return true;
+          }
+        });
+      }
+
+      setHouses(filteredHouses);
+    } catch (error) {
+      message.error(error.response?.data?.message || "Lỗi khi lọc dữ liệu");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Filter panel component
   const FilterPanel = () => (
     <Card
@@ -286,22 +432,10 @@ const HousesPage = () => {
             style={{ width: "100%" }}
             placeholder="Khu vực"
             allowClear
-            options={areaOptions}
+            options={areas}
+            value={filters.area}
             onChange={(value) =>
               setFilters((prev) => ({ ...prev, area: value }))
-            }
-            maxTagCount="responsive"
-          />
-        </Col>
-        <Col xs={24} sm={12} md={6} lg={5}>
-          <Select
-            mode="multiple"
-            style={{ width: "100%" }}
-            placeholder="Loại chuồng"
-            allowClear
-            options={typeOptions}
-            onChange={(value) =>
-              setFilters((prev) => ({ ...prev, type: value }))
             }
             maxTagCount="responsive"
           />
@@ -313,6 +447,7 @@ const HousesPage = () => {
             placeholder="Trạng thái"
             allowClear
             options={statusOptions}
+            value={filters.status}
             onChange={(value) =>
               setFilters((prev) => ({ ...prev, status: value }))
             }
@@ -325,6 +460,7 @@ const HousesPage = () => {
             placeholder="Mức độ sử dụng"
             allowClear
             options={occupancyOptions}
+            value={filters.occupancy}
             onChange={(value) =>
               setFilters((prev) => ({ ...prev, occupancy: value }))
             }
@@ -338,9 +474,9 @@ const HousesPage = () => {
                 setFilters({
                   area: [],
                   status: [],
-                  type: [],
                   occupancy: null,
                 });
+                fetchHouses(); // Reset về dữ liệu ban đầu
               }}
             >
               Xóa lọc
@@ -348,10 +484,7 @@ const HousesPage = () => {
             <Button
               type="primary"
               icon={<FilterOutlined />}
-              onClick={() => {
-                // Xử lý lọc dữ liệu
-                console.log("Filters:", filters);
-              }}
+              onClick={handleApplyFilter}
             >
               Áp dụng
             </Button>
@@ -377,7 +510,12 @@ const HousesPage = () => {
         <Card>
           <Statistic
             title="Đang hoạt động"
-            value={houses.filter((h) => h.status === "active").length}
+            value={
+              houses.filter(
+                (h) =>
+                  h.status !== "UnderMaintenance" && h.status !== "StopWorking"
+              ).length
+            }
             prefix={<CheckCircleOutlined />}
             valueStyle={{ color: "#52c41a" }}
           />
@@ -387,7 +525,7 @@ const HousesPage = () => {
         <Card>
           <Statistic
             title="Đang bảo trì"
-            value={houses.filter((h) => h.status === "maintenance").length}
+            value={houses.filter((h) => h.status === "UnderMaintenance").length}
             prefix={<WarningOutlined />}
             valueStyle={{ color: "#faad14" }}
           />
@@ -411,22 +549,34 @@ const HousesPage = () => {
     </Row>
   );
 
-  const handleSubmit = (values) => {
-    setLoading(true);
-    try {
-      if (editingHouse) {
-        // Handle edit
-        message.success("Cập nhật chuồng thành công");
-      } else {
-        // Handle create
-        message.success("Thêm chuồng mới thành công");
-      }
-    } finally {
-      setLoading(false);
-      setIsModalVisible(false);
-      form.resetFields();
-      setEditingHouse(null);
+  // Thêm hàm handleEdit
+  const handleEdit = (record) => {
+    setEditingHouse(record);
+    let statusNumber;
+    switch (record.status) {
+      case "Available":
+        statusNumber = 1;
+        break;
+      case "UnderMaintenance":
+        statusNumber = 2;
+        break;
+      case "StopWorking":
+        statusNumber = 3;
+        break;
+      default:
+        statusNumber = 1;
     }
+
+    form.setFieldsValue({
+      name: record.name,
+      area: record.areasId,
+      capacity: record.capacity,
+      currentOccupancy: record.currentOccupancy,
+      temperature: record.temperature,
+      humidity: record.humidity,
+      status: statusNumber,
+    });
+    setIsModalVisible(true);
   };
 
   return (
@@ -497,7 +647,7 @@ const HousesPage = () => {
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
-          initialValues={{ status: "active" }}
+          initialValues={{ status: 1 }}
         >
           <Row gutter={16}>
             <Col span={12}>
@@ -517,7 +667,7 @@ const HousesPage = () => {
                 label="Khu vực"
                 rules={[{ required: true, message: "Vui lòng chọn khu vực" }]}
               >
-                <Select options={areaOptions} />
+                <Select options={areas} />
               </Form.Item>
             </Col>
           </Row>
@@ -525,22 +675,36 @@ const HousesPage = () => {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                name="type"
-                label="Loại chuồng"
-                rules={[
-                  { required: true, message: "Vui lòng chọn loại chuồng" },
-                ]}
-              >
-                <Select options={typeOptions} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
                 name="capacity"
                 label="Sức chứa"
                 rules={[{ required: true, message: "Vui lòng nhập sức chứa" }]}
               >
                 <Input type="number" min={1} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="currentOccupancy"
+                label="Số lượng hiện tại"
+                rules={[
+                  {
+                    required: true,
+                    message: "Vui lòng nhập số lượng hiện tại",
+                  },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const capacity = getFieldValue("capacity");
+                      if (!value || value <= capacity) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(
+                        new Error("Số lượng không thể vượt quá sức chứa")
+                      );
+                    },
+                  }),
+                ]}
+              >
+                <Input type="number" min={0} />
               </Form.Item>
             </Col>
           </Row>
@@ -571,7 +735,15 @@ const HousesPage = () => {
             label="Trạng thái"
             rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
           >
-            <Select options={statusOptions} />
+            <Select
+              options={statusOptions}
+              onChange={(value) => {
+                // Nếu chuyển sang ngưng hoạt động, reset currentOccupancy về 0
+                if (value === 3) {
+                  form.setFieldValue("currentOccupancy", 0);
+                }
+              }}
+            />
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 0, marginTop: "24px" }}>

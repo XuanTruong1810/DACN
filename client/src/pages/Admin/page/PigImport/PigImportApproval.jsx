@@ -23,8 +23,9 @@ import {
   FilePdfOutlined,
   FileExcelOutlined,
 } from "@ant-design/icons";
-import { ViewDetailsModal } from "./components/ViewDetailsModal";
+import ViewDetailsModal from "./components/ViewDetailsModal";
 import dayjs from "dayjs";
+import axios from "axios";
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -39,50 +40,87 @@ const PigImportApproval = () => {
   const [form] = Form.useForm();
 
   // Giả lập danh sách nhà cung cấp
-  const fakeSuppliers = [
-    { id: 1, name: "Trang trại A", address: "Địa chỉ A", phone: "0123456789" },
-    { id: 2, name: "Trang trại B", address: "Địa chỉ B", phone: "0987654321" },
-    { id: 3, name: "Trang trại C", address: "Địa chỉ C", phone: "0123498765" },
-  ];
 
-  // Giả lập dữ liệu yêu cầu nhập
-  const fakeRequests = [
-    {
-      id: 1,
-      requestCode: "NH001",
-      requestDate: "2024-03-15",
-      supplier: "Trang trại A",
-      quantity: 50,
-      expectedDate: "2024-03-20",
-      status: "pending",
-      pigType: "Heo thịt",
-      averageWeight: 20,
-      requestedBy: "Nguyễn Văn A",
-      notes: "Heo giống chất lượng cao",
-      documents: [
-        { name: "Giấy kiểm định.pdf", url: "#" },
-        { name: "Hợp đồng.pdf", url: "#" },
-      ],
-      origin: "Đồng Nai",
-      breed: "Landrace",
-      age: "3 tháng",
-      gender: "Đực",
-      healthStatus: "Khỏe mạnh",
-      vaccinated: true,
-      vaccinationDetails: "Đã tiêm đầy đủ các mũi vaccine theo quy định",
-    },
-    // Thêm dữ liệu mẫu khác
-  ];
+  // Thêm hàm fetchRequests để lấy danh sách yêu cầu
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/PigIntakes`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
-  useEffect(() => {
-    setLoading(true);
-    // Giả lập API call
-    setTimeout(() => {
-      setImportRequests(fakeRequests);
-      setSuppliers(fakeSuppliers);
+      // Kiểm tra và đảm bảo response.data.data.items tồn tại
+      const items = response.data?.data?.items || [];
+
+      // Format lại data cho phù hợp với UI
+      const formattedRequests = items.map((request) => ({
+        id: request.id,
+        requestCode: request.id,
+        supplier: request.suppliersName,
+        requestDate: request.createTime,
+        quantity: request.expectedQuantity,
+        pigType: "Heo thịt", // Mặc định
+        status: request.approvedTime
+          ? "approved"
+          : request.rejectedTime
+          ? "rejected"
+          : "pending",
+        age: request.age,
+        weight: request.weight,
+        healthStatus: request.healthStatus,
+        notes: request.note,
+      }));
+
+      setImportRequests(formattedRequests);
+    } catch (error) {
+      console.error("Error fetching requests:", error);
+      message.error("Không thể tải danh sách yêu cầu");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
+  };
+
+  // Sửa useEffect để gọi API thật
+  useEffect(() => {
+    fetchRequests();
   }, []);
+
+  // Thêm useEffect để load danh sách nhà cung cấp khi component mount
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
+  // Thêm hàm fetch suppliers
+  const fetchSuppliers = async () => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/suppliers?typeSuppliers=pig`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("API RESPONSE");
+      console.log(response);
+      const formattedSuppliers = response.data.data.items.map((supplier) => ({
+        value: supplier.id,
+        label: supplier.name,
+        address: supplier.address,
+        phone: supplier.phone,
+      }));
+
+      setSuppliers(formattedSuppliers);
+    } catch (error) {
+      console.error("Error fetching suppliers:", error);
+      message.error("Không thể tải danh sách nhà cung cấp");
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -140,87 +178,22 @@ const PigImportApproval = () => {
     {
       title: "Thao tác",
       key: "action",
-      width: 150,
       fixed: "right",
-      render: (_, record) => {
-        const items = [
-          {
-            key: "view",
-            label: "Xem chi tiết",
-            icon: <EyeOutlined />,
-            onClick: () => handleView(record),
-          },
-          {
-            key: "export-pdf",
-            label: "Xuất PDF",
-            icon: <FilePdfOutlined />,
-            onClick: () => handleExportPDF(record),
-          },
-          {
-            key: "export-excel",
-            label: "Xuất Excel",
-            icon: <FileExcelOutlined />,
-            onClick: () => handleExportExcel(record),
-          },
-        ];
-
-        if (record.status === "pending") {
-          items.unshift(
-            {
-              key: "approve",
-              label: "Duyệt yêu cầu",
-              icon: <CheckOutlined style={{ color: "#52c41a" }} />,
-              onClick: () => handleApprove(record),
-            },
-            {
-              key: "reject",
-              label: "Từ chối",
-              icon: <CloseOutlined style={{ color: "#ff4d4f" }} />,
-              onClick: () => handleReject(record),
-              danger: true,
-            }
-          );
-        }
-
-        return (
-          <Space>
-            <Tooltip title="Xem chi tiết">
-              <Button
-                type="text"
-                icon={<EyeOutlined />}
-                onClick={() => handleView(record)}
-              />
-            </Tooltip>
-
-            {record.status === "pending" && (
-              <>
-                <Tooltip title="Duyệt yêu cầu">
-                  <Button
-                    type="text"
-                    icon={<CheckOutlined style={{ color: "#52c41a" }} />}
-                    onClick={() => handleApprove(record)}
-                  />
-                </Tooltip>
-                <Tooltip title="Từ chối">
-                  <Button
-                    type="text"
-                    icon={<CloseOutlined style={{ color: "#ff4d4f" }} />}
-                    onClick={() => handleReject(record)}
-                  />
-                </Tooltip>
-              </>
-            )}
-
-            <Dropdown
-              menu={{ items }}
-              placement="bottomRight"
-              trigger={["click"]}
-            >
-              <Button type="text" icon={<MoreOutlined />} />
-            </Dropdown>
-          </Space>
-        );
-      },
+      width: 200,
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Xem chi tiết">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              onClick={() => {
+                setSelectedRequest(record);
+                setIsViewModalVisible(true);
+              }}
+            />
+          </Tooltip>
+        </Space>
+      ),
     },
   ];
 
@@ -229,31 +202,53 @@ const PigImportApproval = () => {
     setIsViewModalVisible(true);
   };
 
+  // Sửa lại hàm handleApprove để xử lý chấp nhận yêu cầu
   const handleApprove = (record) => {
-    setSelectedRequest(record);
     Modal.confirm({
       title: "Phê duyệt yêu cầu nhập heo",
       width: 600,
       content: (
         <Form form={form} layout="vertical">
           <Form.Item
-            name="supplier"
+            name="supplierId"
             label="Nhà cung cấp"
             rules={[{ required: true, message: "Vui lòng chọn nhà cung cấp" }]}
           >
-            <Select placeholder="Chọn nhà cung cấp">
-              {suppliers.map((supplier) => (
-                <Option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </Option>
-              ))}
-            </Select>
+            <Select
+              showSearch
+              placeholder="Chọn nhà cung cấp"
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              options={suppliers}
+              onSelect={(value) => {
+                const supplier = suppliers.find((s) => s.value === value);
+                form.setFieldsValue({
+                  supplierAddress: supplier?.address,
+                  supplierPhone: supplier?.phone,
+                });
+              }}
+            />
+          </Form.Item>
+
+          <Form.Item name="supplierAddress" label="Địa chỉ nhà cung cấp">
+            <Input disabled />
+          </Form.Item>
+
+          <Form.Item name="supplierPhone" label="Số điện thoại">
+            <Input disabled />
           </Form.Item>
 
           <Form.Item
             name="unitPrice"
             label="Đơn giá (VNĐ/kg)"
-            rules={[{ required: true, message: "Vui lòng nhập đơn giá" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập đơn giá" },
+              { type: "number", min: 1, message: "Đơn giá phải lớn hơn 0" },
+            ]}
           >
             <InputNumber
               style={{ width: "100%" }}
@@ -261,14 +256,28 @@ const PigImportApproval = () => {
                 `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
               }
               parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-              min={0}
             />
           </Form.Item>
 
           <Form.Item
             name="deposit"
             label="Tiền cọc (VNĐ)"
-            rules={[{ required: true, message: "Vui lòng nhập tiền cọc" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập tiền cọc" },
+              { type: "number", min: 0, message: "Tiền cọc không được âm" },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  const unitPrice = getFieldValue("unitPrice");
+                  const totalPrice = unitPrice * record.quantity;
+                  if (value && value > totalPrice) {
+                    return Promise.reject(
+                      "Tiền cọc không được lớn hơn tổng tiền"
+                    );
+                  }
+                  return Promise.resolve();
+                },
+              }),
+            ]}
           >
             <InputNumber
               style={{ width: "100%" }}
@@ -276,11 +285,10 @@ const PigImportApproval = () => {
                 `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
               }
               parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-              min={0}
             />
           </Form.Item>
 
-          <Form.Item name="notes" label="Ghi chú">
+          <Form.Item name="note" label="Ghi chú">
             <TextArea rows={4} />
           </Form.Item>
         </Form>
@@ -288,22 +296,33 @@ const PigImportApproval = () => {
       onOk: async () => {
         try {
           const values = await form.validateFields();
-          const updatedRequests = importRequests.map((req) =>
-            req.id === record.id
-              ? {
-                  ...req,
-                  status: "approved",
-                  ...values,
-                  approvedAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-                  approvedBy: "Admin", // Thay bằng user thật
-                }
-              : req
+          console.log("values:", values);
+          // Gọi API chấp nhận yêu cầu với thêm supplierId
+          await axios.patch(
+            `${import.meta.env.VITE_API_URL}/api/v1/PigIntakes/accept?id=${
+              record.id
+            }`,
+            {
+              suppliersId: values.supplierId,
+              unitPrice: values.unitPrice,
+              deposit: values.deposit,
+              note: values.note || "",
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
           );
-          setImportRequests(updatedRequests);
+
           message.success("Đã duyệt yêu cầu nhập heo thành công");
           form.resetFields();
+          fetchRequests();
         } catch (error) {
-          console.log(error);
+          console.error("Error approving request:", error);
+          message.error(
+            error.response?.data?.message || "Có lỗi xảy ra khi duyệt yêu cầu"
+          );
           return Promise.reject();
         }
       },
@@ -312,6 +331,7 @@ const PigImportApproval = () => {
     });
   };
 
+  // Sửa lại hàm handleReject để gọi API từ chối
   const handleReject = (record) => {
     Modal.confirm({
       title: "Xác nhận từ chối",
@@ -329,22 +349,26 @@ const PigImportApproval = () => {
       onOk: async () => {
         try {
           const values = await form.validateFields();
-          const updatedRequests = importRequests.map((req) =>
-            req.id === record.id
-              ? {
-                  ...req,
-                  status: "rejected",
-                  rejectReason: values.rejectReason,
-                  rejectedAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-                  rejectedBy: "Admin", // Thay bằng user thật
-                }
-              : req
+          await axios.post(
+            `${import.meta.env.VITE_API_URL}/api/v1/PigIntakes/${
+              record.id
+            }/reject`,
+            {
+              reason: values.rejectReason,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
           );
-          setImportRequests(updatedRequests);
           message.success("Đã từ chối yêu cầu nhập heo");
           form.resetFields();
+          fetchRequests(); // Refresh lại danh sách
         } catch (error) {
-          console.log(error);
+          message.error(
+            error.response?.data?.message || "Có lỗi xảy ra khi từ chối yêu cầu"
+          );
           return Promise.reject();
         }
       },

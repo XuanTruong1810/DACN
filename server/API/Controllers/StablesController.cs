@@ -15,7 +15,7 @@ namespace API.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Get([FromQuery] string areaId, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> Get([FromQuery] string? areaId, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
         {
             BasePagination<StableModelView>? result = await stableService.GetAllStablesByArea(pageIndex, pageSize, areaId);
             return Ok(BaseResponse<BasePagination<StableModelView>>.OkResponse(result));
