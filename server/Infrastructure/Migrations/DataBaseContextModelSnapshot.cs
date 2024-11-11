@@ -293,6 +293,123 @@ namespace Infrastructure.Migrations
                     b.ToTable("Feeds", (string)null);
                 });
 
+            modelBuilder.Entity("Core.Entities.FoodSuppliers", b =>
+                {
+                    b.Property<string>("FoodsId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("SuppliersId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeletedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("LastUpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("QuantityInStock")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("FoodsId", "SuppliersId");
+
+                    b.HasIndex("SuppliersId");
+
+                    b.ToTable("FoodSuppliers", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.FoodTypes", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FoodTypeName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TotalProducts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FoodTypes", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.Foods", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("AreasId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FoodTypesId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("MealsPerDay")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("QuantityInStock")
+                        .HasColumnType("int");
+
+                    b.Property<double?>("QuantityPerMeal")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AreasId");
+
+                    b.HasIndex("FoodTypesId");
+
+                    b.ToTable("Foods", (string)null);
+                });
+
             modelBuilder.Entity("Core.Entities.MedicineImport", b =>
                 {
                     b.Property<string>("Id")
@@ -975,6 +1092,44 @@ namespace Infrastructure.Migrations
                     b.Navigation("FeedTypes");
                 });
 
+            modelBuilder.Entity("Core.Entities.FoodSuppliers", b =>
+                {
+                    b.HasOne("Core.Entities.Foods", "Foods")
+                        .WithMany("FoodSuppliers")
+                        .HasForeignKey("FoodsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.Suppliers", "Suppliers")
+                        .WithMany("FoodSuppliers")
+                        .HasForeignKey("SuppliersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Foods");
+
+                    b.Navigation("Suppliers");
+                });
+
+            modelBuilder.Entity("Core.Entities.Foods", b =>
+                {
+                    b.HasOne("Core.Entities.Areas", "Areas")
+                        .WithMany("Foods")
+                        .HasForeignKey("AreasId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.FoodTypes", "FoodTypes")
+                        .WithMany("Foods")
+                        .HasForeignKey("FoodTypesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Areas");
+
+                    b.Navigation("FoodTypes");
+                });
+
             modelBuilder.Entity("Core.Entities.MedicineImport", b =>
                 {
                     b.HasOne("Core.Entities.RequestMedicine", "RequestMedicine")
@@ -1165,6 +1320,8 @@ namespace Infrastructure.Migrations
                 {
                     b.Navigation("Feeds");
 
+                    b.Navigation("Foods");
+
                     b.Navigation("Stables");
                 });
 
@@ -1176,6 +1333,16 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Entities.FeedTypes", b =>
                 {
                     b.Navigation("Feeds");
+                });
+
+            modelBuilder.Entity("Core.Entities.FoodTypes", b =>
+                {
+                    b.Navigation("Foods");
+                });
+
+            modelBuilder.Entity("Core.Entities.Foods", b =>
+                {
+                    b.Navigation("FoodSuppliers");
                 });
 
             modelBuilder.Entity("Core.Entities.MedicineImport", b =>
@@ -1211,6 +1378,8 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.Suppliers", b =>
                 {
+                    b.Navigation("FoodSuppliers");
+
                     b.Navigation("Imports");
 
                     b.Navigation("MedicineSuppliers");

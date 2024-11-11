@@ -34,16 +34,16 @@ const AREAS = [
     id: 1,
     name: "Khu A",
     houses: [
-      { id: "A1", name: "Chuồng A1", type: "Chuồng heo nái", capacity: 20 },
-      { id: "A2", name: "Chuồng A2", type: "Chuồng heo thịt", capacity: 30 },
+      { id: "A1", name: "Chuồng A1", type: "Chuồng heo thịt A1", capacity: 20 },
+      { id: "A2", name: "Chuồng A2", type: "Chuồng heo thịt A2", capacity: 30 },
     ],
   },
   {
     id: 2,
     name: "Khu B",
     houses: [
-      { id: "B1", name: "Chuồng B1", type: "Chuồng heo nái", capacity: 25 },
-      { id: "B2", name: "Chuồng B2", type: "Chuồng heo thịt", capacity: 35 },
+      { id: "B1", name: "Chuồng B1", type: "Chuồng heo thịt B1", capacity: 25 },
+      { id: "B2", name: "Chuồng B2", type: "Chuồng heo thịt B2", capacity: 35 },
     ],
   },
 ];
@@ -341,9 +341,6 @@ const CreateHealthRecordPage = () => {
                 value={selectedHouse}
                 onChange={(value) => {
                   setSelectedHouse(value);
-                  // const house = AREAS.find(
-                  //   (a) => a.id === selectedArea
-                  // )?.houses.find((h) => h.id === value);
                   setFilteredPigs(ALL_PIGS[value] || []);
                 }}
                 disabled={!selectedArea}
@@ -352,12 +349,7 @@ const CreateHealthRecordPage = () => {
                   AREAS.find((a) => a.id === selectedArea)?.houses.map(
                     (house) => (
                       <Select.Option key={house.id} value={house.id}>
-                        <div>
-                          <div>{house.name}</div>
-                          <div style={{ fontSize: "12px", color: "#666" }}>
-                            {house.type} • Sức chứa: {house.capacity} con
-                          </div>
-                        </div>
+                        {house.name}
                       </Select.Option>
                     )
                   )}
@@ -375,21 +367,17 @@ const CreateHealthRecordPage = () => {
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item label="Vaccine">
+            <Form.Item label="Vaccine (nếu cần tiêm)">
               <Select
-                placeholder="Chọn vaccine (nếu cần)"
+                placeholder="Chọn vaccine cần tiêm"
                 value={selectedVaccine}
                 onChange={setSelectedVaccine}
                 allowClear
+                style={{ width: "100%" }}
               >
                 {VACCINES.map((vaccine) => (
                   <Select.Option key={vaccine.id} value={vaccine.id}>
-                    <div>
-                      <div style={{ fontWeight: 500 }}>{vaccine.name}</div>
-                      <div style={{ fontSize: "12px", color: "#666" }}>
-                        {vaccine.disease} • {vaccine.dosage}
-                      </div>
-                    </div>
+                    {vaccine.name}
                   </Select.Option>
                 ))}
               </Select>

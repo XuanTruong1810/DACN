@@ -56,7 +56,7 @@ const Sidebar = () => {
             {
               key: "animalsList",
               icon: <UnorderedListOutlined />,
-              label: <Link to="/admin/animals">Danh sách vật nuôi</Link>,
+              label: <Link to="/admin/animals/pigs">Danh sách vật nuôi</Link>,
             },
             {
               key: "deadAnimals",

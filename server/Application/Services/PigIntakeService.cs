@@ -167,6 +167,15 @@ namespace Application.Services
             }
 
             PigIntakes? pigIntake = mapper.Map<PigIntakes>(dTO);
+
+            // Generate new ID format: PI_YYYYMMDD_XXX
+            string dateStr = DateTime.Now.ToString("yyyyMMdd");
+            int sequenceNumber = await unitOfWork.GetRepository<PigIntakes>()
+                .GetEntities
+                .CountAsync(x => x.Id.StartsWith($"PI_{dateStr}")) + 1;
+
+            pigIntake.Id = $"PI_{dateStr}_{sequenceNumber:D3}"; // D3 ensures 3 digits with leading zeros
+
             string? CreateBy = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
                 throw new BaseException(StatusCodeHelper.Unauthorized, ErrorCode.Unauthorized, "Unauthorized");
 

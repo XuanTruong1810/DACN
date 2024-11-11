@@ -1,5 +1,6 @@
 using Core.Repositories;
 using Infrastructure.Context;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Infrastructure.Repositories
 {
@@ -32,6 +33,23 @@ namespace Infrastructure.Repositories
         public IGenericRepository<Entity> GetRepository<Entity>() where Entity : class
         {
             return new GenericRepository<Entity>(context);
+        }
+
+        public async Task<IDbContextTransaction> BeginTransactionAsync()
+        {
+            try
+            {
+                return await context.Database.BeginTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Lỗi khi bắt đầu transaction", ex);
+            }
+        }
+
+        public void ClearTracked()
+        {
+            context.ChangeTracker.Clear();
         }
     }
 }

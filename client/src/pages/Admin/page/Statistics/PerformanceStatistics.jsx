@@ -56,8 +56,8 @@ const PerformanceStatistics = () => {
   const housePerformanceData = [
     {
       key: "1",
-      house: "Chuồng A",
-      totalPigs: 300,
+      house: "Chuồng E1",
+      totalPigs: 20,
       avgWeight: 75.5,
       fcr: 2.8,
       mortality: 0.5,
@@ -65,8 +65,8 @@ const PerformanceStatistics = () => {
     },
     {
       key: "2",
-      house: "Chuồng B",
-      totalPigs: 280,
+      house: "Chuồng E2",
+      totalPigs: 20,
       avgWeight: 78.2,
       fcr: 2.6,
       mortality: 0.3,

@@ -30,6 +30,7 @@ import FoodImport from "./pages/Admin/page/Inventory/FoodImport";
 import FoodImportApproval from "./pages/Admin/page/Inventory/FoodImportApproval";
 import FoodImportList from "./pages/Admin/page/Inventory/FoodImportList";
 import DailyFoodExport from "./pages/Admin/page/Exports/DailyFoodExport";
+import PigsManagement from "./pages/Admin/page/Pigs/PigsManagement";
 
 function App() {
   return (
@@ -70,6 +71,7 @@ function App() {
             </Route>
             <Route path="animals">
               <Route path="dead" element={<DeadPigsPage />} />
+              <Route path="pigs" element={<PigsManagement />} />
             </Route>
             <Route path="statistics">
               <Route path="pigs" element={<PigStatistics />} />

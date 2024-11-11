@@ -46,9 +46,8 @@ const PigImportRequest = () => {
           }
         );
 
-        const areaA = areasResponse.data.data.items.find((area) =>
-          area.name.toLowerCase().includes("a")
-        );
+        const areaA = areasResponse.data.data.items[0];
+        console.log(areaA);
 
         if (!areaA) {
           message.error("Không tìm thấy khu vực A");
@@ -228,7 +227,7 @@ const PigImportRequest = () => {
   return (
     <div style={{ padding: "24px" }}>
       <Card>
-        <Title level={3}>Tạo yêu cầu nhập heo đực giống</Title>
+        <Title level={3}>Tạo yêu cầu nhập heo</Title>
 
         <Form
           form={form}

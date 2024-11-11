@@ -49,21 +49,21 @@ const FoodImport = () => {
     {
       id: 1,
       name: "Khu A",
-      description: "Khu vực chăn nuôi heo con",
+      description: "Khu vực heo thịt 20-50kg",
       capacity: 1000,
       currentOccupancy: 800,
     },
     {
       id: 2,
       name: "Khu B",
-      description: "Khu vực chăn nuôi heo thịt",
+      description: "Khu vực heo thịt 50-80kg",
       capacity: 1500,
       currentOccupancy: 1200,
     },
     {
       id: 3,
       name: "Khu C",
-      description: "Khu vực chăn nuôi heo nái",
+      description: "Khu vực heo thịt 80-120kg",
       capacity: 800,
       currentOccupancy: 600,
     },
@@ -354,28 +354,7 @@ const FoodImport = () => {
                     >
                       {areas.map((area) => (
                         <Option key={area.id} value={area.id}>
-                          <div className="area-option">
-                            <div>
-                              <Text strong>{area.name}</Text>
-                              <Text
-                                type="secondary"
-                                className="area-description"
-                              >
-                                {area.description}
-                              </Text>
-                            </div>
-                            <Badge
-                              count={`${Math.round(
-                                (area.currentOccupancy / area.capacity) * 100
-                              )}%`}
-                              style={{
-                                backgroundColor:
-                                  area.currentOccupancy >= area.capacity * 0.8
-                                    ? "#ff4d4f"
-                                    : "#52c41a",
-                              }}
-                            />
-                          </div>
+                          {area.name}
                         </Option>
                       ))}
                     </Select>
@@ -595,7 +574,7 @@ const mockGetSuggestedProducts = async (areaId, days) => {
   return [
     {
       id: 1,
-      name: "Thức ăn heo con C100",
+      name: "Thức ăn heo thịt 20-50kg",
       currentStock: 500,
       dailyUsage: 50,
       suggestedAmount: 50 * days,
@@ -603,65 +582,37 @@ const mockGetSuggestedProducts = async (areaId, days) => {
       price: 15000,
       isLow: true,
       supplier: "Công ty TNHH Thức ăn chăn nuôi ABC",
-      category: "Thức ăn heo con",
+      category: "Thức ăn heo thịt",
       minStock: 1000,
-      description: "Thức ăn dạng viên cho heo con từ 15-30kg",
+      description: "Thức ăn dạng viên cho heo thịt từ 20-50kg",
     },
     {
       id: 2,
-      name: "Thức ăn heo thịt G100",
+      name: "Thức ăn heo thịt 50-80kg",
       currentStock: 1200,
       dailyUsage: 100,
       suggestedAmount: 100 * days,
       unit: "kg",
-      price: 12000,
+      price: 13000,
       isLow: false,
       supplier: "Công ty TNHH Thức ăn chăn nuôi ABC",
       category: "Thức ăn heo thịt",
       minStock: 2000,
-      description: "Thức ăn dạng viên cho heo thịt từ 30-60kg",
+      description: "Thức ăn dạng viên cho heo thịt từ 50-80kg",
     },
     {
       id: 3,
-      name: "Thức ăn heo thịt G200",
+      name: "Thức ăn heo thịt 80-120kg",
       currentStock: 800,
       dailyUsage: 120,
       suggestedAmount: 120 * days,
       unit: "kg",
-      price: 11500,
+      price: 12000,
       isLow: true,
       supplier: "Công ty TNHH Thức ăn chăn nuôi XYZ",
       category: "Thức ăn heo thịt",
       minStock: 2500,
-      description: "Thức ăn dạng viên cho heo thịt từ 60-100kg",
-    },
-    {
-      id: 4,
-      name: "Thức ăn heo nái mang thai",
-      currentStock: 900,
-      dailyUsage: 80,
-      suggestedAmount: 80 * days,
-      unit: "kg",
-      price: 13500,
-      isLow: false,
-      supplier: "Công ty TNHH Thức ăn chăn nuôi XYZ",
-      category: "Thức ăn heo nái",
-      minStock: 1500,
-      description: "Thức ăn cho heo nái mang thai",
-    },
-    {
-      id: 5,
-      name: "Thức ăn heo nái nuôi con",
-      currentStock: 600,
-      dailyUsage: 90,
-      suggestedAmount: 90 * days,
-      unit: "kg",
-      price: 14000,
-      isLow: true,
-      supplier: "Công ty TNHH Thức ăn chăn nuôi DEF",
-      category: "Thức ăn heo nái",
-      minStock: 1800,
-      description: "Thức ăn cho heo nái đang nuôi con",
+      description: "Thức ăn dạng viên cho heo thịt từ 80-120kg",
     },
   ];
 };

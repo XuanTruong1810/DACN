@@ -16,5 +16,11 @@ public class Suppliers : BaseEntity
 
 
     [InverseProperty("Suppliers")]
+
     public virtual ICollection<PigIntakes> PigIntakes { get; set; } = new List<PigIntakes>();
+
+
+    [InverseProperty("Suppliers")]
+    public virtual ICollection<FoodSuppliers> FoodSuppliers { get; set; } = new List<FoodSuppliers>();
+
 }

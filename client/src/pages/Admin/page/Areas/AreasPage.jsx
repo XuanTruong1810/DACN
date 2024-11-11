@@ -468,7 +468,7 @@ const AreasPage = () => {
           >
             <Input.TextArea
               rows={4}
-              placeholder="Ví dụ: Khu vực dành cho heo nái mang thai và nuôi con"
+              placeholder="Ví dụ: Khu vực dành cho heo mới về chuồng!"
             />
           </Form.Item>
 

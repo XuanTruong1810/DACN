@@ -17,5 +17,6 @@ namespace Core.Entities
 
         [InverseProperty("FeedTypes")]
         public virtual ICollection<Feeds> Feeds { get; set; } = new List<Feeds>();
+
     }
 }

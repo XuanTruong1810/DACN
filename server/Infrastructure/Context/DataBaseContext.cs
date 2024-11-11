@@ -29,6 +29,11 @@ namespace Infrastructure.Context
         public DbSet<Unit> Units { get; set; }
 
 
+        public DbSet<FoodTypes> FoodTypes { get; set; }
+        public DbSet<Foods> Foods { get; set; }
+        public DbSet<FoodSuppliers> FoodSuppliers { get; set; }
+
+
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -49,6 +54,10 @@ namespace Infrastructure.Context
             builder.Entity<MedicineSupplier>()
                 .HasIndex(d => new { d.MedicineUnitId, d.SupplierId })
                 .IsUnique();
+
+
+            builder.Entity<FoodSuppliers>()
+                .HasKey(d => new { d.FoodsId, d.SuppliersId });
 
 
 
@@ -77,6 +86,10 @@ namespace Infrastructure.Context
             builder.Entity<MedicineImportDetail>().ToTable("MedicineImportDetail");
             builder.Entity<MedicineUnit>().ToTable("MedicineUnit");
             builder.Entity<Unit>().ToTable("Unit");
+
+            builder.Entity<FoodTypes>().ToTable("FoodTypes");
+            builder.Entity<Foods>().ToTable("Foods");
+            builder.Entity<FoodSuppliers>().ToTable("FoodSuppliers");
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

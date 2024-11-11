@@ -99,8 +99,8 @@ const PigStatistics = () => {
   const housePerformanceData = [
     {
       key: "1",
-      house: "Chuồng A",
-      totalPigs: 300,
+      house: "Chuồng E1",
+      totalPigs: 20,
       avgWeight: 75.5,
       fcr: 2.8,
       mortality: 0.5,
@@ -108,8 +108,8 @@ const PigStatistics = () => {
     },
     {
       key: "2",
-      house: "Chuồng B",
-      totalPigs: 280,
+      house: "Chuồng E2",
+      totalPigs: 20,
       avgWeight: 78.2,
       fcr: 2.6,
       mortality: 0.3,
@@ -117,8 +117,8 @@ const PigStatistics = () => {
     },
     {
       key: "3",
-      house: "Chuồng C",
-      totalPigs: 320,
+      house: "Chuồng E3",
+      totalPigs: 20,
       avgWeight: 72.8,
       fcr: 2.9,
       mortality: 0.8,
@@ -126,8 +126,8 @@ const PigStatistics = () => {
     },
     {
       key: "4",
-      house: "Chuồng D",
-      totalPigs: 290,
+      house: "Chuồng E4",
+      totalPigs: 20,
       avgWeight: 76.4,
       fcr: 2.7,
       mortality: 0.4,

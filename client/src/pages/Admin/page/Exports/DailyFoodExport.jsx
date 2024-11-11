@@ -66,44 +66,44 @@ const DailyFoodExport = () => {
     setAreas([
       {
         id: 1,
-        name: "Khu A - Heo nái",
+        name: "Khu A - Khu vực chăn nuôi heo mới nhập chuồng",
         totalPigs: 95,
         foodList: [
           {
             id: 1,
-            name: "Thức ăn heo nái mang thai",
-            type: "Heo nái mang thai",
+            name: "Thức ăn heo con tập ăn",
+            type: "Heo con",
             unit: "kg",
             stock: 1000,
-            recommendedPerPig: 2.5,
-            totalRequired: 237.5, // 95 con * 2.5kg
+            recommendedPerPig: 0.5,
+            totalRequired: 47.5, // 95 con * 0.5kg
             status: "active",
           },
           {
             id: 2,
-            name: "Thức ăn heo nái nuôi con",
-            type: "Heo nái nuôi con",
+            name: "Thức ăn heo con cai sữa",
+            type: "Heo con",
             unit: "kg",
             stock: 800,
-            recommendedPerPig: 3,
-            totalRequired: 285, // 95 con * 3kg
+            recommendedPerPig: 0.8,
+            totalRequired: 76, // 95 con * 0.8kg
             status: "active",
           },
           {
             id: 3,
-            name: "Thức ăn heo nái cao cấp",
-            type: "Heo nái mang thai",
+            name: "Thức ăn heo con phát triển",
+            type: "Heo con",
             unit: "kg",
             stock: 500,
-            recommendedPerPig: 2.8,
-            totalRequired: 266, // 95 con * 2.8kg
+            recommendedPerPig: 1.0,
+            totalRequired: 95, // 95 con * 1.0kg
             status: "active",
           },
         ],
       },
       {
         id: 2,
-        name: "Khu B - Heo thịt",
+        name: "Khu B - Khu vực chăn nuôi heo từ 20 đến 30kg",
         totalPigs: 150,
         foodList: [
           {
@@ -140,13 +140,13 @@ const DailyFoodExport = () => {
       },
       {
         id: 3,
-        name: "Khu C - Heo con",
+        name: "Khu C - Khu vực chăn nuôi heo từ 30 đến 70kg",
         totalPigs: 200,
         foodList: [
           {
             id: 7,
-            name: "Thức ăn heo con tập ăn",
-            type: "Heo con",
+            name: "Thức ăn heo thịt tăng trọng",
+            type: "Heo thịt",
             unit: "kg",
             stock: 800,
             recommendedPerPig: 0.5,
@@ -155,8 +155,8 @@ const DailyFoodExport = () => {
           },
           {
             id: 8,
-            name: "Thức ăn heo con cai sữa",
-            type: "Heo con",
+            name: "Thức ăn heo thịt tăng trọng cao cấp",
+            type: "Heo thịt",
             unit: "kg",
             stock: 1000,
             recommendedPerPig: 0.8,
@@ -165,8 +165,8 @@ const DailyFoodExport = () => {
           },
           {
             id: 9,
-            name: "Thức ăn heo con phát triển",
-            type: "Heo con",
+            name: "Thức ăn heo thịt cao cấp",
+            type: "Heo thịt",
             unit: "kg",
             stock: 900,
             recommendedPerPig: 1.0,
