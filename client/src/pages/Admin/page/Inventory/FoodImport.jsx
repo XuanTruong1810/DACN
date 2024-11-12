@@ -3,174 +3,281 @@ import {
   Card,
   Form,
   Select,
-  InputNumber,
   Button,
   Table,
   Space,
   Typography,
-  Divider,
   message,
   Row,
   Col,
-  Badge,
   Tag,
   Modal,
   Descriptions,
-  Empty,
-  Statistic,
+  Divider,
+  Input,
+  InputNumber,
 } from "antd";
-import {
-  ShoppingCartOutlined,
-  CalculatorOutlined,
-  CheckCircleOutlined,
-  InfoCircleOutlined,
-  PrinterOutlined,
-  EnvironmentOutlined,
-  CalendarOutlined,
-  DollarOutlined,
-  WarningOutlined,
-  HistoryOutlined,
-} from "@ant-design/icons";
+import { InfoCircleOutlined } from "@ant-design/icons";
+import axios from "axios";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
 
-const FoodImport = () => {
-  const [form] = Form.useForm();
-  const [selectedProducts, setSelectedProducts] = useState([]);
-  const [suggestedProducts, setSuggestedProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showBill, setShowBill] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [showProductDetail, setShowProductDetail] = useState(false);
+// Tạo axios instance
+const axiosClient = axios.create({
+  baseURL: "http://localhost:5197",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
-  // Mock data
-  const areas = [
-    {
-      id: 1,
-      name: "Khu A",
-      description: "Khu vực heo thịt 20-50kg",
-      capacity: 1000,
-      currentOccupancy: 800,
-    },
-    {
-      id: 2,
-      name: "Khu B",
-      description: "Khu vực heo thịt 50-80kg",
-      capacity: 1500,
-      currentOccupancy: 1200,
-    },
-    {
-      id: 3,
-      name: "Khu C",
-      description: "Khu vực heo thịt 80-120kg",
-      capacity: 800,
-      currentOccupancy: 600,
-    },
-  ];
+// Add request interceptor
+axiosClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+const FoodImport = () => {
+  // States
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [areas, setAreas] = useState([]);
+  const [foods, setFoods] = useState([]);
+  const [selectedFood, setSelectedFood] = useState(null);
+  const [showFoodDetail, setShowFoodDetail] = useState(false);
+  const [days, setDays] = useState(7);
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [showBill, setShowBill] = useState(false);
+  const [allSelectedFoods, setAllSelectedFoods] = useState([]);
+  const [note, setNote] = useState("");
+
+  // Fetch areas on component mount
+  useEffect(() => {
+    getAreas();
+  }, []);
+
+  // API Calls
+  const getAreas = async () => {
+    try {
+      const response = await axiosClient.get("/api/v1/Areas", {});
+      setAreas(response.data.data.items);
+
+      // Set default values
+      if (response.data.data.length > 0) {
+        form.setFieldsValue({
+          area: response.data.data[0].id,
+          days: days,
+        });
+        getFoodsByArea(response.data.data[0].id);
+      }
+    } catch (error) {
+      message.error("Lỗi khi tải danh sách khu vực");
+    }
+  };
+
+  const calculateExpectedAmount = (food, days) => {
+    try {
+      // Đảm bảo các giá trị là số
+      const quantityPerMeal = Number(food.quantityPerMeal) || 0;
+      const mealsPerDay = Number(food.mealsPerDay) || 0;
+      const currentStock = Number(food.quantityInStock) || 0;
+
+      // Tính toán
+      const dailyUsage = quantityPerMeal * mealsPerDay;
+      const totalNeeded = dailyUsage * days;
+      const expectedAmount = Math.max(0, totalNeeded - currentStock);
+
+      // Làm tròn kết quả
+      return Math.ceil(expectedAmount);
+    } catch (error) {
+      console.error("Lỗi tính toán:", error);
+      return 0;
+    }
+  };
+
+  const getFoodsByArea = async (areaId) => {
+    setLoading(true);
+    try {
+      const response = await axiosClient.get("/api/Food", {
+        params: {
+          areaId: areaId,
+          status: "active",
+        },
+      });
+
+      // Transform data với số ngày hiện tại
+      const formattedFoods = response.data.data.items.map((food) => ({
+        id: food.id,
+        name: food.name,
+        category: food.foodTypes?.name,
+        currentStock: food.quantityInStock || 0,
+        description: food.description,
+        quantityPerMeal: food.quantityPerMeal || 0,
+        mealsPerDay: food.mealsPerDay || 0,
+        dailyUsage: (food.quantityPerMeal || 0) * (food.mealsPerDay || 0),
+        isOutOfStock: (food.quantityInStock || 0) === 0,
+        expectedAmount: calculateExpectedAmount(
+          {
+            quantityPerMeal: food.quantityPerMeal || 0,
+            mealsPerDay: food.mealsPerDay || 0,
+            quantityInStock: food.quantityInStock || 0,
+          },
+          days
+        ),
+        areaId: areaId,
+        areaName: areas.find((a) => a.id === areaId)?.name || "",
+      }));
+
+      setFoods(formattedFoods);
+    } catch (error) {
+      console.log(error);
+      message.error("Lỗi khi tải danh sách thức ăn");
+    }
+    setLoading(false);
+  };
+
+  // Event Handlers
+  const handleAreaChange = (areaId) => {
+    getFoodsByArea(areaId);
+  };
+
+  const handleShowDetail = (food) => {
+    setSelectedFood(food);
+    setShowFoodDetail(true);
+  };
+
+  const handleDaysChange = (value) => {
+    setDays(value);
+    // Cập nhật lại expectedAmount cho tất cả foods
+    const updatedFoods = foods.map((food) => ({
+      ...food,
+      expectedAmount: calculateExpectedAmount(food, value),
+    }));
+    setFoods(updatedFoods);
+
+    // Cập nhật lại expectedAmount cho các món đã chọn
+    const updatedSelectedFoods = allSelectedFoods.map((food) => ({
+      ...food,
+      expectedAmount: calculateExpectedAmount(food, value),
+    }));
+    setAllSelectedFoods(updatedSelectedFoods);
+  };
+
+  const handleProductSelect = (record) => {
+    const isSelected = allSelectedFoods.some((food) => food.id === record.id);
+
+    if (isSelected) {
+      // Xóa khỏi danh sách đã chọn
+      setAllSelectedFoods((prev) =>
+        prev.filter((food) => food.id !== record.id)
+      );
+    } else {
+      // Thêm vào danh sách đã chọn
+      setAllSelectedFoods((prev) => [...prev, record]);
+    }
+    setShowBill(true);
+  };
 
   // Table columns
   const columns = [
     {
-      title: "Tên sản phẩm",
-      dataIndex: "name",
-      key: "name",
-      fixed: "left",
-      width: 300,
-      render: (text, record) => (
-        <Space direction="vertical" size={0}>
-          <Text strong>{text}</Text>
-          <Text type="secondary" style={{ fontSize: "12px" }}>
-            {record.category}
-          </Text>
-          {record.isLow && <Tag color="error">Sắp hết hàng</Tag>}
+      title: "Thông tin",
+      children: [
+        {
+          title: "Tên thức ăn",
+          dataIndex: "name",
+          key: "name",
+          width: 200,
+          render: (text) => <Text strong>{text}</Text>,
+        },
+        {
+          title: "Danh mục",
+          dataIndex: "category",
+          key: "category",
+          width: 150,
+        },
+      ],
+    },
+    {
+      title: "Tồn kho",
+      dataIndex: "currentStock",
+      key: "currentStock",
+      width: 150,
+      render: (value, record) => (
+        <Space>
+          <Text>{value.toLocaleString()} kg</Text>
+          {record.isOutOfStock ? (
+            <Tag color="error">Hết hàng</Tag>
+          ) : (
+            record.currentStock < 1000 && <Tag color="warning">Sắp hết</Tag>
+          )}
         </Space>
       ),
     },
     {
-      title: "Tồn kho",
+      title: "Định mức",
       children: [
         {
-          title: "Hiện tại",
-          dataIndex: "currentStock",
-          key: "currentStock",
+          title: "Số lượng/bữa",
+          dataIndex: "quantityPerMeal",
+          key: "quantityPerMeal",
           width: 120,
-          render: (value, record) => (
-            <Text type={record.isLow ? "danger" : "secondary"}>
-              {value.toLocaleString()} {record.unit}
-            </Text>
-          ),
+          render: (value) => <Text>{value.toLocaleString()} kg</Text>,
         },
         {
-          title: "Tối thiểu",
-          dataIndex: "minStock",
-          key: "minStock",
+          title: "Số bữa/ngày",
+          dataIndex: "mealsPerDay",
+          key: "mealsPerDay",
           width: 120,
-          render: (value, record) => (
-            <Text>
-              {value.toLocaleString()} {record.unit}
-            </Text>
-          ),
+          render: (value) => <Text>{value} bữa</Text>,
+        },
+        {
+          title: "Sử dụng/ngày",
+          dataIndex: "dailyUsage",
+          key: "dailyUsage",
+          width: 150,
+          render: (value) => <Text>{value.toLocaleString()} kg/ngày</Text>,
         },
       ],
     },
     {
-      title: "Định mức/ngày",
-      dataIndex: "dailyUsage",
-      key: "dailyUsage",
-      width: 150,
-      render: (value, record) => (
-        <Text>
-          {value.toLocaleString()} {record.unit}/ngày
+      title: `Dự kiến nhập (${days} ngày)`,
+      dataIndex: "expectedAmount",
+      key: "expectedAmount",
+      width: 200,
+      render: (value) => (
+        <Text type="success" strong>
+          {value.toLocaleString()} kg
         </Text>
       ),
     },
     {
-      title: "Đề xuất nhập",
-      children: [
-        {
-          title: "Số lượng",
-          dataIndex: "suggestedAmount",
-          key: "suggestedAmount",
-          width: 150,
-          render: (value, record) => (
-            <Text strong type="success">
-              {value.toLocaleString()} {record.unit}
-            </Text>
-          ),
-        },
-        {
-          title: "Đơn giá",
-          dataIndex: "price",
-          key: "price",
-          width: 150,
-          render: (value) => <Text>{value.toLocaleString()} đ</Text>,
-        },
-        {
-          title: "Thành tiền",
-          key: "totalPrice",
-          width: 150,
-          render: (_, record) => (
-            <Text strong type="danger">
-              {(record.price * record.suggestedAmount).toLocaleString()} đ
-            </Text>
-          ),
-        },
-      ],
-    },
-    {
       title: "Thao tác",
       key: "action",
+      width: 150,
       fixed: "right",
-      width: 180,
       render: (_, record) => (
         <Space>
           <Button
-            type={selectedProducts.includes(record.id) ? "default" : "primary"}
+            type={
+              allSelectedFoods.some((food) => food.id === record.id)
+                ? "default"
+                : "primary"
+            }
             size="small"
             onClick={() => handleProductSelect(record)}
           >
-            {selectedProducts.includes(record.id) ? "Đã chọn" : "Chọn"}
+            {allSelectedFoods.some((food) => food.id === record.id)
+              ? "Đã chọn"
+              : "Chọn"}
           </Button>
           <Button
             type="text"
@@ -183,438 +290,259 @@ const FoodImport = () => {
     },
   ];
 
-  // Effects
-  useEffect(() => {
-    form.setFieldsValue({
-      area: areas[0].id,
-      days: 7, // Set mặc định 7 ngày
-    });
-    handleParametersChange(null, { area: areas[0].id, days: 7 });
-  }, []);
+  // Thêm hàm createImportRequest
+  const createImportRequest = async () => {
+    try {
+      const requestData = {
+        note: note || `Đề xuất nhập thức ăn cho ${days} ngày`,
+        details: allSelectedFoods.map((food) => ({
+          foodId: food.id,
+          expectedQuantity: food.expectedAmount,
+        })),
+      };
 
-  // Handlers
-  const handleParametersChange = async (changedValues, allValues) => {
-    if (allValues.area && allValues.days) {
-      setLoading(true);
-      try {
-        const response = await mockGetSuggestedProducts(
-          allValues.area,
-          allValues.days
-        );
-        setSuggestedProducts(response);
-      } catch (error) {
-        message.error("Có lỗi xảy ra khi tải dữ liệu");
+      const response = await axiosClient.post(
+        "/api/FoodImportRequest",
+        requestData
+      );
+
+      if (response.status === 200) {
+        message.success("Tạo phiếu nhập thành công!");
+        // Reset form
+        setAllSelectedFoods([]);
+        setShowBill(false);
+        setNote("");
+      } else {
+        message.error(response.data.message || "Lỗi khi tạo phiếu nhập");
       }
-      setLoading(false);
+    } catch (error) {
+      console.error("Lỗi tạo phiếu nhập:", error);
+      message.error("Lỗi khi tạo phiếu nhập");
     }
   };
 
-  const handleProductSelect = (product) => {
-    setSelectedProducts((prev) => {
-      if (prev.includes(product.id)) {
-        return prev.filter((id) => id !== product.id);
-      }
-      return [...prev, product.id];
-    });
-  };
-
-  const handleShowDetail = (product) => {
-    setSelectedProduct(product);
-    setShowProductDetail(true);
-  };
-
-  const handleConfirmImport = () => {
-    message.success("Tạo phiếu nhập thành công!");
-    setShowBill(false);
-    setSelectedProducts([]);
-    setSuggestedProducts([]);
-    form.resetFields();
-  };
-
   return (
-    <div className="food-import-container">
-      {/* Statistics Overview */}
-      <Row gutter={[24, 24]} className="statistics-row">
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="statistic-card">
-            <Statistic
-              title={<Text strong>Tổng sản phẩm</Text>}
-              value={suggestedProducts.length}
-              prefix={<ShoppingCartOutlined className="statistic-icon" />}
-              className="custom-statistic"
-            />
-            <div className="statistic-footer">
-              <Text type="secondary">Đang hiển thị</Text>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="statistic-card warning">
-            <Statistic
-              title={<Text strong>Sản phẩm sắp hết</Text>}
-              value={suggestedProducts.filter((p) => p.isLow).length}
-              prefix={<WarningOutlined className="statistic-icon" />}
-              className="custom-statistic"
-            />
-            <div className="statistic-footer">
-              <Text type="secondary">Cần nhập bổ sung</Text>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="statistic-card success">
-            <Statistic
-              title={<Text strong>Đã chọn</Text>}
-              value={selectedProducts.length}
-              prefix={<CheckCircleOutlined className="statistic-icon" />}
-              className="custom-statistic"
-            />
-            <div className="statistic-footer">
-              <Text type="secondary">Sản phẩm</Text>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="statistic-card primary">
-            <Statistic
-              title={<Text strong>Tổng giá trị</Text>}
-              value={selectedProducts.reduce((sum, id) => {
-                const product = suggestedProducts.find((p) => p.id === id);
-                return (
-                  sum + (product ? product.price * product.suggestedAmount : 0)
-                );
-              }, 0)}
-              prefix={<DollarOutlined className="statistic-icon" />}
-              suffix="đ"
-              className="custom-statistic"
-            />
-            <div className="statistic-footer">
-              <Text type="secondary">Dự kiến</Text>
-            </div>
-          </Card>
-        </Col>
-      </Row>
+    <div className="food-import-page">
+      <Row gutter={[16, 16]}>
+        <Col span={showBill && allSelectedFoods.length > 0 ? 18 : 24}>
+          <Card title="Danh sách thức ăn theo khu vực">
+            <Row gutter={[16, 16]}>
+              <Col span={24}>
+                <Form form={form} layout="vertical">
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="area"
+                        label="Khu vực"
+                        rules={[
+                          { required: true, message: "Vui lòng chọn khu vực" },
+                        ]}
+                      >
+                        <Select
+                          placeholder="Chọn khu vực"
+                          onChange={handleAreaChange}
+                          style={{ width: "100%" }}
+                        >
+                          {areas.map((area) => (
+                            <Option key={area.id} value={area.id}>
+                              {area.name}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="days"
+                        label="Số ngày dự kiến"
+                        initialValue={7}
+                        rules={[
+                          { required: true, message: "Vui lòng nhập số ngày" },
+                        ]}
+                      >
+                        <Select
+                          onChange={handleDaysChange}
+                          style={{ width: "100%" }}
+                        >
+                          {[7, 14, 30, 60, 90].map((d) => (
+                            <Option key={d} value={d}>
+                              {d} ngày
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </Form>
+              </Col>
 
-      {/* Main Content */}
-      <Row gutter={[24, 24]} style={{ marginTop: "24px" }}>
-        <Col xs={24} lg={showBill ? 16 : 24}>
-          <Card
-            className="main-card"
-            bordered={false}
-            title={
-              <div className="card-title-section">
-                <div className="title-left">
-                  <ShoppingCartOutlined className="card-icon primary" />
-                  <span>
-                    <Title level={4} style={{ margin: 0 }}>
-                      Nhập thức ăn
-                    </Title>
-                    <Text type="secondary">
-                      Quản lý nhập kho thức ăn theo khu vực
-                    </Text>
-                  </span>
-                </div>
-                <Space>
-                  <Button icon={<HistoryOutlined />}>Lịch sử nhập</Button>
-                  <Button
-                    type="primary"
-                    icon={<PrinterOutlined />}
-                    disabled={selectedProducts.length === 0}
-                  >
-                    In phiếu nhập
-                  </Button>
-                </Space>
-              </div>
-            }
-          >
-            <Form
-              form={form}
-              layout="vertical"
-              className="parameters-form"
-              onValuesChange={handleParametersChange}
-            >
-              <Row gutter={24}>
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    name="area"
-                    label={
-                      <Space>
-                        <EnvironmentOutlined />
-                        <Text strong>Khu vực</Text>
-                      </Space>
-                    }
-                    rules={[
-                      { required: true, message: "Vui lòng chọn khu vực" },
-                    ]}
-                  >
-                    <Select
-                      placeholder="Chọn khu vực"
-                      className="custom-select"
-                      dropdownClassName="custom-dropdown"
-                    >
-                      {areas.map((area) => (
-                        <Option key={area.id} value={area.id}>
-                          {area.name}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    name="days"
-                    label={
-                      <Space>
-                        <CalendarOutlined />
-                        <Text strong>Số ngày dự trù</Text>
-                      </Space>
-                    }
-                    rules={[
-                      { required: true, message: "Vui lòng nhập số ngày" },
-                    ]}
-                  >
-                    <InputNumber
-                      min={1}
-                      max={90}
-                      style={{ width: "100%" }}
-                      placeholder="Nhập số ngày"
-                      className="custom-input"
-                      formatter={(value) => `${value} ngày`}
-                      parser={(value) => value.replace(" ngày", "")}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </Form>
-
-            <Divider />
-
-            {/* Products Table */}
-            {suggestedProducts.length > 0 && (
-              <Card className="products-card" style={{ marginTop: "24px" }}>
-                <div className="table-header">
-                  <Space>
-                    <CalculatorOutlined />
-                    <Text strong>Danh sách thức ăn đề xuất</Text>
-                  </Space>
-                  <Space>
-                    <Button
-                      type="primary"
-                      icon={<CheckCircleOutlined />}
-                      onClick={() => setShowBill(true)}
-                      disabled={selectedProducts.length === 0}
-                    >
-                      Xem hóa đơn ({selectedProducts.length})
-                    </Button>
-                  </Space>
-                </div>
-
+              <Col span={24}>
                 <Table
                   columns={columns}
-                  dataSource={suggestedProducts}
+                  dataSource={foods}
                   loading={loading}
                   rowKey="id"
-                  pagination={false}
-                  scroll={{ x: 1500 }}
-                  className="custom-table"
+                  scroll={{ x: 1000 }}
+                  pagination={{
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showTotal: (total) => `Tổng số ${total} mục`,
+                  }}
                 />
-              </Card>
-            )}
+              </Col>
+            </Row>
           </Card>
         </Col>
 
-        {/* Bill Section */}
-        {showBill && (
-          <Col xs={24} lg={8}>
+        {showBill && allSelectedFoods.length > 0 && (
+          <Col span={6}>
             <Card
-              className="bill-card"
-              title={
-                <Space>
-                  <CheckCircleOutlined />
-                  <span>Phiếu nhập kho</span>
-                </Space>
-              }
+              title="Danh sách đã chọn"
               extra={
-                <Button type="text" danger onClick={() => setShowBill(false)}>
-                  Đóng
+                <Button
+                  type="link"
+                  danger
+                  onClick={() => {
+                    setAllSelectedFoods([]);
+                    setShowBill(false);
+                    setNote("");
+                  }}
+                >
+                  Xóa tất cả
                 </Button>
               }
             >
-              {selectedProducts.length > 0 ? (
-                <>
-                  <div className="bill-items">
-                    {suggestedProducts
-                      .filter((p) => selectedProducts.includes(p.id))
-                      .map((item) => (
-                        <div key={item.id} className="bill-item">
-                          <div className="bill-item-header">
-                            <Text strong>{item.name}</Text>
-                            <Button
-                              type="text"
-                              danger
-                              size="small"
-                              onClick={() => handleProductSelect(item)}
-                            >
-                              Xóa
-                            </Button>
-                          </div>
-                          <div className="bill-item-details">
-                            <Text type="secondary">
-                              {item.suggestedAmount.toLocaleString()}{" "}
-                              {item.unit} x {item.price.toLocaleString()}đ
-                            </Text>
-                            <Text strong>
-                              {(
-                                item.price * item.suggestedAmount
-                              ).toLocaleString()}
-                              đ
-                            </Text>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-
-                  <Divider />
-
-                  <div className="bill-total">
-                    <Title level={4}>Tổng cộng</Title>
-                    <Title level={3} type="danger">
-                      {suggestedProducts
-                        .filter((p) => selectedProducts.includes(p.id))
-                        .reduce(
-                          (sum, item) =>
-                            sum + item.price * item.suggestedAmount,
-                          0
-                        )
-                        .toLocaleString()}
-                      đ
-                    </Title>
-                  </div>
-
-                  <div className="bill-actions">
-                    <Button
-                      type="primary"
-                      block
-                      icon={<CheckCircleOutlined />}
-                      onClick={handleConfirmImport}
+              <div style={{ maxHeight: "60vh", overflowY: "auto" }}>
+                {allSelectedFoods.map((food) => (
+                  <div
+                    key={food.id}
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #f0f0f0",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
                     >
-                      Xác nhận nhập kho
-                    </Button>
-                    <Button block icon={<PrinterOutlined />}>
-                      In phiếu nhập
-                    </Button>
+                      <Text strong>{food.name}</Text>
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        onClick={() => handleProductSelect(food)}
+                      >
+                        Xóa
+                      </Button>
+                    </div>
+                    <div>
+                      <Text type="secondary">Khu vực: {food.areaName}</Text>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        marginTop: "8px",
+                      }}
+                    >
+                      <Text type="secondary" style={{ marginRight: "8px" }}>
+                        Dự kiến nhập:
+                      </Text>
+                      <InputNumber
+                        min={0}
+                        defaultValue={food.expectedAmount}
+                        onChange={(value) => {
+                          setAllSelectedFoods((prev) =>
+                            prev.map((item) =>
+                              item.id === food.id
+                                ? { ...item, expectedAmount: value || 0 }
+                                : item
+                            )
+                          );
+                        }}
+                        style={{ width: "120px" }}
+                        addonAfter="kg"
+                      />
+                    </div>
                   </div>
-                </>
-              ) : (
-                <Empty description="Chưa có sản phẩm nào được chọn" />
-              )}
+                ))}
+              </div>
+              <Divider />
+              <div style={{ textAlign: "center", marginBottom: "16px" }}>
+                <Text strong>Tổng số món: </Text>
+                <Text type="success" strong>
+                  {allSelectedFoods.length}
+                </Text>
+              </div>
+              <div style={{ marginBottom: "16px" }}>
+                <Text strong>Ghi chú:</Text>
+                <Input.TextArea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Nhập ghi chú cho phiếu nhập..."
+                  style={{ marginTop: "8px" }}
+                  rows={3}
+                />
+              </div>
+              <Button
+                type="primary"
+                block
+                onClick={createImportRequest}
+                disabled={allSelectedFoods.length === 0}
+              >
+                Tạo phiếu nhập
+              </Button>
             </Card>
           </Col>
         )}
       </Row>
 
-      {/* Product Detail Modal */}
+      {/* Food Detail Modal */}
       <Modal
-        title="Chi tiết sản phẩm"
-        open={showProductDetail}
-        onCancel={() => setShowProductDetail(false)}
+        title="Chi tiết thức ăn"
+        open={showFoodDetail}
+        onCancel={() => setShowFoodDetail(false)}
         footer={null}
         width={700}
       >
         <Descriptions bordered column={2}>
-          <Descriptions.Item label="Tên sản phẩm" span={2}>
-            {selectedProduct?.name}
+          <Descriptions.Item label="Tên thức ăn" span={2}>
+            {selectedFood?.name}
           </Descriptions.Item>
-          <Descriptions.Item label="Mã sản phẩm">
-            {selectedProduct?.id}
+          <Descriptions.Item label="Mã thức ăn">
+            {selectedFood?.id}
           </Descriptions.Item>
           <Descriptions.Item label="Danh mục">
-            {selectedProduct?.category}
-          </Descriptions.Item>
-          <Descriptions.Item label="Nhà cung cấp" span={2}>
-            {selectedProduct?.supplier}
+            {selectedFood?.category}
           </Descriptions.Item>
           <Descriptions.Item label="Mô tả" span={2}>
-            {selectedProduct?.description}
-          </Descriptions.Item>
-          <Descriptions.Item label="Đơn vị tính">
-            {selectedProduct?.unit}
-          </Descriptions.Item>
-          <Descriptions.Item label="Đơn giá">
-            {selectedProduct?.price.toLocaleString()} đ/{selectedProduct?.unit}
+            {selectedFood?.description}
           </Descriptions.Item>
           <Descriptions.Item label="Tồn kho hiện tại">
             <Space>
-              {selectedProduct?.currentStock.toLocaleString()}{" "}
-              {selectedProduct?.unit}
-              {selectedProduct?.isLow && <Tag color="error">Sắp hết hàng</Tag>}
+              {selectedFood?.currentStock.toLocaleString()} kg
+              {selectedFood?.isOutOfStock ? (
+                <Tag color="error">Hết hàng</Tag>
+              ) : (
+                selectedFood?.currentStock < 1000 && (
+                  <Tag color="warning">Sắp hết</Tag>
+                )
+              )}
             </Space>
           </Descriptions.Item>
-          <Descriptions.Item label="Tồn kho tối thiểu">
-            {selectedProduct?.minStock.toLocaleString()} {selectedProduct?.unit}
-          </Descriptions.Item>
           <Descriptions.Item label="Định mức sử dụng">
-            {selectedProduct?.dailyUsage.toLocaleString()}{" "}
-            {selectedProduct?.unit}/ngày
+            {selectedFood?.dailyUsage.toLocaleString()} kg/ngày
           </Descriptions.Item>
-          <Descriptions.Item label="Số lượng đề xuất">
-            {selectedProduct?.suggestedAmount.toLocaleString()}{" "}
-            {selectedProduct?.unit}
+          <Descriptions.Item label="Dự kiến nhập">
+            {selectedFood?.expectedAmount.toLocaleString()} kg
           </Descriptions.Item>
         </Descriptions>
       </Modal>
     </div>
   );
-};
-
-// Mock API
-const mockGetSuggestedProducts = async (areaId, days) => {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  return [
-    {
-      id: 1,
-      name: "Thức ăn heo thịt 20-50kg",
-      currentStock: 500,
-      dailyUsage: 50,
-      suggestedAmount: 50 * days,
-      unit: "kg",
-      price: 15000,
-      isLow: true,
-      supplier: "Công ty TNHH Thức ăn chăn nuôi ABC",
-      category: "Thức ăn heo thịt",
-      minStock: 1000,
-      description: "Thức ăn dạng viên cho heo thịt từ 20-50kg",
-    },
-    {
-      id: 2,
-      name: "Thức ăn heo thịt 50-80kg",
-      currentStock: 1200,
-      dailyUsage: 100,
-      suggestedAmount: 100 * days,
-      unit: "kg",
-      price: 13000,
-      isLow: false,
-      supplier: "Công ty TNHH Thức ăn chăn nuôi ABC",
-      category: "Thức ăn heo thịt",
-      minStock: 2000,
-      description: "Thức ăn dạng viên cho heo thịt từ 50-80kg",
-    },
-    {
-      id: 3,
-      name: "Thức ăn heo thịt 80-120kg",
-      currentStock: 800,
-      dailyUsage: 120,
-      suggestedAmount: 120 * days,
-      unit: "kg",
-      price: 12000,
-      isLow: true,
-      supplier: "Công ty TNHH Thức ăn chăn nuôi XYZ",
-      category: "Thức ăn heo thịt",
-      minStock: 2500,
-      description: "Thức ăn dạng viên cho heo thịt từ 80-120kg",
-    },
-  ];
 };
 
 export default FoodImport;

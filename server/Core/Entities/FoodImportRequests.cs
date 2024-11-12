@@ -17,9 +17,12 @@ public class FoodImportRequests : BaseEntity
     public string CreatedBy { get; set; }
     public DateTimeOffset? ApprovedTime { get; set; }
 
-    [InverseProperty("FoodImportRequest")]
+    // public string? ApprovedById { get; set; }
+    // public string? ApprovedBy { get; set; }
+
+    [InverseProperty("FoodImportRequests")]
     public virtual ICollection<FoodImportRequestDetails> FoodImportRequestDetails { get; set; } = new List<FoodImportRequestDetails>();
 
-    [InverseProperty("FoodImportRequest")]
+    [InverseProperty("FoodImportRequests")]
     public virtual ICollection<FoodImports> FoodImports { get; set; } = new List<FoodImports>();
 }

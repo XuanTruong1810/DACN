@@ -2,921 +2,1233 @@ import React, { useState, useEffect } from "react";
 import {
   Card,
   Table,
-  Tag,
   Space,
   Button,
   Typography,
-  Badge,
+  message,
+  Modal,
+  Tag,
+  Select,
   Row,
   Col,
-  Statistic,
-  Modal,
-  message,
-  Form,
-  Select,
-  Input,
-  DatePicker,
-  Menu,
-  Dropdown,
-  Timeline,
-  Alert,
-  Descriptions,
   InputNumber,
+  DatePicker,
   Tooltip,
-  Spin,
-  Divider,
 } from "antd";
 import {
-  ShoppingCartOutlined,
-  FileSearchOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   EyeOutlined,
-  DollarOutlined,
-  CalendarOutlined,
-  UserOutlined,
-  EnvironmentOutlined,
-  PrinterOutlined,
-  HistoryOutlined,
-  InfoCircleOutlined,
-  MoreOutlined,
-  ExclamationCircleOutlined,
-  SearchOutlined,
-  ReloadOutlined,
-  ClockCircleOutlined,
-  CheckOutlined,
-  CloseOutlined,
+  ShopOutlined,
+  WarningOutlined,
+  DeleteOutlined,
+  ExclamationCircleFilled,
+  InfoCircleFilled,
 } from "@ant-design/icons";
-import { mockBills, mockSuppliers, mockAreas } from "./mock/mockData";
-import "./styles/FoodImportApproval.css";
+import axios from "axios";
+import moment from "moment";
 
-const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
-const { confirm } = Modal;
+const { Text, Title } = Typography;
+const { Option } = Select;
+
+// Tạo axios instance
+const axiosClient = axios.create({
+  baseURL: "http://localhost:5197",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Add request interceptor
+axiosClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 const FoodImportApproval = () => {
   // States
   const [loading, setLoading] = useState(false);
-  const [selectedBill, setSelectedBill] = useState(null);
-  const [drawerVisible, setDrawerVisible] = useState(false);
-  const [approveModalVisible, setApproveModalVisible] = useState(false);
-  const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const [bills, setBills] = useState(mockBills);
-  const [filters, setFilters] = useState({
-    status: undefined,
-    area: undefined,
-    creator: "",
-    billCode: "",
-    dateRange: [],
-  });
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: mockBills.length,
-  });
-  const [approveForm] = Form.useForm();
-  const [rejectForm] = Form.useForm();
-  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [requests, setRequests] = useState([]);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [showDetail, setShowDetail] = useState(false);
+  const [suppliers, setSuppliers] = useState([]);
+  const [requestDetails, setRequestDetails] = useState([]);
+  const [selectedDetails, setSelectedDetails] = useState({});
+  const [commonSupplier, setCommonSupplier] = useState(null);
+  const [deliveryDates, setDeliveryDates] = useState({});
+  const [approving, setApproving] = useState(false);
 
-  // Effects
+  // Lấy token từ localStorage
+  const token = localStorage.getItem("token");
+
+  // Fetch requests on mount
   useEffect(() => {
-    fetchData();
-  }, [filters, pagination.current, pagination.pageSize]);
+    getRequests();
+    getSuppliers();
+  }, []);
 
-  // API calls simulation
-  const fetchData = async () => {
+  // API Calls
+  const getRequests = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Filter data
-      let filteredData = [...mockBills];
-      if (filters.status) {
-        filteredData = filteredData.filter(
-          (bill) => bill.status === filters.status
-        );
-      }
-      if (filters.area) {
-        filteredData = filteredData.filter(
-          (bill) => bill.area === filters.area
-        );
-      }
-      if (filters.creator) {
-        filteredData = filteredData.filter((bill) =>
-          bill.createdBy.toLowerCase().includes(filters.creator.toLowerCase())
-        );
-      }
-      if (filters.billCode) {
-        filteredData = filteredData.filter((bill) =>
-          bill.id.toLowerCase().includes(filters.billCode.toLowerCase())
-        );
-      }
-
-      setBills(filteredData);
-      setPagination((prev) => ({
-        ...prev,
-        total: filteredData.length,
-      }));
+      const response = await axiosClient.get("/api/FoodImportRequest");
+      console.log(response.data.data.items);
+      setRequests(response.data.data.items);
     } catch (error) {
-      message.error("Có lỗi xảy ra khi tải dữ liệu");
-    } finally {
-      setLoading(false);
+      message.error("Lỗi khi tải danh sách phiếu đề xuất");
+    }
+    setLoading(false);
+  };
+
+  const getSuppliers = async () => {
+    try {
+      const response = await axiosClient.get("/api/v1/Suppliers", {
+        params: {
+          pageSize: 100,
+          typeSuppliers: ["food"],
+          status: "active",
+        },
+      });
+      setSuppliers(response.data.data.items || []);
+    } catch (error) {
+      console.error("Error fetching suppliers:", error);
+      message.error("Lỗi khi tải danh sách nhà cung cấp");
+      setSuppliers([]);
+    }
+  };
+
+  const getRequestDetails = async (requestId) => {
+    try {
+      const response = await axiosClient.get(
+        `/api/FoodImportRequest/${requestId}`
+      );
+      const requestData = response.data.data;
+
+      // Map data từ details của response
+      const details = requestData.details.map((detail) => ({
+        id: detail.foodId, // Sử dụng foodId làm id vì không có id riêng cho detail
+        foodId: detail.foodId,
+        foodName: detail.food.name,
+        expectedQuantity: detail.expectedQuantity,
+        description: detail.food.description,
+        foodTypeName: detail.food.foodTypeName,
+        areaName: detail.food.areaName,
+        suppliers: detail.food.suppliers,
+      }));
+
+      setRequestDetails(details);
+      setSelectedRequest(requestData);
+      console.log("Request Details:", details);
+    } catch (error) {
+      console.error("Error fetching request details:", error);
+      message.error("Lỗi khi tải chi tiết phiếu đề xuất");
+      setRequestDetails([]);
     }
   };
 
   // Handlers
-  const handleTableChange = (pagination, filters, sorter) => {
-    setPagination(pagination);
+  const handleViewDetail = (record) => {
+    setSelectedRequest(record);
+    getRequestDetails(record.id);
+    setShowDetail(true);
   };
 
-  const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({
+  const handleDetailChange = (foodId, field, value) => {
+    setSelectedDetails((prev) => ({
       ...prev,
-      [key]: value,
+      [foodId]: {
+        ...prev[foodId],
+        [field]: value,
+      },
     }));
   };
 
-  const handleResetFilters = () => {
-    setFilters({
-      status: undefined,
-      area: undefined,
-      creator: "",
-      billCode: "",
-      dateRange: [],
-    });
-  };
+  const handleApprove = async () => {
+    if (!token) {
+      message.error("Vui lòng đăng nhập lại");
+      return;
+    }
 
-  const handleView = (record) => {
-    setSelectedBill(record);
-    setDrawerVisible(true);
-  };
-
-  const handleApprove = (record) => {
-    setSelectedBill(record);
-    setApproveModalVisible(true);
-    // Initialize form with default values
-    approveForm.setFieldsValue({
-      supplierId: undefined,
-      items: record.items.map((item) => ({
-        ...item,
-        price: null,
-      })),
-      deposit: 0,
-    });
-  };
-
-  const handleApproveSubmit = async (values) => {
     try {
-      setLoading(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setApproving(true);
+      const groupedDetails = groupDetailsBySupplier();
 
-      // Update bill status
-      const updatedBills = bills.map((bill) =>
-        bill.id === selectedBill.id ? { ...bill, status: "approved" } : bill
+      // Format request theo đúng schema API yêu cầu
+      const importRequests = Object.values(groupedDetails.assigned).map(
+        (group) => ({
+          requestId: selectedRequest.id, // Thêm requestId vào mỗi item
+          supplierId: group.supplierId,
+          expectedDeliveryTime: deliveryDates[group.supplierId],
+          depositAmount: calculateGroupDeposit(group.items),
+          note: `Phiếu nhập từ đề xuất ${selectedRequest.id}`,
+          details: group.items.map((item) => ({
+            foodId: item.foodId,
+            unitPrice: selectedDetails[item.id]?.price || 0,
+            expectedQuantity: item.expectedQuantity,
+          })),
+        })
       );
-      setBills(updatedBills);
 
-      message.success(`Đã duyệt phiếu ${selectedBill.id}`);
-      setApproveModalVisible(false);
-      approveForm.resetFields();
+      // Gọi API xét duyệt
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/FoodImport`,
+        importRequests, // Gửi array các phiếu nhập
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            requestId: selectedRequest.id,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        message.success("Xét duyệt thành công");
+        setShowDetail(false);
+        getRequests();
+      }
     } catch (error) {
-      message.error("Có lỗi xảy ra khi duyệt phiếu");
+      console.error("Error approving:", error);
+      message.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi xét duyệt"
+      );
     } finally {
-      setLoading(false);
+      setApproving(false);
     }
   };
 
-  const handleReject = (record) => {
-    setSelectedBill(record);
-    setRejectModalVisible(true);
-  };
-
-  const handleRejectSubmit = async (values) => {
+  // Thêm hàm xử lý từ chối
+  const handleReject = async () => {
     try {
-      setLoading(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Update bill status
-      const updatedBills = bills.map((bill) =>
-        bill.id === selectedBill.id
-          ? { ...bill, status: "rejected", rejectReason: values.reason }
-          : bill
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/FoodImportRequest/reject/${
+          selectedRequest.id
+        }`,
+        {
+          note: "Không chấp thuận đề xuất", // Có thể thêm modal để nhập lý do
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-      setBills(updatedBills);
 
-      message.success(`Đã từ chối phiếu ${selectedBill.id}`);
-      setRejectModalVisible(false);
-      rejectForm.resetFields();
+      if (response.status === 200) {
+        message.success("Đã từ chối đề xuất");
+        setShowDetail(false);
+        getRequests();
+      }
     } catch (error) {
-      message.error("Có lỗi xảy ra khi từ chối phiếu");
-    } finally {
-      setLoading(false);
+      message.error("Có lỗi xảy ra khi từ chối đề xuất");
     }
   };
 
-  const handlePrint = (record) => {
-    message.loading({ content: "Đang chuẩn bị in...", key: "print" });
-    setTimeout(() => {
-      message.success({
-        content: "Đã gửi lệnh in thành công!",
-        key: "print",
-        duration: 2,
-      });
-    }, 1000);
-  };
-
-  const handleViewHistory = (record) => {
-    Modal.info({
-      title: (
-        <Space>
-          <HistoryOutlined />
-          <span>Lịch sử thao tác</span>
-        </Space>
-      ),
-      width: 600,
-      className: "history-modal",
-      content: (
-        <Timeline>
-          {record.history?.map((item, index) => (
-            <Timeline.Item
-              key={index}
-              color={
-                item.action === "create"
-                  ? "blue"
-                  : item.action === "approve"
-                  ? "green"
-                  : item.action === "reject"
-                  ? "red"
-                  : "gray"
-              }
-            >
-              <div className="history-item">
-                <Text strong>
-                  {item.action === "create"
-                    ? "Tạo phiếu"
-                    : item.action === "approve"
-                    ? "Duyệt phiếu"
-                    : item.action === "reject"
-                    ? "Từ chối phiếu"
-                    : item.action}
-                </Text>
-                <div className="history-info">
-                  <Text type="secondary">Thời gian: {item.time}</Text>
-                  <br />
-                  <Text type="secondary">Người thực hiện: {item.user}</Text>
-                  {item.note && (
-                    <>
-                      <br />
-                      <Text type="secondary">Ghi chú: {item.note}</Text>
-                    </>
-                  )}
-                </div>
-              </div>
-            </Timeline.Item>
-          ))}
-        </Timeline>
-      ),
+  const handleCommonSupplierChange = (supplierId) => {
+    setCommonSupplier(supplierId);
+    // Cập nhật tất cả các mt hàng với cùng nhà cung cấp
+    const updatedDetails = {};
+    requestDetails.forEach((detail) => {
+      updatedDetails[detail.id] = {
+        ...selectedDetails[detail.id],
+        supplierId: supplierId,
+      };
     });
+    setSelectedDetails(updatedDetails);
   };
 
-  const calculateItemTotal = (quantity, price) => {
-    return (quantity || 0) * (price || 0);
+  // Thêm hàm để nhóm sản phẩm theo nhà cung cấp đã chọn
+  const groupDetailsBySupplier = () => {
+    const grouped = {
+      unassigned: [],
+      assigned: {},
+    };
+
+    requestDetails.forEach((detail) => {
+      const selectedSupplier = selectedDetails[detail.id]?.supplierId;
+      if (!selectedSupplier) {
+        grouped.unassigned.push(detail);
+      } else {
+        const supplier = suppliers.find((s) => s.id === selectedSupplier);
+        if (!grouped.assigned[selectedSupplier]) {
+          grouped.assigned[selectedSupplier] = {
+            supplierId: selectedSupplier,
+            supplierName: supplier?.name || "",
+            supplier: supplier,
+            items: [],
+          };
+        }
+        grouped.assigned[selectedSupplier].items.push(detail);
+      }
+    });
+
+    return grouped;
   };
 
-  const calculateBillTotal = (items) => {
+  // Các hàm tính toán
+  const calculateItemTotal = (record) => {
+    const price = selectedDetails[record.id]?.price || 0;
+    return price * record.expectedQuantity;
+  };
+
+  const calculateGroupTotal = (items) => {
     return items.reduce((sum, item) => {
-      const price =
-        approveForm.getFieldValue(["items", items.indexOf(item), "price"]) || 0;
-      return sum + calculateItemTotal(item.quantity, price);
+      return sum + calculateItemTotal(item);
     }, 0);
   };
 
-  const SupplierDetail = ({ supplier }) => {
-    if (!supplier) return null;
-
-    return (
-      <Card
-        size="small"
-        className="supplier-info"
-        title={
-          <Space>
-            <UserOutlined />
-            <span>Thông tin nhà cung cấp</span>
-          </Space>
-        }
-      >
-        <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
-          <Descriptions.Item label="Mã NCC" span={1}>
-            <Text strong>{supplier.code}</Text>
-          </Descriptions.Item>
-          <Descriptions.Item label="Tên NCC" span={1}>
-            <Text strong>{supplier.name}</Text>
-          </Descriptions.Item>
-          <Descriptions.Item label="Người đại diện" span={1}>
-            {supplier.representative}
-          </Descriptions.Item>
-          <Descriptions.Item label="Mã số thuế" span={1}>
-            {supplier.taxCode}
-          </Descriptions.Item>
-          <Descriptions.Item label="Số điện thoại" span={1}>
-            {supplier.phone}
-          </Descriptions.Item>
-          <Descriptions.Item label="Email" span={1}>
-            {supplier.email}
-          </Descriptions.Item>
-          <Descriptions.Item label="Địa chỉ" span={2}>
-            {supplier.address}
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
-    );
+  const calculateGroupDeposit = (items) => {
+    return items.reduce((sum, item) => {
+      return sum + (selectedDetails[item.id]?.deposit || 0);
+    }, 0);
   };
 
-  // Table Columns
-  const columns = [
+  // Các hàm xử lý
+  const handlePriceChange = (recordId, value) => {
+    const record = requestDetails.find((d) => d.id === recordId);
+    const newTotal = value * record.expectedQuantity;
+    const currentDeposit = selectedDetails[recordId]?.deposit || 0;
+
+    setSelectedDetails((prev) => ({
+      ...prev,
+      [recordId]: {
+        ...prev[recordId],
+        price: value,
+        deposit: currentDeposit > newTotal ? 0 : currentDeposit, // Reset nếu tiền cọc vượt quá
+        depositError:
+          currentDeposit > newTotal
+            ? "Đã reset tiền cọc do thay đổi đơn giá"
+            : null,
+      },
+    }));
+
+    if (currentDeposit > newTotal) {
+      message.warning(
+        "Đã reset tiền cọc do thay đổi đơn giá làm thành tiền thấp hơn tiền cọc"
+      );
+    }
+  };
+
+  const handleDepositChange = (recordId, value) => {
+    const record = requestDetails.find((d) => d.id === recordId);
+    const totalAmount = calculateItemTotal(record);
+
+    setSelectedDetails((prev) => ({
+      ...prev,
+      [recordId]: {
+        ...prev[recordId],
+        deposit: value,
+        depositError:
+          value > totalAmount
+            ? `Tiền cọc tối đa ${totalAmount.toLocaleString()}đ`
+            : null,
+      },
+    }));
+  };
+
+  const handleDeliveryDateChange = (supplierId, date) => {
+    setDeliveryDates((prev) => ({
+      ...prev,
+      [supplierId]: date,
+    }));
+  };
+
+  // Columns cho bảng chi tiết
+  const detailColumns = [
     {
-      title: "Mã phiếu",
-      dataIndex: "id",
-      key: "id",
-      render: (text) => <Text strong>{text}</Text>,
+      title: "Tên thức ăn",
+      dataIndex: "foodName",
+      width: 200,
     },
     {
-      title: "Thời gian tạo",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      render: (text) => (
-        <Space>
-          <CalendarOutlined />
-          {text}
-        </Space>
-      ),
-    },
-    {
-      title: "Người tạo",
-      dataIndex: "createdBy",
-      key: "createdBy",
-      render: (text) => (
-        <Space>
-          <UserOutlined />
-          {text}
-        </Space>
-      ),
+      title: "Mô tả",
+      dataIndex: "description",
+      width: 250,
     },
     {
       title: "Khu vực",
-      dataIndex: "area",
-      key: "area",
-      render: (text) => (
-        <Space>
-          <EnvironmentOutlined />
-          {text}
-        </Space>
+      dataIndex: "areaName",
+      width: 100,
+    },
+    {
+      title: "Số lượng",
+      dataIndex: "expectedQuantity",
+      width: 120,
+      render: (value) => `${value.toLocaleString()} kg`,
+    },
+    {
+      title: "Đơn giá",
+      width: 150,
+      render: (_, record) => (
+        <InputNumber
+          style={{ width: "100%" }}
+          formatter={(value) =>
+            `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          }
+          parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+          onChange={(value) => handlePriceChange(record.id, value)}
+          value={selectedDetails[record.id]?.price}
+          min={0}
+          addonAfter="đ"
+        />
       ),
     },
     {
-      title: "Tổng tiền",
-      dataIndex: "totalAmount",
-      key: "totalAmount",
-      render: (amount) => (
-        <Text strong type="success">
-          {amount.toLocaleString()}đ
-        </Text>
-      ),
+      title: "Thành tiền",
+      width: 150,
+      render: (_, record) => {
+        const total = calculateItemTotal(record);
+        return (
+          <Text strong style={{ color: "#1890ff" }}>
+            {total.toLocaleString()}đ
+          </Text>
+        );
+      },
     },
     {
-      title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => {
-        let color =
-          status === "pending"
-            ? "processing"
-            : status === "approved"
-            ? "success"
-            : "error";
-        let text =
-          status === "pending"
-            ? "Chờ duyệt"
-            : status === "approved"
-            ? "Đã duyệt"
-            : "Từ chối";
-        let icon =
-          status === "pending" ? (
-            <ClockCircleOutlined />
-          ) : status === "approved" ? (
-            <CheckCircleOutlined />
-          ) : (
-            <CloseCircleOutlined />
-          );
+      title: "Tiền cọc",
+      width: 150,
+      render: (_, record) => {
+        const total = calculateItemTotal(record);
+        const currentDeposit = selectedDetails[record.id]?.deposit || 0;
+        const hasError = currentDeposit > total;
+        const errorMessage = selectedDetails[record.id]?.depositError;
 
         return (
-          <Tag icon={icon} color={color}>
-            {text}
-          </Tag>
+          <Tooltip title={errorMessage} visible={hasError} color="red">
+            <div>
+              <InputNumber
+                style={{
+                  width: "100%",
+                  borderColor: hasError ? "#ff4d4f" : undefined,
+                }}
+                formatter={(value) =>
+                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                }
+                parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                onChange={(value) => handleDepositChange(record.id, value)}
+                value={currentDeposit}
+                max={total}
+                min={0}
+                status={hasError ? "error" : ""}
+                addonAfter="đ"
+                onStep={(value, info) => {
+                  // Kiểm tra khi người dùng dùng nút tăng/giảm
+                  if (value > total) {
+                    message.error(
+                      `Tiền cọc không được vượt quá ${total.toLocaleString()}đ`
+                    );
+                  }
+                }}
+                onBlur={() => {
+                  // Kiểm tra và hiển thị thông báo khi người dùng rời khỏi input
+                  if (currentDeposit > total) {
+                    message.error(
+                      `Tiền cọc không được vượt quá ${total.toLocaleString()}đ`
+                    );
+                  }
+                }}
+              />
+              {hasError && (
+                <div
+                  style={{
+                    color: "#ff4d4f",
+                    fontSize: "12px",
+                    marginTop: "4px",
+                  }}
+                >
+                  Vượt quá thành tiền
+                </div>
+              )}
+            </div>
+          </Tooltip>
         );
       },
     },
     {
       title: "Thao tác",
-      key: "action",
-      fixed: "right",
-      width: 200,
-      render: (_, record) => {
-        const actionMenu = (
-          <Menu className="custom-action-menu">
-            <Menu.Item
-              key="view"
-              icon={<EyeOutlined />}
-              onClick={() => handleView(record)}
-            >
-              Xem chi tiết
-            </Menu.Item>
-            <Menu.Divider />
-            <Menu.ItemGroup title="Thao tác phê duyệt">
-              {record.status === "pending" && (
-                <>
-                  <Menu.Item
-                    key="approve"
-                    icon={<CheckCircleOutlined className="approve-icon" />}
-                    onClick={() => handleApprove(record)}
-                    className="approve-menu-item"
-                  >
-                    Duyệt phiếu
-                  </Menu.Item>
-                  <Menu.Item
-                    key="reject"
-                    icon={<CloseCircleOutlined className="reject-icon" />}
-                    onClick={() => handleReject(record)}
-                    danger
-                  >
-                    Từ chối
-                  </Menu.Item>
-                </>
-              )}
-            </Menu.ItemGroup>
-          </Menu>
-        );
-
-        return (
-          <Space size="middle" className="action-space">
-            {record.status === "pending" && (
-              <div className="quick-actions">
-                <Tooltip title="Duyệt nhanh" placement="top">
-                  <Button
-                    type="primary"
-                    className="approve-button"
-                    icon={<CheckOutlined />}
-                    onClick={() => handleApprove(record)}
-                  >
-                    Duyệt
-                  </Button>
-                </Tooltip>
-                <Tooltip title="Từ chối" placement="top">
-                  <Button
-                    danger
-                    className="reject-button"
-                    icon={<CloseOutlined />}
-                    onClick={() => handleReject(record)}
-                  >
-                    Từ chối
-                  </Button>
-                </Tooltip>
-              </div>
-            )}
-
-            <Dropdown
-              overlay={actionMenu}
-              trigger={["click"]}
-              placement="bottomRight"
-            >
-              <Button
-                type="text"
-                icon={<MoreOutlined />}
-                className="more-actions-button"
-              />
-            </Dropdown>
-          </Space>
-        );
-      },
+      width: 100,
+      render: (_, record) => (
+        <Button
+          type="link"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => handleDetailChange(record.id, "supplierId", null)}
+        >
+          Xóa
+        </Button>
+      ),
     },
   ];
 
-  // Render
-  return (
-    <div className="food-import-approval">
-      {/* Header Section */}
-      <div className="page-header">
-        <div className="header-title">
-          <Title level={3}>
-            <FileSearchOutlined /> Duyệt phiếu nhập thức ăn
-          </Title>
-          <Text type="secondary">
-            Quản lý và phê duyệt các phiếu nhập thức ăn cho vật nuôi
-          </Text>
-        </div>
-        <Space>
-          <Button icon={<ReloadOutlined />} onClick={fetchData}>
-            Làm mới
-          </Button>
-          <RangePicker
-            style={{ width: 300 }}
-            placeholder={["Từ ngày", "Đến ngày"]}
-            onChange={(dates) => handleFilterChange("dateRange", dates)}
-          />
-        </Space>
-      </div>
-
-      {/* Statistics Cards */}
-      <Row gutter={[24, 24]} className="statistics-row">
-        <Col xs={24} sm={12} lg={8}>
-          <Card bordered={false} className="statistic-card">
-            <Statistic
-              title={<Text strong>Chờ duyệt</Text>}
-              value={bills.filter((b) => b.status === "pending").length}
-              prefix={
-                <ClockCircleOutlined className="statistic-icon pending" />
-              }
-              className="custom-statistic"
-            />
-            <div className="statistic-footer">
-              <Text type="secondary">Cần xử lý</Text>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card bordered={false} className="statistic-card">
-            <Statistic
-              title={<Text strong>Đã duyệt</Text>}
-              value={bills.filter((b) => b.status === "approved").length}
-              prefix={
-                <CheckCircleOutlined className="statistic-icon success" />
-              }
-              className="custom-statistic"
-            />
-            <div className="statistic-footer">
-              <Text type="secondary">Trong tháng này</Text>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card bordered={false} className="statistic-card">
-            <Statistic
-              title={<Text strong>Tổng giá trị</Text>}
-              value={bills.reduce((sum, bill) => sum + bill.totalAmount, 0)}
-              prefix={<DollarOutlined className="statistic-icon primary" />}
-              suffix="đ"
-              className="custom-statistic"
-            />
-            <div className="statistic-footer">
-              <Text type="secondary">Trong tháng này</Text>
-            </div>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Filter Section */}
-      <Card className="filter-card">
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={12} md={6}>
-            <Form.Item label="Trạng thái" className="mb-0">
-              <Select
-                placeholder="Tất cả trạng thái"
-                allowClear
-                style={{ width: "100%" }}
-                value={filters.status}
-                onChange={(value) => handleFilterChange("status", value)}
-              >
-                <Select.Option value="pending">
-                  <Badge status="processing" text="Chờ duyệt" />
-                </Select.Option>
-                <Select.Option value="approved">
-                  <Badge status="success" text="Đã duyệt" />
-                </Select.Option>
-                <Select.Option value="rejected">
-                  <Badge status="error" text="Từ chối" />
-                </Select.Option>
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Form.Item label="Khu vực" className="mb-0">
-              <Select
-                placeholder="Tất cả khu vực"
-                allowClear
-                style={{ width: "100%" }}
-                value={filters.area}
-                onChange={(value) => handleFilterChange("area", value)}
-              >
-                {mockAreas.map((area) => (
-                  <Select.Option key={area.id} value={area.id}>
-                    {area.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Form.Item label="Người tạo" className="mb-0">
-              <Input
-                placeholder="Tìm theo người tạo"
-                prefix={<UserOutlined />}
-                value={filters.creator}
-                onChange={(e) => handleFilterChange("creator", e.target.value)}
-                allowClear
-              />
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Form.Item label="Mã phiếu" className="mb-0">
-              <Input
-                placeholder="Nhập mã phiếu"
-                prefix={<FileSearchOutlined />}
-                value={filters.billCode}
-                onChange={(e) => handleFilterChange("billCode", e.target.value)}
-                allowClear
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row>
-          <Col span={24} style={{ textAlign: "right", marginTop: 16 }}>
-            <Space>
-              <Button onClick={handleResetFilters}>Đặt lại</Button>
-              <Button
-                type="primary"
-                icon={<SearchOutlined />}
-                onClick={fetchData}
-              >
-                Tìm kiếm
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
-
-      {/* Table Section */}
-      <Card className="table-card">
-        <Table
-          columns={columns}
-          dataSource={bills}
-          rowKey="id"
-          loading={loading}
-          onChange={handleTableChange}
-          pagination={pagination}
-          className="custom-table"
-        />
-      </Card>
-
-      {/* Approve Modal */}
-      <Modal
-        title={`Duyệt phiếu nhập ${selectedBill?.id}`}
-        open={approveModalVisible}
-        onCancel={() => {
-          setApproveModalVisible(false);
-          approveForm.resetFields();
-        }}
-        width={1000}
-        footer={[
-          <Button
-            key="back"
-            onClick={() => {
-              setApproveModalVisible(false);
-              approveForm.resetFields();
-            }}
-          >
-            Hủy
-          </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            onClick={() => approveForm.submit()}
-            loading={loading}
-          >
-            Xác nhận duyệt
-          </Button>,
-        ]}
-      >
-        <Form
-          form={approveForm}
-          layout="vertical"
-          onFinish={handleApproveSubmit}
+  // Columns cho bảng chưa chọn nhà cung cấp
+  const unassignedColumns = [
+    {
+      title: "Tên thc ăn",
+      dataIndex: "foodName",
+      width: 200,
+    },
+    {
+      title: "Mô tả",
+      dataIndex: "description",
+      width: 250,
+    },
+    {
+      title: "Khu vực",
+      dataIndex: "areaName",
+      width: 100,
+    },
+    {
+      title: "Số lượng",
+      dataIndex: "expectedQuantity",
+      width: 120,
+      render: (value) => `${value.toLocaleString()} kg`,
+    },
+    {
+      title: "Nhà cung cấp",
+      width: 200,
+      render: (_, record) => (
+        <Select
+          style={{ width: "100%" }}
+          placeholder="Chọn nhà cung cấp"
+          onChange={(value) =>
+            handleDetailChange(record.id, "supplierId", value)
+          }
         >
-          {/* Supplier Selection */}
-          <Form.Item
-            name="supplierId"
-            label="Nhà cung cấp"
-            rules={[{ required: true, message: "Vui lòng chọn nhà cung cấp" }]}
+          {record.suppliers.map((supplier) => (
+            <Option key={supplier.supplierId} value={supplier.supplierId}>
+              {supplier.supplierName}
+            </Option>
+          ))}
+        </Select>
+      ),
+    },
+  ];
+
+  const renderDetailTables = () => {
+    const groupedDetails = groupDetailsBySupplier();
+
+    return (
+      <div>
+        {/* Render các nhóm đã chọn nhà cung cấp */}
+        {Object.values(groupedDetails.assigned).map((group) => (
+          <Card
+            key={group.supplierId}
+            title={
+              <Row justify="space-between" align="middle">
+                <Col>
+                  <Space size="large">
+                    <Space>
+                      <ShopOutlined />
+                      <Text strong>{group.supplierName}</Text>
+                      <Tag color="success">{group.items.length} sản phẩm</Tag>
+                    </Space>
+                    <Text type="secondary">|</Text>
+                    <Space>
+                      <Text>Tổng tiền:</Text>
+                      <Text strong style={{ color: "#1890ff" }}>
+                        {calculateGroupTotal(group.items).toLocaleString()}đ
+                      </Text>
+                    </Space>
+                    <Text type="secondary">|</Text>
+                    <Space>
+                      <Text>Tổng tiền cọc:</Text>
+                      <Text strong style={{ color: "#52c41a" }}>
+                        {calculateGroupDeposit(group.items).toLocaleString()}đ
+                      </Text>
+                    </Space>
+                  </Space>
+                </Col>
+                <Col>
+                  <Space>
+                    <Text>Ngày giao:</Text>
+                    <DatePicker
+                      style={{ width: 200 }}
+                      placeholder="Chọn ngày giao hàng"
+                      value={deliveryDates[group.supplierId]}
+                      onChange={(date) =>
+                        handleDeliveryDateChange(group.supplierId, date)
+                      }
+                      disabledDate={(current) => {
+                        return current && current < moment().startOf("day");
+                      }}
+                      format="DD/MM/YYYY"
+                      status={!deliveryDates[group.supplierId] ? "error" : ""}
+                    />
+                    {selectedRequest?.status === "approved" && (
+                      <Button
+                        type="primary"
+                        onClick={() => handleCreateImport(group)}
+                        disabled={!isValidForImport(group)}
+                        loading={loading}
+                      >
+                        Tạo phiếu nhập
+                      </Button>
+                    )}
+                  </Space>
+                </Col>
+              </Row>
+            }
+            style={{ marginBottom: 16 }}
+            className="supplier-group"
           >
-            <Select
-              showSearch
-              placeholder="Chọn nhà cung cấp"
-              optionFilterProp="children"
-              onChange={(value) => {
-                const supplier = mockSuppliers.find((s) => s.id === value);
-                setSelectedSupplier(supplier);
+            <div
+              style={{
+                background: "#fafafa",
+                padding: "12px 24px",
+                borderRadius: 8,
+                marginBottom: 16,
+                border: "1px solid #f0f0f0",
               }}
             >
-              {mockSuppliers.map((supplier) => (
-                <Select.Option key={supplier.id} value={supplier.id}>
-                  <Space direction="vertical" size={0}>
-                    <Text strong>{supplier.name}</Text>
-                    <Text type="secondary" style={{ fontSize: "12px" }}>
-                      {supplier.code} - {supplier.phone}
+              <Row gutter={[24, 16]}>
+                <Col span={8}>
+                  <Space direction="vertical" size="small">
+                    <Text type="secondary">Mã nhà cung cấp:</Text>
+                    <Text strong>{group.supplierId}</Text>
+                  </Space>
+                </Col>
+                <Col span={8}>
+                  <Space direction="vertical" size="small">
+                    <Text type="secondary">Địa chỉ:</Text>
+                    <Text strong>
+                      {group.supplier?.address || "Chưa cập nhật"}
                     </Text>
                   </Space>
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Space direction="vertical" size="small">
+                    <Text type="secondary">Số điện thoại:</Text>
+                    <Text strong>
+                      {group.supplier?.phone || "Chưa cập nhật"}
+                    </Text>
+                  </Space>
+                </Col>
+                <Col span={8}>
+                  <Space direction="vertical" size="small">
+                    <Text type="secondary">Email:</Text>
+                    <Text strong>
+                      {group.supplier?.email || "Chưa cập nhật"}
+                    </Text>
+                  </Space>
+                </Col>
+                <Col span={8}>
+                  <Space direction="vertical" size="small">
+                    <Text type="secondary">Người đại diện:</Text>
+                    <Text strong>
+                      {group.supplier?.representative || "Chưa cập nhật"}
+                    </Text>
+                  </Space>
+                </Col>
+                <Col span={8}>
+                  <Space direction="vertical" size="small">
+                    <Text type="secondary">Trạng thái:</Text>
+                    <Tag
+                      color={
+                        group.supplier?.status === "active"
+                          ? "success"
+                          : "error"
+                      }
+                    >
+                      {group.supplier?.status === "active"
+                        ? "Đang hoạt động"
+                        : "Ngừng hoạt động"}
+                    </Tag>
+                  </Space>
+                </Col>
+              </Row>
+            </div>
 
-          {selectedSupplier && <SupplierDetail supplier={selectedSupplier} />}
+            <Table
+              columns={detailColumns}
+              dataSource={group.items}
+              pagination={false}
+              rowKey="id"
+              bordered
+              summary={() => (
+                <Table.Summary fixed>
+                  <Table.Summary.Row style={{ backgroundColor: "#fafafa" }}>
+                    <Table.Summary.Cell index={0} colSpan={4}>
+                      <Text strong>Tổng cộng</Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={1}>
+                      <Text strong style={{ color: "#1890ff" }}>
+                        {calculateGroupTotal(group.items).toLocaleString()}đ
+                      </Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={2}>
+                      <Text strong style={{ color: "#52c41a" }}>
+                        {calculateGroupDeposit(group.items).toLocaleString()}đ
+                      </Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={3} />
+                  </Table.Summary.Row>
+                </Table.Summary>
+              )}
+            />
+          </Card>
+        ))}
 
-          {/* Products List */}
-          <Title level={5} style={{ marginTop: 24 }}>
-            Chi tiết sản phẩm
-          </Title>
-          <Form.List name="items">
-            {(fields) => (
-              <>
-                {selectedBill?.items.map((item, index) => (
-                  <Card
-                    key={item.id}
-                    size="small"
-                    className="product-card"
-                    title={
-                      <Space>
-                        <ShoppingCartOutlined />
-                        <span>{item.name}</span>
-                      </Space>
-                    }
-                  >
-                    <Row gutter={16}>
-                      <Col xs={24} md={8}>
-                        <Form.Item
-                          label="Số lượng"
-                          name={["items", index, "quantity"]}
-                          initialValue={item.quantity}
-                        >
-                          <InputNumber
-                            disabled
-                            style={{ width: "100%" }}
-                            formatter={(value) => `${value} ${item.unit}`}
-                          />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Form.Item
-                          label="Đơn giá"
-                          name={["items", index, "price"]}
-                          rules={[
-                            {
-                              required: true,
-                              message: "Vui lòng nhập đơn giá",
-                            },
-                            {
-                              type: "number",
-                              min: 1000,
-                              message: "Đơn giá phải lớn hơn 1,000đ",
-                            },
-                          ]}
-                        >
-                          <InputNumber
-                            style={{ width: "100%" }}
-                            formatter={(value) =>
-                              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                            }
-                            parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-                            addonAfter="đ"
-                            onChange={() => {
-                              // Force re-render to update total
-                              approveForm.setFieldsValue({
-                                items: approveForm.getFieldValue("items"),
-                              });
-                            }}
-                          />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Form.Item label="Thành tiền">
-                          <InputNumber
-                            disabled
-                            style={{ width: "100%" }}
-                            value={calculateItemTotal(
-                              approveForm.getFieldValue([
-                                "items",
-                                index,
-                                "quantity",
-                              ]),
-                              approveForm.getFieldValue([
-                                "items",
-                                index,
-                                "price",
-                              ])
-                            )}
-                            formatter={(value) =>
-                              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                            }
-                            parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-                            addonAfter="đ"
-                          />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-                  </Card>
-                ))}
+        {/* Phần chưa chọn nhà cung cấp giữ nguyên */}
+        {groupedDetails.unassigned.length > 0 && (
+          <Card
+            title={
+              <Space>
+                <WarningOutlined style={{ color: "#faad14" }} />
+                <Text strong>Chưa chọn nhà cung cấp</Text>
+                <Tag color="warning">
+                  {groupedDetails.unassigned.length} sản phẩm
+                </Tag>
+              </Space>
+            }
+            style={{ marginBottom: 16 }}
+          >
+            <Table
+              columns={unassignedColumns}
+              dataSource={groupedDetails.unassigned}
+              pagination={false}
+              rowKey="id"
+              bordered
+            />
+          </Card>
+        )}
+      </div>
+    );
+  };
 
-                {/* Tổng cộng và tiền cọc */}
-                <Card
-                  size="small"
-                  className="total-card"
-                  title={
+  const calculateTotal = () => {
+    if (!Array.isArray(requestDetails)) return 0;
+
+    return requestDetails.reduce((sum, detail) => {
+      const price = selectedDetails[detail.id]?.price || 0;
+      return sum + price * detail.expectedQuantity;
+    }, 0);
+  };
+
+  const calculateTotalDeposit = () => {
+    if (!Array.isArray(requestDetails)) return 0;
+
+    return requestDetails.reduce((sum, detail) => {
+      return sum + (selectedDetails[detail.id]?.deposit || 0);
+    }, 0);
+  };
+
+  const isValidForApproval = () => {
+    const groupedDetails = groupDetailsBySupplier();
+
+    // Kiểm tra còn sản phẩm chưa chọn nhà cung cấp
+    if (groupedDetails.unassigned.length > 0) {
+      return false;
+    }
+
+    // Kiểm tra từng nhóm
+    return Object.values(groupedDetails.assigned).every((group) => {
+      // Kiểm tra đã chọn ngày giao
+      if (!deliveryDates[group.supplierId]) {
+        return false;
+      }
+
+      // Kiểm tra tất cả sản phẩm trong nhóm
+      return group.items.every((item) => {
+        const detail = selectedDetails[item.id];
+        // Kiểm tra đơn giá và tiền cọc
+        if (!detail?.price || detail.price <= 0) {
+          return false;
+        }
+        if (detail.deposit < 0) {
+          return false;
+        }
+        return true;
+      });
+    });
+  };
+
+  // Thêm styles
+  const styles = {
+    card: {
+      borderRadius: 8,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: "bold",
+      marginBottom: 20,
+    },
+    table: {
+      ".ant-table-thead > tr > th": {
+        backgroundColor: "#f5f5f5",
+        fontWeight: "bold",
+      },
+    },
+    modal: {
+      ".ant-modal-header": {
+        borderBottom: "1px solid #f0f0f0",
+        padding: "16px 24px",
+      },
+      ".ant-modal-title": {
+        fontSize: 20,
+        fontWeight: "bold",
+      },
+      ".ant-modal-body": {
+        padding: "24px",
+      },
+    },
+    tag: {
+      fontSize: 14,
+      padding: "4px 12px",
+    },
+    button: {
+      height: 40,
+      padding: "0 20px",
+      fontSize: 16,
+    },
+    summary: {
+      backgroundColor: "#f5f5f5",
+      padding: "16px 24px",
+      borderRadius: 8,
+      marginBottom: 16,
+    },
+    supplierInfo: {
+      background: "#fafafa",
+      padding: "12px 24px",
+      borderRadius: 8,
+      marginBottom: 16,
+      border: "1px solid #f0f0f0",
+    },
+    infoLabel: {
+      color: "#8c8c8c",
+      marginBottom: 4,
+    },
+    infoValue: {
+      fontWeight: 500,
+    },
+  };
+
+  // Thêm vào đầu component, sau phần khai báo states
+  const requestColumns = [
+    {
+      title: "Mã phiếu",
+      dataIndex: "id",
+      key: "id",
+      width: 150,
+    },
+    {
+      title: "Ngày tạo",
+      dataIndex: "createdTime",
+      key: "createdTime",
+      width: 180,
+      render: (text) => new Date(text).toLocaleString(),
+    },
+    {
+      title: "Ghi chú",
+      dataIndex: "note",
+      key: "note",
+      width: 250,
+    },
+    {
+      title: "Trạng thái",
+      key: "status",
+      width: 150,
+      render: (_, record) => (
+        <Tag
+          color={record.status === "pending" ? "processing" : "success"}
+          style={styles.tag}
+        >
+          {record.status === "pending" ? "Đợi xét duyệt" : "Đã xét duyệt"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      width: 120,
+      render: (_, record) => (
+        <Button
+          type="primary"
+          icon={<EyeOutlined />}
+          onClick={() => handleViewDetail(record)}
+        >
+          Xem chi tiết
+        </Button>
+      ),
+    },
+  ];
+
+  // Render Modal
+  const renderDetailModal = () => {
+    const groupedDetails = groupDetailsBySupplier();
+
+    return (
+      <Modal
+        title={
+          <Space>
+            <Title level={4} style={{ margin: 0 }}>
+              Chi tiết phiếu đề xuất #{selectedRequest?.id}
+            </Title>
+            <Tag
+              color={
+                selectedRequest?.status === "pending" ? "processing" : "success"
+              }
+            >
+              {selectedRequest?.status === "pending"
+                ? "Đợi xét duyệt"
+                : "Đã xét duyệt"}
+            </Tag>
+          </Space>
+        }
+        open={showDetail}
+        onCancel={() => setShowDetail(false)}
+        width={1400}
+        style={styles.modal}
+        footer={null}
+      >
+        {/* Thông tin chung */}
+        <div style={styles.summary}>
+          <Row gutter={24}>
+            <Col span={8}>
+              <Text type="secondary">Người tạo:</Text>
+              <div>
+                <Text strong>{selectedRequest?.createdBy}</Text>
+              </div>
+            </Col>
+            <Col span={8}>
+              <Text type="secondary">Ngày tạo:</Text>
+              <div>
+                <Text strong>
+                  {selectedRequest?.createdTime &&
+                    new Date(selectedRequest.createdTime).toLocaleString()}
+                </Text>
+              </div>
+            </Col>
+            <Col span={8}>
+              <Text type="secondary">Ghi chú:</Text>
+              <div>
+                <Text strong>{selectedRequest?.note}</Text>
+              </div>
+            </Col>
+          </Row>
+        </div>
+
+        {/* Render các nhóm đã chọn nhà cung cấp */}
+        {Object.values(groupedDetails.assigned).map((group) => (
+          <Card
+            key={group.supplierId}
+            title={
+              <Row justify="space-between" align="middle">
+                <Col>
+                  <Space size="large">
                     <Space>
-                      <DollarOutlined />
-                      <span>Tổng cộng</span>
+                      <ShopOutlined />
+                      <Text strong>{group.supplierName}</Text>
+                      <Tag color="success">{group.items.length} sản phẩm</Tag>
                     </Space>
+                    <Text type="secondary">|</Text>
+                    <Space>
+                      <Text>Tổng tiền:</Text>
+                      <Text strong style={{ color: "#1890ff" }}>
+                        {calculateGroupTotal(group.items).toLocaleString()}đ
+                      </Text>
+                    </Space>
+                    <Text type="secondary">|</Text>
+                    <Space>
+                      <Text>Tổng tiền cọc:</Text>
+                      <Text strong style={{ color: "#52c41a" }}>
+                        {calculateGroupDeposit(group.items).toLocaleString()}đ
+                      </Text>
+                    </Space>
+                  </Space>
+                </Col>
+                <Col>
+                  <Space>
+                    <Text>Ngày giao:</Text>
+                    <DatePicker
+                      style={{ width: 200 }}
+                      placeholder="Chọn ngày giao hàng"
+                      value={deliveryDates[group.supplierId]}
+                      onChange={(date) =>
+                        handleDeliveryDateChange(group.supplierId, date)
+                      }
+                      disabledDate={(current) => {
+                        return current && current < moment().startOf("day");
+                      }}
+                      format="DD/MM/YYYY"
+                      status={!deliveryDates[group.supplierId] ? "error" : ""}
+                    />
+                    {selectedRequest?.status === "approved" && (
+                      <Button
+                        type="primary"
+                        onClick={() => handleCreateImport(group)}
+                        disabled={!isValidForImport(group)}
+                        loading={loading}
+                      >
+                        Tạo phiếu nhập
+                      </Button>
+                    )}
+                  </Space>
+                </Col>
+              </Row>
+            }
+            style={{ marginBottom: 16 }}
+          >
+            <div
+              style={{
+                background: "#fafafa",
+                padding: "12px 24px",
+                borderRadius: 8,
+                marginBottom: 16,
+                border: "1px solid #f0f0f0",
+              }}
+            >
+              <Row gutter={[24, 16]}>
+                <Col span={8}>
+                  <Space direction="vertical" size="small">
+                    <Text type="secondary">Mã nhà cung cấp:</Text>
+                    <Text strong>{group.supplierId}</Text>
+                  </Space>
+                </Col>
+                <Col span={8}>
+                  <Space direction="vertical" size="small">
+                    <Text type="secondary">Địa chỉ:</Text>
+                    <Text strong>
+                      {group.supplier?.address || "Chưa cập nhật"}
+                    </Text>
+                  </Space>
+                </Col>
+                <Col span={8}>
+                  <Space direction="vertical" size="small">
+                    <Text type="secondary">Số điện thoại:</Text>
+                    <Text strong>
+                      {group.supplier?.phone || "Chưa cập nhật"}
+                    </Text>
+                  </Space>
+                </Col>
+                <Col span={8}>
+                  <Space direction="vertical" size="small">
+                    <Text type="secondary">Email:</Text>
+                    <Text strong>
+                      {group.supplier?.email || "Chưa cập nhật"}
+                    </Text>
+                  </Space>
+                </Col>
+                <Col span={8}>
+                  <Space direction="vertical" size="small">
+                    <Text type="secondary">Người đại diện:</Text>
+                    <Text strong>
+                      {group.supplier?.representative || "Chưa cập nhật"}
+                    </Text>
+                  </Space>
+                </Col>
+                <Col span={8}>
+                  <Space direction="vertical" size="small">
+                    <Text type="secondary">Trạng thái:</Text>
+                    <Tag
+                      color={
+                        group.supplier?.status === "active"
+                          ? "success"
+                          : "error"
+                      }
+                    >
+                      {group.supplier?.status === "active"
+                        ? "Đang hoạt động"
+                        : "Ngừng hoạt động"}
+                    </Tag>
+                  </Space>
+                </Col>
+              </Row>
+            </div>
+
+            <Table
+              columns={detailColumns}
+              dataSource={group.items}
+              pagination={false}
+              rowKey="id"
+              bordered
+              summary={() => (
+                <Table.Summary fixed>
+                  <Table.Summary.Row style={{ backgroundColor: "#fafafa" }}>
+                    <Table.Summary.Cell index={0} colSpan={4}>
+                      <Text strong>Tổng cộng</Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={1}>
+                      <Text strong style={{ color: "#1890ff" }}>
+                        {calculateGroupTotal(group.items).toLocaleString()}đ
+                      </Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={2}>
+                      <Text strong style={{ color: "#52c41a" }}>
+                        {calculateGroupDeposit(group.items).toLocaleString()}đ
+                      </Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={3} />
+                  </Table.Summary.Row>
+                </Table.Summary>
+              )}
+            />
+          </Card>
+        ))}
+
+        {/* Render sản phẩm chưa chọn nhà cung cấp */}
+        {groupedDetails.unassigned.length > 0 && (
+          <Card
+            title={
+              <Space>
+                <WarningOutlined style={{ color: "#faad14" }} />
+                <Text strong>Chưa chọn nhà cung cấp</Text>
+                <Tag color="warning">
+                  {groupedDetails.unassigned.length} sản phẩm
+                </Tag>
+              </Space>
+            }
+            style={{ marginBottom: 16 }}
+          >
+            <Table
+              columns={unassignedColumns}
+              dataSource={groupedDetails.unassigned}
+              pagination={false}
+              rowKey="id"
+              bordered
+            />
+          </Card>
+        )}
+
+        {/* Footer buttons */}
+        <div
+          style={{
+            textAlign: "right",
+            marginTop: 24,
+            padding: "16px 0",
+            borderTop: "1px solid #f0f0f0",
+          }}
+        >
+          <Space size="middle">
+            <Button
+              size="large"
+              onClick={() => setShowDetail(false)}
+              style={styles.button}
+            >
+              Đóng
+            </Button>
+            {selectedRequest?.status === "pending" && (
+              <>
+                <Button danger onClick={handleReject}>
+                  Không chấp thuận
+                </Button>
+                <Tooltip
+                  title={
+                    !isValidForApproval()
+                      ? "Vui lòng kiểm tra: \n- Tất cả sản phẩm đã chọn nhà cung cấp\n- Đã nhập đơn giá và tiền cọc\n- Đã chọn ngày giao"
+                      : ""
                   }
                 >
-                  <Row gutter={16}>
-                    <Col xs={24} md={12}>
-                      <Statistic
-                        title={<Text strong>Tổng tiền hàng</Text>}
-                        value={calculateBillTotal(selectedBill?.items || [])}
-                        precision={0}
-                        suffix="đ"
-                        formatter={(value) =>
-                          `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                        }
-                      />
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item
-                        name="deposit"
-                        label={<Text strong>Tiền cọc</Text>}
-                        rules={[
-                          { required: true, message: "Vui lòng nhập tiền cọc" },
-                          ({ getFieldValue }) => ({
-                            validator(_, value) {
-                              const totalAmount = calculateBillTotal(
-                                selectedBill?.items || []
-                              );
-                              if (value && value > totalAmount) {
-                                return Promise.reject(
-                                  "Tiền cọc không được lớn hơn tổng tiền"
-                                );
-                              }
-                              return Promise.resolve();
-                            },
-                          }),
-                        ]}
-                      >
-                        <InputNumber
-                          style={{ width: "100%" }}
-                          formatter={(value) =>
-                            `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                          }
-                          parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-                          addonAfter="đ"
-                        />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                  <Divider style={{ margin: "12px 0" }} />
-                  <Row>
-                    <Col span={24}>
-                      <Alert
-                        message={
-                          <Space>
-                            <InfoCircleOutlined />
-                            <Text>Số tiền cần thanh toán:</Text>
-                            <Text
-                              strong
-                              type="danger"
-                              style={{ fontSize: "16px" }}
-                            >
-                              {(
-                                calculateBillTotal(selectedBill?.items || []) -
-                                (approveForm.getFieldValue("deposit") || 0)
-                              )
-                                .toString()
-                                .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                              đ
-                            </Text>
-                          </Space>
-                        }
-                        type="info"
-                        showIcon={false}
-                      />
-                    </Col>
-                  </Row>
-                </Card>
+                  <Button
+                    type="primary"
+                    onClick={handleApprove}
+                    disabled={!isValidForApproval()}
+                    loading={approving}
+                  >
+                    Xét duyệt
+                  </Button>
+                </Tooltip>
               </>
             )}
-          </Form.List>
-        </Form>
+          </Space>
+        </div>
       </Modal>
+    );
+  };
+
+  const isValidForImport = (group) => {
+    // Kiểm tra đã chọn ngày giao
+    if (!deliveryDates[group.supplierId]) {
+      return false;
+    }
+
+    // Kiểm tra tất cả sản phẩm có đơn giá và số lượng hợp lệ
+    return group.items.every((item) => {
+      const detail = selectedDetails[item.id];
+      return (
+        detail?.price > 0 && item.expectedQuantity > 0 && detail?.deposit >= 0
+      );
+    });
+  };
+
+  const handleCreateImport = async (group) => {
+    // console.log(group);
+    // console.log(selectedRequest.id);
+    try {
+      setLoading(true);
+
+      const importRequest = {
+        requestId: selectedRequest.id,
+        supplierId: group.supplierId,
+        expectedDeliveryTime: deliveryDates[group.supplierId],
+        depositAmount: calculateGroupDeposit(group.items),
+        note: `Phiếu nhập từ đề xuất ${selectedRequest.id}`,
+        details: group.items.map((item) => ({
+          foodId: item.foodId,
+          unitPrice: selectedDetails[item.id]?.price || 0,
+          expectedQuantity: item.expectedQuantity,
+        })),
+      };
+      console.log(importRequest);
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/FoodImport`,
+        importRequest,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            requestId: selectedRequest.id,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        message.success(`Tạo phiếu nhập cho ${group.supplierName} thành công`);
+        fetchData();
+      }
+    } catch (error) {
+      console.error("Error creating import:", error);
+      message.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi tạo phiếu nhập"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="food-import-approval">
+      <Card
+        title={<Title level={3}>Danh sách phiếu đề xuất nhập thức ăn</Title>}
+        style={styles.card}
+        className="mb-4"
+      >
+        <Table
+          columns={requestColumns}
+          dataSource={requests}
+          loading={loading}
+          rowKey="id"
+          style={styles.table}
+          pagination={{
+            pageSize: 10,
+            showTotal: (total) => `Tổng số ${total} phiếu`,
+            showSizeChanger: true,
+            showQuickJumper: true,
+          }}
+        />
+      </Card>
+      {renderDetailModal()}
     </div>
   );
 };

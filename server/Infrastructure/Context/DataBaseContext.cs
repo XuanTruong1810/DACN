@@ -33,6 +33,12 @@ namespace Infrastructure.Context
         public DbSet<Foods> Foods { get; set; }
         public DbSet<FoodSuppliers> FoodSuppliers { get; set; }
 
+        public DbSet<FoodImportRequests> FoodImportRequests { get; set; }
+        public DbSet<FoodImportRequestDetails> FoodImportRequestDetails { get; set; }
+
+        public DbSet<FoodImports> FoodImports { get; set; }
+        public DbSet<FoodImportDetails> FoodImportDetails { get; set; }
+
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -58,6 +64,12 @@ namespace Infrastructure.Context
 
             builder.Entity<FoodSuppliers>()
                 .HasKey(d => new { d.FoodsId, d.SuppliersId });
+
+            builder.Entity<FoodImportRequestDetails>()
+                .HasKey(d => new { d.FoodImportRequestId, d.FoodId });
+
+            builder.Entity<FoodImportDetails>()
+                .HasKey(d => new { d.FoodImportId, d.FoodId });
 
 
 
@@ -90,6 +102,12 @@ namespace Infrastructure.Context
             builder.Entity<FoodTypes>().ToTable("FoodTypes");
             builder.Entity<Foods>().ToTable("Foods");
             builder.Entity<FoodSuppliers>().ToTable("FoodSuppliers");
+
+            builder.Entity<FoodImportRequests>().ToTable("FoodImportRequests");
+            builder.Entity<FoodImportRequestDetails>().ToTable("FoodImportRequestDetails");
+
+            builder.Entity<FoodImports>().ToTable("FoodImports");
+            builder.Entity<FoodImportDetails>().ToTable("FoodImportDetails");
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

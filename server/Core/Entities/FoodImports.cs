@@ -22,9 +22,9 @@ public class FoodImports : BaseEntity
     public string FoodImportRequestId { get; set; }
     [ForeignKey("Suppliers")]
     public string SupplierId { get; set; }
-    public virtual FoodImportRequests FoodImportRequest { get; set; }
+    public virtual FoodImportRequests FoodImportRequests { get; set; }
     public virtual Suppliers Supplier { get; set; }
-    [InverseProperty("FoodImport")]
+    [InverseProperty("FoodImports")]
     public virtual ICollection<FoodImportDetails> FoodImportDetails { get; set; } = new List<FoodImportDetails>();
 
 }

@@ -1,7 +1,10 @@
 using Application.DTOs;
 using Application.DTOs.Food;
+using Application.DTOs.FoodImport;
+using Application.DTOs.FoodImportRequest;
 using Application.DTOs.FoodType;
 using Application.Models;
+using Application.Models.FoodImportRequestModelView;
 using Application.Models.FoodModelView;
 using Application.Models.FoodTypeModelView;
 using AutoMapper;
@@ -85,9 +88,35 @@ namespace Application.Mapping
             CreateMap<CreateFoodSupplierDto, FoodSuppliers>().ReverseMap();
             CreateMap<UpdateFoodSupplierDto, FoodSuppliers>().ReverseMap();
 
+            CreateMap<CreateFoodImportRequestDto, FoodImportRequests>().ReverseMap();
+            CreateMap<UpdateFoodImportRequestDto, FoodImportRequests>().ReverseMap();
+            CreateMap<FoodImportRequestModelView, FoodImportRequests>().ReverseMap();
 
+            CreateMap<CreateFoodImportDetailDto, FoodImportRequestDetails>().ReverseMap();
+            CreateMap<UpdateFoodImportRequestDetailDto, FoodImportRequestDetails>().ReverseMap();
+            CreateMap<FoodImportRequestDetailModelView, FoodImportRequestDetails>().ReverseMap();
 
+            CreateMap<FoodImportRequests, FoodImportRequestModelView>()
+                .ForMember(dest => dest.Details,
+                    opt => opt.MapFrom(src => src.FoodImportRequestDetails));
 
+            CreateMap<FoodImportRequestDetails, FoodImportRequestDetailModelView>()
+                .ForMember(dest => dest.Food, opt => opt.MapFrom(src => src.Foods));
+
+            CreateMap<Foods, FoodDetailModelView>()
+                .ForMember(dest => dest.FoodTypeName,
+                    opt => opt.MapFrom(src => src.FoodTypes.Id))
+                .ForMember(dest => dest.AreaName,
+                    opt => opt.MapFrom(src => src.Areas.Name))
+                .ForMember(dest => dest.Suppliers,
+                    opt => opt.MapFrom(src => src.FoodSuppliers
+                        .Where(fs => fs.DeletedTime == null)
+                        .Select(fs => new FoodSupplierModelView
+                        {
+                            SupplierId = fs.SuppliersId,
+                            SupplierName = fs.Suppliers.Name,
+                            Status = fs.Status
+                        })));
         }
     }
 }
