@@ -7,6 +7,7 @@ using Application.Models;
 using Application.Models.FoodImportRequestModelView;
 using Application.Models.FoodModelView;
 using Application.Models.FoodTypeModelView;
+using Application.Models.PigCancelModelView;
 using AutoMapper;
 using Core.Entities;
 
@@ -117,6 +118,7 @@ namespace Application.Mapping
                             SupplierName = fs.Suppliers.Name,
                             Status = fs.Status
                         })));
+            CreateMap<Pigs, PigCancelModelView>().ReverseMap();
         }
     }
 }

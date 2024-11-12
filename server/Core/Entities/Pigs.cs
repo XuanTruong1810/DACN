@@ -13,6 +13,18 @@ namespace Core.Entities
         [ForeignKey("Stables")]
         public string StableId { get; set; }
         public virtual Stables Stables { get; set; }
+        // trạng thái heo (alive, dead, sold)
+        [Required]
+        public string Status { get; set; } = "alive";
+        // thông tin heo chết
+        public DateTimeOffset? DeathDate { get; set; }
+        public string? DeathReason { get; set; }
+        public string? DeathNote { get; set; }
+        public string? HandlingMethod { get; set; }
+        public string? HandlingNotes { get; set; }
+
+        // thông tin heo đã bán
+        public DateTimeOffset? SoldDate { get; set; }
 
 
         // [InverseProperty("Pigs")]

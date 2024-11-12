@@ -1,6 +1,8 @@
 using Application.DTOs;
+using Application.DTOs.Pig;
 using Application.Interfaces;
 using Application.Models;
+using Application.Models.PigCancelModelView;
 using AutoMapper;
 using Core.Base;
 using Core.Entities;
@@ -146,7 +148,7 @@ namespace Application.Services
 
         public async Task<List<PigModelView>> GetPigsByHouseAsync(string houseId)
         {
-            var pigs = await _unitOfWork.GetRepository<Pigs>()
+            List<Pigs>? pigs = await _unitOfWork.GetRepository<Pigs>()
                 .GetEntities
                 .Where(p => p.StableId == houseId && p.DeleteTime == null)
                 .Include(p => p.Stables)
@@ -154,6 +156,47 @@ namespace Application.Services
                 .ToListAsync();
 
             return _mapper.Map<List<PigModelView>>(pigs);
+        }
+
+        public async Task<PigCancelModelView> CancelPigAsync(string id, PigCancelDTO dto)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Id không được để trống!");
+            }
+
+            Pigs? pig = await _unitOfWork.GetRepository<Pigs>()
+                .GetEntities
+                .FirstOrDefaultAsync(p => p.Id == id && p.DeleteTime == null)
+                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy heo");
+            _mapper.Map(dto, pig);
+            pig.DeleteTime = DateTimeOffset.UtcNow;
+            await _unitOfWork.GetRepository<Pigs>().UpdateAsync(pig);
+            await _unitOfWork.SaveAsync();
+
+            return _mapper.Map<PigCancelModelView>(pig);
+        }
+
+        public async Task<BasePagination<PigCancelModelView>> GetPigCancelAsync(int pageIndex, int pageSize)
+        {
+            IQueryable<Pigs>? query = _unitOfWork.GetRepository<Pigs>()
+                .GetEntities
+                .Where(p => p.DeleteTime != null && p.Status == "dead");
+
+            int totalItems = await query.CountAsync();
+
+            List<Pigs> pigs = await query
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            List<PigCancelModelView> pigCancelModels = pigs
+                .Select(p => _mapper.Map<PigCancelModelView>(p))
+                .ToList();
+
+            BasePagination<PigCancelModelView>? pagination = new BasePagination<PigCancelModelView>(pigCancelModels, totalItems, pageIndex, pageSize);
+
+            return pagination;
         }
     }
 }

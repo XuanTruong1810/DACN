@@ -1,7 +1,9 @@
 
 using Application.DTOs;
+using Application.DTOs.Pig;
 using Application.Interfaces;
 using Application.Models;
+using Application.Models.PigCancelModelView;
 using Core.Base;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -52,6 +54,22 @@ namespace API.Controllers
         {
             List<PigModelView> pigs = await pigService.GetPigsByHouseAsync(houseId);
             return Ok(BaseResponse<List<PigModelView>>.OkResponse(pigs));
+        }
+
+        [HttpPost("{id}/cancel")]
+        [Authorize(Roles = "Admin,Dispatch")]
+        public async Task<IActionResult> CancelPigAsync(string id, PigCancelDTO dto)
+        {
+            PigCancelModelView? pig = await pigService.CancelPigAsync(id, dto);
+            return Ok(BaseResponse<PigCancelModelView>.OkResponse(pig));
+        }
+
+        [HttpGet("cancel")]
+        [Authorize(Roles = "Admin,Dispatch")]
+        public async Task<IActionResult> GetPigCancelAsync([FromQuery] int pageIndex, [FromQuery] int pageSize)
+        {
+            BasePagination<PigCancelModelView> pigs = await pigService.GetPigCancelAsync(pageIndex, pageSize);
+            return Ok(BaseResponse<BasePagination<PigCancelModelView>>.OkResponse(pigs));
         }
     }
 }
