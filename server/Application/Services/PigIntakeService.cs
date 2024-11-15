@@ -269,7 +269,7 @@ namespace Application.Services
 
                 Pigs newPig = new Pigs
                 {
-                    PigId = pigCode,
+                    Id = pigCode,
                     StableId = currentStable.Id,
                 };
                 pigsList.Add(newPig);

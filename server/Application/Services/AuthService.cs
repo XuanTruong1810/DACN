@@ -8,17 +8,41 @@ using System.Text;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using Application.DTOs.Auth;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 
 
 namespace Application.Services
 {
 
-    public class AuthService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager) : IAuthService
+    public class AuthService(UserManager<ApplicationUser> userManager,
+     SignInManager<ApplicationUser> signInManager, IMemoryCache memoryCache,
+      IEmailService emailService, IHttpContextAccessor httpContextAccessor) : IAuthService
     {
         private readonly UserManager<ApplicationUser> userManager = userManager;
         private readonly SignInManager<ApplicationUser> signInManager = signInManager;
+        private readonly IMemoryCache memoryCache = memoryCache;
+        private readonly IEmailService emailService = emailService;
+        private readonly IHttpContextAccessor httpContextAccessor = httpContextAccessor;
 
 
+        private async Task<ApplicationUser> CheckRefreshToken(string refreshToken)
+        {
+
+            List<ApplicationUser>? users = await userManager.Users.ToListAsync();
+            foreach (ApplicationUser user in users)
+            {
+                string? storedToken = await userManager.GetAuthenticationTokenAsync(user, "Default", "RefreshToken");
+
+                if (storedToken == refreshToken)
+                {
+                    return user;
+                }
+            }
+            throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Token không hợp lệ");
+        }
 
         private (string token, IEnumerable<string> roles) GenerateJwtToken(ApplicationUser user)
         {
@@ -74,7 +98,7 @@ namespace Application.Services
             SignInResult result = await signInManager.PasswordSignInAsync(loginModel.Email, loginModel.Password, false, false);
             if (!result.Succeeded)
             {
-                throw new BaseException(StatusCodeHelper.Unauthorized, ErrorCode.Unauthorized, "Mật khẩu không đúng");
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Mật khẩu không đúng");
             }
             (string token, IEnumerable<string> roles) = GenerateJwtToken(user);
             string refreshToken = await GenerateRefreshToken(user);
@@ -91,6 +115,109 @@ namespace Application.Services
                     Roles = roles.ToList()
                 }
             };
+        }
+
+        public async Task<AuthModelViews> RefreshToken(RefreshTokenDTO refreshTokenModel)
+        {
+            ApplicationUser? user = await CheckRefreshToken(refreshTokenModel.RefreshToken);
+            (string token, IEnumerable<string> roles) = GenerateJwtToken(user);
+            string refreshToken = await GenerateRefreshToken(user);
+            return new AuthModelViews
+            {
+                AccessToken = token,
+                RefreshToken = refreshToken,
+                TokenType = "JWT",
+                AuthType = "Bearer",
+                ExpiresIn = DateTime.UtcNow.AddHours(1),
+                User = new UserInfo
+                {
+                    Email = user.Email,
+                    Roles = roles.ToList()
+                }
+            };
+        }
+
+        public async Task VerifyOtp(ConfirmOTPDTO model)
+        {
+            string cacheKey = $"OTPResetPassword_{model.Email}";
+            if (memoryCache.TryGetValue(cacheKey, out string storedOtp))
+            {
+                if (storedOtp == model.OTP)
+                {
+
+                    ApplicationUser? user = await userManager.FindByEmailAsync(model.Email);
+
+
+                    string? token = await userManager.GenerateEmailConfirmationTokenAsync(user);
+                    await userManager.ConfirmEmailAsync(user, token);
+
+                    memoryCache.Remove(cacheKey);
+                }
+                else
+                {
+                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "OTP không hợp lệ");
+                }
+            }
+            else
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "OTP không hợp lệ hoặc đã hết hạn");
+            }
+        }
+
+        public async Task ChangePassword(ChangePasswordDTO model)
+        {
+            string? userId = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+            throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Token không hợp lệ");
+            ApplicationUser? admin = await userManager.FindByIdAsync(userId) ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy user");
+            if (admin.DeleteTime.HasValue)
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Tài khoản đã bị xóa");
+            }
+            else
+            {
+                IdentityResult result = await userManager.ChangePasswordAsync(admin, model.Password, model.NewPassword);
+                if (!result.Succeeded)
+                {
+                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, result.Errors.FirstOrDefault()?.Description);
+                }
+            }
+        }
+
+        public async Task ForgotPassword(EmailDTO emailModelView)
+        {
+            ApplicationUser? user = await userManager.FindByEmailAsync(emailModelView.Email)
+        ?? throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Vui lòng kiểm tra email của bạn");
+            if (!await userManager.IsEmailConfirmedAsync(user))
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Vui lòng kiểm tra email của bạn");
+            }
+            string OTP = GenerateOtp();
+            string cacheKey = $"OTPResetPassword_{emailModelView.Email}";
+            memoryCache.Set(cacheKey, OTP, TimeSpan.FromMinutes(1));
+            await emailService.SendEmailAsync(emailModelView.Email, "Đặt lại mật khẩu",
+                       $"Vui lòng xác nhận tài khoản của bạn, OTP của bạn là:  <div class='otp'>{OTP}</div>");
+        }
+
+        public async Task ResetPassword(ResetPasswordDTO resetPassword)
+        {
+            ApplicationUser? user = await userManager.FindByEmailAsync(resetPassword.Email)
+         ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy user");
+            if (!await userManager.IsEmailConfirmedAsync(user))
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Vui lòng kiểm tra email của bạn");
+            }
+            string? token = await userManager.GeneratePasswordResetTokenAsync(user);
+            IdentityResult? result = await userManager.ResetPasswordAsync(user, token, resetPassword.Password);
+            if (!result.Succeeded)
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, result.Errors.FirstOrDefault()?.Description);
+            }
+        }
+        private string GenerateOtp()
+        {
+            Random random = new Random();
+            string otp = random.Next(100000, 999999).ToString();
+            return otp;
         }
     }
 

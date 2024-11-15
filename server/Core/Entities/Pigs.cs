@@ -6,10 +6,6 @@ namespace Core.Entities
 {
     public class Pigs : BaseEntity
     {
-
-        [Required]
-        public string PigId { get; set; }
-
         [ForeignKey("Stables")]
         public string StableId { get; set; }
         public virtual Stables Stables { get; set; }

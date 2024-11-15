@@ -155,3 +155,6 @@ C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Debug\net8.0\API.pdb
 C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Debug\net8.0\API.genruntimeconfig.cache
 C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\obj\Debug\net8.0\ref\API.dll
 C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\.env
+C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\BouncyCastle.Cryptography.dll
+C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\MailKit.dll
+C:\Users\AnhNhi\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\MimeKit.dll

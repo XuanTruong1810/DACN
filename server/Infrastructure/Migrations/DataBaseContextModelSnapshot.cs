@@ -847,24 +847,39 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("CreatedTime")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<DateTimeOffset?>("DeathDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeathNote")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DeathReason")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTimeOffset?>("DeleteTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("PigId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<string>("HandlingMethod")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HandlingNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("SoldDate")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("StableId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTimeOffset?>("UpdatedTime")
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PigId")
-                        .IsUnique();
 
                     b.HasIndex("StableId");
 

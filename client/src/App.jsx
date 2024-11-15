@@ -41,9 +41,9 @@ function App() {
           <Route path="/Home" element={<HomePage />} />
           <Route path="/Auth" element={<AuthLayout />}>
             <Route path="Login" element={<LoginPage />} />
-            <Route path="ForgotPassword" element={<ForgotPasswordPage />} />
-            <Route path="ResetPassword" element={<ResetPasswordPage />} />
-            <Route path="VerifyOTP" element={<VerifyOTPPage />} />
+            <Route path="Forgot-Password" element={<ForgotPasswordPage />} />
+            <Route path="Reset-Password" element={<ResetPasswordPage />} />
+            <Route path="Verify-OTP" element={<VerifyOTPPage />} />
           </Route>
           <Route path="/Admin" element={<MainLayout />}>
             <Route path="Employees" element={<EmployeeManagement />} />

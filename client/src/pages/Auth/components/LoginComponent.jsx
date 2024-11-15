@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import axios from "axios";
 import { Form, message } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const LoginComponent = () => {
   const [loading, setLoading] = useState(false);
@@ -15,6 +15,15 @@ const LoginComponent = () => {
   });
   const navigate = useNavigate();
   const [form] = Form.useForm();
+  const location = useLocation();
+  const successMessage = location.state?.message;
+
+  // Show success message if exists
+  useEffect(() => {
+    if (successMessage) {
+      message.success(successMessage);
+    }
+  }, [successMessage]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -181,7 +190,7 @@ const LoginComponent = () => {
             </label>
           </div>
           <Link
-            to="/auth/forgotpassword"
+            to="/auth/forgot-password"
             className="text-orange-500 hover:text-orange-600 font-medium 
               transition-colors duration-300"
           >

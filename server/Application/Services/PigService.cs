@@ -28,7 +28,7 @@ namespace Application.Services
             // Bắt đầu query
             IQueryable<Pigs> pigQuery = _unitOfWork.GetRepository<Pigs>()
                 .GetEntities
-                .Where(x => x.DeleteTime == null);
+                .Where(x => x.DeleteTime == null && x.Status == "alive");
 
             // Include thông tin chuồng và khu vực
             pigQuery = pigQuery
@@ -50,7 +50,7 @@ namespace Application.Services
             // Tìm kiếm theo mã heo
             if (!string.IsNullOrEmpty(filter.Search))
             {
-                pigQuery = pigQuery.Where(p => p.PigId.Contains(filter.Search));
+                pigQuery = pigQuery.Where(p => p.Id.Contains(filter.Search));
             }
 
             int totalCount = await pigQuery.CountAsync();
@@ -58,7 +58,6 @@ namespace Application.Services
             List<PigModelView> pigModels = pigs.Select(p => new PigModelView
             {
                 Id = p.Id,
-                PigId = p.PigId,
                 StableId = p.StableId,
                 StableName = p.Stables.Name,
                 AreaId = p.Stables.AreasId,
@@ -76,7 +75,7 @@ namespace Application.Services
             // Kiểm tra mã heo đã tồn tại
             bool exists = await _unitOfWork.GetRepository<Pigs>()
                 .GetEntities
-                .AnyAsync(x => x.PigId == dto.PigId && x.DeleteTime == null);
+                .AnyAsync(x => x.Id == dto.Id && x.DeleteTime == null && x.Status == "alive");
 
             if (exists)
             {
@@ -124,7 +123,7 @@ namespace Application.Services
                 .GetEntities
                 .Include(p => p.Stables)
                 .ThenInclude(s => s.Areas)
-                .FirstOrDefaultAsync(x => x.Id == id && x.DeleteTime == null)
+                .FirstOrDefaultAsync(x => x.Id == id && x.DeleteTime == null && x.Status == "alive")
                 ?? throw new BaseException(
                     StatusCodeHelper.NotFound,
                     ErrorCode.NotFound,
@@ -138,7 +137,7 @@ namespace Application.Services
         {
             var pigs = await _unitOfWork.GetRepository<Pigs>()
                 .GetEntities
-                .Where(p => p.Stables.AreasId == areaId && p.DeleteTime == null)
+                .Where(p => p.Stables.AreasId == areaId && p.DeleteTime == null && p.Status == "alive")
                 .Include(p => p.Stables)
                 .ThenInclude(s => s.Areas)
                 .ToListAsync();
@@ -150,7 +149,7 @@ namespace Application.Services
         {
             List<Pigs>? pigs = await _unitOfWork.GetRepository<Pigs>()
                 .GetEntities
-                .Where(p => p.StableId == houseId && p.DeleteTime == null)
+                .Where(p => p.StableId == houseId && p.DeleteTime == null && p.Status == "alive")
                 .Include(p => p.Stables)
                 .ThenInclude(s => s.Areas)
                 .ToListAsync();
@@ -167,10 +166,21 @@ namespace Application.Services
 
             Pigs? pig = await _unitOfWork.GetRepository<Pigs>()
                 .GetEntities
-                .FirstOrDefaultAsync(p => p.Id == id && p.DeleteTime == null)
+                .Include(p => p.Stables)
+                .FirstOrDefaultAsync(p => p.Id == id && p.DeleteTime == null && p.Status == "alive")
                 ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy heo");
+
+            Stables stable = pig.Stables;
+            stable.CurrentOccupancy--;
+            if (stable.CurrentOccupancy < stable.Capacity)
+            {
+                stable.Status = StatusStables.Available;
+            }
+            await _unitOfWork.GetRepository<Stables>().UpdateAsync(stable);
+
             _mapper.Map(dto, pig);
             pig.DeleteTime = DateTimeOffset.UtcNow;
+            pig.Status = "dead";
             await _unitOfWork.GetRepository<Pigs>().UpdateAsync(pig);
             await _unitOfWork.SaveAsync();
 

@@ -1,4 +1,5 @@
 using Application.DTOs;
+using Application.DTOs.Auth;
 using Application.Models;
 
 namespace Application.Interfaces
@@ -6,11 +7,10 @@ namespace Application.Interfaces
     public interface IAuthService
     {
         Task<AuthModelViews> Login(LoginDTO loginModel);
-        // Task<AuthResponse> RefreshToken(RefreshTokenModel refreshTokenModel);
-        // Task VerifyOtp(ConfirmOTPModel model, bool isResetPassword);
-        // Task ResendConfirmationEmail(EmailModelView emailModelView);
-        // Task ChangePassword(ChangePasswordModel model);
-        // Task ForgotPassword(EmailModelView emailModelView);
-        // Task ResetPassword(ResetPasswordModel resetPassword);
+        Task<AuthModelViews> RefreshToken(RefreshTokenDTO refreshTokenModel);
+        Task VerifyOtp(ConfirmOTPDTO model);
+        Task ChangePassword(ChangePasswordDTO model);
+        Task ForgotPassword(EmailDTO emailModelView);
+        Task ResetPassword(ResetPasswordDTO resetPassword);
     }
 }

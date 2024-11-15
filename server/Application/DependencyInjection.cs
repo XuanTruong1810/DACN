@@ -24,7 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IFeedService, FeedService>();
         services.AddScoped<IFeedTypeService, FeedTypeService>();
 
-        // services.AddScoped<IMedicationAndVaccineService, MedicationAndVaccineService>();
+        // services.AddScoped<IMedicationAndVaccine Service, MedicationAndVaccineService>();
         // services.AddScoped<IMedicationAndVaccineIntakeService, MedicationAndVaccineIntakeService>();
 
         // services.AddScoped<IHealthRecordService, HealthRecordService>();
@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IFoodService, FoodService>();
         services.AddScoped<IFoodImportRequestService, FoodImportRequestService>();
         services.AddScoped<IFoodImportService, FoodImportService>();
+        services.AddScoped<IEmailService, EmailService>();
 
     }
     public static void AddMapping(this IServiceCollection services)

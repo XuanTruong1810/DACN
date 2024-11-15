@@ -1,21 +1,34 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Spinner from "../../../components/Spinner";
+import axios from "axios";
 
 const ForgotPasswordComponent = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
     try {
-      // Giả lập API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      // Xử lý logic quên mật khẩu ở đây
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/v1/Auth/ForgotPassword`,
+        { email }
+      );
+
+      if (response.status === 200) {
+        navigate("/auth/confirm-otp", { state: { email } });
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Error:", error);
+      setError(
+        error.response?.data?.message ||
+          "Có lỗi xảy ra khi gửi yêu cầu. Vui lòng thử lại!"
+      );
     } finally {
       setLoading(false);
     }
@@ -49,6 +62,22 @@ const ForgotPasswordComponent = () => {
         </p>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div
+          style={{
+            color: "#e74c3c",
+            backgroundColor: "#fde8e7",
+            padding: "12px",
+            borderRadius: "8px",
+            marginBottom: "1rem",
+            fontSize: "0.9rem",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
       {/* Form */}
       <form onSubmit={handleSubmit}>
         {/* Email Field */}
@@ -69,6 +98,7 @@ const ForgotPasswordComponent = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your-email@gmail.com"
+            required
             style={{
               width: "100%",
               height: "50px",
@@ -76,6 +106,13 @@ const ForgotPasswordComponent = () => {
               borderRadius: "10px",
               border: "2px solid #eee",
               transition: "all 0.3s ease",
+              outline: "none",
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = "#e67e22";
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "#eee";
             }}
           />
         </div>
@@ -83,7 +120,7 @@ const ForgotPasswordComponent = () => {
         {/* Submit Button with Spinner */}
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !email}
           style={{
             width: "100%",
             height: "50px",
@@ -93,12 +130,13 @@ const ForgotPasswordComponent = () => {
             color: "white",
             fontWeight: 500,
             fontSize: "1.1rem",
-            cursor: loading ? "not-allowed" : "pointer",
+            cursor: loading || !email ? "not-allowed" : "pointer",
             transition: "all 0.3s ease",
-            opacity: loading ? 0.7 : 1,
+            opacity: loading || !email ? 0.7 : 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            gap: "10px",
           }}
         >
           {loading && <Spinner />}

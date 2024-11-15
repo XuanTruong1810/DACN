@@ -1,45 +1,32 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { EyeOutlined, EyeInvisibleOutlined } from "@ant-design/icons";
 import Spinner from "../../../components/Spinner";
-
-// Eye Icons
-const EyeIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    width="18"
-    height="18"
-    stroke="currentColor"
-    strokeWidth="2"
-    fill="none"
-  >
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-    <circle cx="12" cy="12" r="3"></circle>
-  </svg>
-);
-
-const EyeOffIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    width="18"
-    height="18"
-    stroke="currentColor"
-    strokeWidth="2"
-    fill="none"
-  >
-    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-    <line x1="1" y1="1" x2="23" y2="23"></line>
-  </svg>
-);
+import axios from "axios";
 
 const ResetPasswordComponent = () => {
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     newPassword: "",
     confirmPassword: "",
   });
-  const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState({
+    new: false,
+    confirm: false,
+  });
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const email = location.state?.email;
+  const verifiedOTP = location.state?.verifiedOTP;
+
+  // Redirect nếu chưa verify OTP
+  useEffect(() => {
+    if (!email || !verifiedOTP) {
+      navigate("/auth/forgot-password");
+    }
+  }, [email, verifiedOTP, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -47,46 +34,45 @@ const ResetPasswordComponent = () => {
       ...prev,
       [name]: value,
     }));
-    // Clear error when user types
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.newPassword) {
-      newErrors.newPassword = "Vui lòng nhập mật khẩu mới";
-    } else if (formData.newPassword.length < 6) {
-      newErrors.newPassword = "Mật khẩu phải có ít nhất 6 ký tự";
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu";
-    } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setError(""); // Clear error khi user type
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    // Validate password match
+    if (formData.newPassword !== formData.confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp");
+      return;
+    }
+
+    // Validate password strength
+    if (formData.newPassword.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
 
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      // Xử lý logic reset password ở đây
-      console.log("Form submitted:", formData);
+      const response = await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/v1/Auth/ResetPassword`,
+        {
+          email: email,
+          newPassword: formData.newPassword,
+        }
+      );
+
+      if (response.status == 200) {
+        // Redirect to login with success message
+        navigate("/auth/login", {
+          state: { message: "Đặt lại mật khẩu thành công!" },
+        });
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Error resetting password:", error);
+      setError(
+        error.response?.data?.message || "Có lỗi xảy ra khi đặt lại mật khẩu"
+      );
     } finally {
       setLoading(false);
     }
@@ -117,13 +103,29 @@ const ResetPasswordComponent = () => {
           <strong style={{ color: "#e67e22" }}>Nông trại</strong>
         </h3>
         <p style={{ color: "#7f8c8d", fontSize: "1.1rem" }}>
-          Vui lòng nhập mật khẩu mới của bạn
+          Nhập mật khẩu mới cho tài khoản của bạn
         </p>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div
+          style={{
+            color: "#e74c3c",
+            backgroundColor: "#fde8e7",
+            padding: "12px",
+            borderRadius: "8px",
+            marginBottom: "1rem",
+            fontSize: "0.9rem",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
         {/* New Password Field */}
-        <div style={{ marginBottom: "1.5rem" }}>
+        <div style={{ marginBottom: "1.5rem", position: "relative" }}>
           <label
             htmlFor="newPassword"
             style={{
@@ -136,57 +138,50 @@ const ResetPasswordComponent = () => {
           </label>
           <div style={{ position: "relative" }}>
             <input
-              type={showPassword ? "text" : "password"}
+              type={showPassword.new ? "text" : "password"}
               id="newPassword"
               name="newPassword"
               value={formData.newPassword}
               onChange={handleChange}
-              placeholder="Nhập mật khẩu mới"
+              required
               style={{
                 width: "100%",
                 height: "50px",
-                padding: "0 45px 0 15px",
+                padding: "0 15px",
                 borderRadius: "10px",
                 border: "2px solid #eee",
                 transition: "all 0.3s ease",
                 outline: "none",
+                paddingRight: "40px", // Space for eye icon
               }}
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={() =>
+                setShowPassword((prev) => ({ ...prev, new: !prev.new }))
+              }
               style={{
                 position: "absolute",
-                right: "15px",
+                right: "10px",
                 top: "50%",
                 transform: "translateY(-50%)",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                padding: "0",
-                display: "flex",
-                alignItems: "center",
-                color: "#666",
+                padding: "5px",
               }}
             >
-              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              {showPassword.new ? (
+                <EyeInvisibleOutlined style={{ color: "#95a5a6" }} />
+              ) : (
+                <EyeOutlined style={{ color: "#95a5a6" }} />
+              )}
             </button>
           </div>
-          {errors.newPassword && (
-            <div
-              style={{
-                color: "#e74c3c",
-                fontSize: "0.875rem",
-                marginTop: "0.25rem",
-              }}
-            >
-              {errors.newPassword}
-            </div>
-          )}
         </div>
 
         {/* Confirm Password Field */}
-        <div style={{ marginBottom: "1.5rem" }}>
+        <div style={{ marginBottom: "2rem", position: "relative" }}>
           <label
             htmlFor="confirmPassword"
             style={{
@@ -199,107 +194,98 @@ const ResetPasswordComponent = () => {
           </label>
           <div style={{ position: "relative" }}>
             <input
-              type={showConfirmPassword ? "text" : "password"}
+              type={showPassword.confirm ? "text" : "password"}
               id="confirmPassword"
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              placeholder="Xác nhận mật khẩu mới"
+              required
               style={{
                 width: "100%",
                 height: "50px",
-                padding: "0 45px 0 15px",
+                padding: "0 15px",
                 borderRadius: "10px",
                 border: "2px solid #eee",
                 transition: "all 0.3s ease",
                 outline: "none",
+                paddingRight: "40px",
               }}
             />
             <button
               type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              onClick={() =>
+                setShowPassword((prev) => ({ ...prev, confirm: !prev.confirm }))
+              }
               style={{
                 position: "absolute",
-                right: "15px",
+                right: "10px",
                 top: "50%",
                 transform: "translateY(-50%)",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                padding: "0",
-                display: "flex",
-                alignItems: "center",
-                color: "#666",
+                padding: "5px",
               }}
             >
-              {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+              {showPassword.confirm ? (
+                <EyeInvisibleOutlined style={{ color: "#95a5a6" }} />
+              ) : (
+                <EyeOutlined style={{ color: "#95a5a6" }} />
+              )}
             </button>
           </div>
-          {errors.confirmPassword && (
-            <div
-              style={{
-                color: "#e74c3c",
-                fontSize: "0.875rem",
-                marginTop: "0.25rem",
-              }}
-            >
-              {errors.confirmPassword}
-            </div>
-          )}
         </div>
 
-        {/* Buttons */}
-        <div
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={
+            loading || !formData.newPassword || !formData.confirmPassword
+          }
           style={{
+            width: "100%",
+            height: "50px",
+            borderRadius: "10px",
+            background: "#e67e22",
+            border: "none",
+            color: "white",
+            fontWeight: 500,
+            fontSize: "1.1rem",
+            cursor:
+              loading || !formData.newPassword || !formData.confirmPassword
+                ? "not-allowed"
+                : "pointer",
+            transition: "all 0.3s ease",
+            opacity:
+              loading || !formData.newPassword || !formData.confirmPassword
+                ? 0.7
+                : 1,
             display: "flex",
-            gap: "1rem",
-            marginBottom: "1.5rem",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "10px",
+            marginBottom: "1rem",
           }}
         >
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              flex: 1,
-              height: "50px",
-              borderRadius: "10px",
-              background: "#e67e22",
-              border: "none",
-              color: "white",
-              fontWeight: 500,
-              fontSize: "1.1rem",
-              cursor: loading ? "not-allowed" : "pointer",
-              transition: "all 0.3s ease",
-              opacity: loading ? 0.7 : 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {loading && <Spinner />}
-            {loading ? "Đang xử lý..." : "Đặt lại mật khẩu"}
-          </button>
+          {loading && <Spinner />}
+          {loading ? "Đang xử lý..." : "Đặt lại mật khẩu"}
+        </button>
 
+        {/* Back to Login Link */}
+        <div
+          style={{
+            textAlign: "center",
+          }}
+        >
           <Link
             to="/auth/login"
             style={{
-              flex: 1,
-              height: "50px",
-              borderRadius: "10px",
-              background: "#95a5a6",
-              border: "none",
-              color: "white",
-              fontWeight: 500,
-              fontSize: "1.1rem",
-              cursor: "pointer",
-              transition: "all 0.3s ease",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              color: "#e67e22",
               textDecoration: "none",
+              fontWeight: 500,
             }}
           >
-            Hủy
+            Quay lại đăng nhập
           </Link>
         </div>
       </form>

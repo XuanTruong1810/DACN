@@ -3,6 +3,7 @@ using Application.DTOs.Food;
 using Application.DTOs.FoodImport;
 using Application.DTOs.FoodImportRequest;
 using Application.DTOs.FoodType;
+using Application.DTOs.Pig;
 using Application.Models;
 using Application.Models.FoodImportRequestModelView;
 using Application.Models.FoodModelView;
@@ -119,6 +120,7 @@ namespace Application.Mapping
                             Status = fs.Status
                         })));
             CreateMap<Pigs, PigCancelModelView>().ReverseMap();
+            CreateMap<PigCancelDTO, Pigs>().ReverseMap();
         }
     }
 }

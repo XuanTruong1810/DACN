@@ -46,9 +46,6 @@ namespace Infrastructure.Context
             base.OnModelCreating(builder);
 
             // Constraints
-            builder.Entity<Pigs>()
-                .HasIndex(u => u.PigId)
-                .IsUnique();
 
             /// Key
             builder.Entity<FeedInTakeDetails>()

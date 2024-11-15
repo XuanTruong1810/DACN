@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axiosInstance from "../../../../utils/axiosConfig";
 import {
   Table,
   Button,
@@ -10,15 +11,9 @@ import {
   Card,
   Typography,
   Select,
-  InputNumber,
   DatePicker,
 } from "antd";
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-} from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -30,164 +25,107 @@ const DeadPigsPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [form] = Form.useForm();
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
-  // Fake data
-  const fakeData = [
-    {
-      id: 1,
-      pigId: "H001",
-      deathDate: "2024-03-15",
-      cause: "Bệnh tiêu chảy",
-      weight: 25.5,
-      disposalMethod: "Chôn lấp",
-      location: "Khu vực A",
-      handledBy: "Nguyễn Văn A",
-      notes: "Đã xử lý theo quy trình an toàn sinh học",
-    },
-    // Thêm dữ liệu mẫu khác nếu cần
-  ];
+  const fetchDeadPigs = async () => {
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/pigs/cancel`,
+        {
+          params: {
+            pageIndex: Math.max(0, pagination.current - 1),
+            pageSize: pagination.pageSize,
+          },
+        }
+      );
+
+      if (response.data.isSuccess) {
+        const { items, total } = response.data.data;
+        setDeadPigs(items);
+        setPagination((prev) => ({
+          ...prev,
+          total: total,
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching dead pigs:", error);
+      message.error("Không thể tải danh sách heo đã hủy");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setLoading(true);
-    // Giả lập API call
-    setTimeout(() => {
-      setDeadPigs(fakeData);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    fetchDeadPigs();
+  }, [pagination.current, pagination.pageSize]);
 
   const columns = [
     {
       title: "Mã heo",
-      dataIndex: "pigId",
-      key: "pigId",
+      dataIndex: "id",
+      key: "id",
     },
     {
-      title: "Ngày chết",
+      title: "Ngày hủy",
       dataIndex: "deathDate",
       key: "deathDate",
-      sorter: (a, b) => new Date(a.deathDate) - new Date(b.deathDate),
+      render: (date) => new Date(date).toLocaleDateString("vi-VN"),
     },
     {
       title: "Nguyên nhân",
-      dataIndex: "cause",
-      key: "cause",
+      dataIndex: "deathReason",
+      key: "deathReason",
     },
     {
-      title: "Cân nặng (kg)",
-      dataIndex: "weight",
-      key: "weight",
+      title: "Ghi chú",
+      dataIndex: "deathNote",
+      key: "deathNote",
     },
     {
       title: "Phương pháp xử lý",
-      dataIndex: "disposalMethod",
-      key: "disposalMethod",
+      dataIndex: "handlingMethod",
+      key: "handlingMethod",
     },
     {
-      title: "Người xử lý",
-      dataIndex: "handledBy",
-      key: "handledBy",
-    },
-    {
-      title: "Thao tác",
-      key: "action",
-      render: (_, record) => (
-        <Space>
-          <Button icon={<EyeOutlined />} onClick={() => handleView(record)} />
-          <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          <Button
-            icon={<DeleteOutlined />}
-            danger
-            onClick={() => handleDelete(record.id)}
-          />
-        </Space>
-      ),
+      title: "Ghi chú xử lý",
+      dataIndex: "handlingNotes",
+      key: "handlingNotes",
     },
   ];
 
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      if (editingRecord) {
-        // Xử lý cập nhật
-        const updatedRecords = deadPigs.map((record) =>
-          record.id === editingRecord.id ? { ...values, id: record.id } : record
-        );
-        setDeadPigs(updatedRecords);
-        message.success("Cập nhật thông tin thành công");
-      } else {
-        // Xử lý thêm mới
-        const newRecord = {
-          ...values,
-          id: deadPigs.length + 1,
-        };
-        setDeadPigs([...deadPigs, newRecord]);
-        message.success("Thêm mới thành công");
+      const cancelData = {
+        deathDate: values.deathDate.format("YYYY-MM-DD"),
+        deathReason: values.deathReason,
+        deathNote: values.deathNote,
+        handlingMethod: values.handlingMethod,
+        handlingNotes: values.handlingNotes,
+      };
+
+      const response = await axiosInstance.post(
+        `${import.meta.env.VITE_API_URL}/api/v1/pigs/${values.pigId}/cancel`,
+        cancelData
+      );
+
+      if (response.data.isSuccess) {
+        message.success("Xử lý heo chết thành công");
+        fetchDeadPigs();
+        setIsModalVisible(false);
+        form.resetFields();
       }
     } catch (error) {
-      console.log(error);
-      message.error("Có lỗi xảy ra");
+      console.error("Error canceling pig:", error);
+      message.error(error.response?.data?.message || "Có lỗi xảy ra khi xử lý");
     } finally {
       setLoading(false);
-      setIsModalVisible(false);
-      form.resetFields();
-      setEditingRecord(null);
     }
-  };
-
-  const handleEdit = (record) => {
-    setEditingRecord(record);
-    form.setFieldsValue(record);
-    setIsModalVisible(true);
-  };
-
-  const handleDelete = (id) => {
-    Modal.confirm({
-      title: "Xác nhận xóa",
-      content: "Bạn có chắc chắn muốn xóa bản ghi này?",
-      okText: "Xóa",
-      cancelText: "Hủy",
-      okButtonProps: { danger: true },
-      onOk: () => {
-        setDeadPigs(deadPigs.filter((record) => record.id !== id));
-        message.success("Xóa thành công");
-      },
-    });
-  };
-
-  const handleView = (record) => {
-    Modal.info({
-      title: "Chi tiết xử lý heo chết",
-      width: 600,
-      content: (
-        <div style={{ padding: "20px 0" }}>
-          <p>
-            <strong>Mã heo:</strong> {record.pigId}
-          </p>
-          <p>
-            <strong>Ngày chết:</strong> {record.deathDate}
-          </p>
-          <p>
-            <strong>Nguyên nhân:</strong> {record.cause}
-          </p>
-          <p>
-            <strong>Cân nặng:</strong> {record.weight} kg
-          </p>
-          <p>
-            <strong>Phương pháp xử lý:</strong> {record.disposalMethod}
-          </p>
-          <p>
-            <strong>Vị trí xử lý:</strong> {record.location}
-          </p>
-          <p>
-            <strong>Người xử lý:</strong> {record.handledBy}
-          </p>
-          <p>
-            <strong>Ghi chú:</strong> {record.notes}
-          </p>
-        </div>
-      ),
-    });
   };
 
   return (
@@ -219,6 +157,23 @@ const DeadPigsPage = () => {
           dataSource={deadPigs}
           rowKey="id"
           loading={loading}
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            onChange: (page, pageSize) => {
+              setPagination({
+                ...pagination,
+                current: page,
+                pageSize: pageSize,
+              });
+            },
+          }}
+          style={{
+            borderRadius: "8px",
+            overflow: "hidden",
+            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
+          }}
         />
 
         <Modal
@@ -230,75 +185,94 @@ const DeadPigsPage = () => {
             setEditingRecord(null);
           }}
           footer={null}
+          width={700}
+          style={{ top: 20 }}
         >
-          <Form form={form} layout="vertical" onFinish={handleSubmit}>
-            <Form.Item
-              name="pigId"
-              label="Mã heo"
-              rules={[{ required: true, message: "Vui lòng nhập mã heo" }]}
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleSubmit}
+            style={{
+              padding: "20px",
+              background: "#fff",
+              borderRadius: "8px",
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+              }}
             >
-              <Input />
-            </Form.Item>
+              <Form.Item
+                name="pigId"
+                label="Mã heo"
+                rules={[{ required: true, message: "Vui lòng nhập mã heo" }]}
+              >
+                <Input
+                  placeholder="Nhập mã heo"
+                  style={{ borderRadius: "6px" }}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="deathDate"
+                label="Ngày chết"
+                rules={[{ required: true, message: "Vui lòng chọn ngày chết" }]}
+              >
+                <DatePicker
+                  style={{ width: "100%", borderRadius: "6px" }}
+                  format="DD/MM/YYYY"
+                  placeholder="Chọn ngày"
+                />
+              </Form.Item>
+            </div>
 
             <Form.Item
-              name="deathDate"
-              label="Ngày chết"
-              rules={[{ required: true, message: "Vui lòng chọn ngày" }]}
-            >
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item
-              name="cause"
+              name="deathReason"
               label="Nguyên nhân"
               rules={[{ required: true, message: "Vui lòng nhập nguyên nhân" }]}
             >
-              <Input />
+              <Input
+                placeholder="Nhập nguyên nhân"
+                style={{ borderRadius: "6px" }}
+              />
+            </Form.Item>
+
+            <Form.Item name="deathNote" label="Ghi chú nguyên nhân">
+              <TextArea
+                rows={4}
+                placeholder="Nhập ghi chú về nguyên nhân (nếu có)"
+                style={{ borderRadius: "6px" }}
+              />
             </Form.Item>
 
             <Form.Item
-              name="weight"
-              label="Cân nặng (kg)"
-              rules={[{ required: true, message: "Vui lòng nhập cân nặng" }]}
-            >
-              <InputNumber min={0} style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item
-              name="disposalMethod"
+              name="handlingMethod"
               label="Phương pháp xử lý"
               rules={[
                 { required: true, message: "Vui lòng chọn phương pháp xử lý" },
               ]}
             >
-              <Select>
-                <Option value="Chôn lấp">Chôn lấp</Option>
-                <Option value="Đốt">Đốt</Option>
-                <Option value="Khác">Khác</Option>
+              <Select
+                placeholder="Chọn phương pháp xử lý"
+                style={{ borderRadius: "6px" }}
+              >
+                <Option value="Burial">Chôn lấp</Option>
+                <Option value="Burning">Thiêu hủy</Option>
               </Select>
             </Form.Item>
 
-            <Form.Item
-              name="location"
-              label="Vị trí xử lý"
-              rules={[{ required: true, message: "Vui lòng nhập vị trí" }]}
-            >
-              <Input />
+            <Form.Item name="handlingNotes" label="Ghi chú xử lý">
+              <TextArea
+                rows={4}
+                placeholder="Nhập ghi chú về cách xử lý (nếu có)"
+                style={{ borderRadius: "6px" }}
+              />
             </Form.Item>
 
-            <Form.Item
-              name="handledBy"
-              label="Người xử lý"
-              rules={[{ required: true, message: "Vui lòng nhập người xử lý" }]}
-            >
-              <Input />
-            </Form.Item>
-
-            <Form.Item name="notes" label="Ghi chú">
-              <TextArea rows={4} />
-            </Form.Item>
-
-            <Form.Item>
+            <Form.Item style={{ marginBottom: 0, marginTop: "20px" }}>
               <Space style={{ float: "right" }}>
                 <Button
                   onClick={() => {
@@ -306,10 +280,16 @@ const DeadPigsPage = () => {
                     form.resetFields();
                     setEditingRecord(null);
                   }}
+                  style={{ borderRadius: "6px" }}
                 >
                   Hủy
                 </Button>
-                <Button type="primary" htmlType="submit" loading={loading}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={loading}
+                  style={{ borderRadius: "6px" }}
+                >
                   {editingRecord ? "Cập nhật" : "Thêm mới"}
                 </Button>
               </Space>

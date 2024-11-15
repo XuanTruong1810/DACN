@@ -15,6 +15,7 @@ public static class Startup
     public static IServiceCollection ConfigureServices(this IServiceCollection services)
     {
         services.AddCorsConfig();
+        services.AddMemoryCache();
         services.AddHttpContextAccessor();
         services.AddSwaggerGenUI();
         services.AddDBContext();

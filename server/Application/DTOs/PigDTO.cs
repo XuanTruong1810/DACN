@@ -1,7 +1,7 @@
 namespace Application.DTOs;
 public class PigDTO
 {
-    public string PigId { get; set; }
+    public string Id { get; set; }
     public string StableId { get; set; }
 }
 

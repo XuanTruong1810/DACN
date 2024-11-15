@@ -66,9 +66,9 @@ namespace API.Controllers
 
         [HttpGet("cancel")]
         [Authorize(Roles = "Admin,Dispatch")]
-        public async Task<IActionResult> GetPigCancelAsync([FromQuery] int pageIndex, [FromQuery] int pageSize)
+        public async Task<IActionResult> GetPigCancelAsync([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
         {
-            BasePagination<PigCancelModelView> pigs = await pigService.GetPigCancelAsync(pageIndex, pageSize);
+            BasePagination<PigCancelModelView> pigs = await pigService.GetPigCancelAsync(pageIndex ?? 1, pageSize ?? 10);
             return Ok(BaseResponse<BasePagination<PigCancelModelView>>.OkResponse(pigs));
         }
     }

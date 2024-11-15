@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Spinner from "../../../components/Spinner";
+import axios from "axios";
 
 const VerifyOTPComponent = () => {
   const [loading, setLoading] = useState(false);
@@ -9,6 +10,17 @@ const VerifyOTPComponent = () => {
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef([]);
   const [error, setError] = useState("");
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const email = location.state?.email;
+
+  // Redirect nếu không có email
+  useEffect(() => {
+    if (!email) {
+      navigate("/auth/forgot-password");
+    }
+  }, [email, navigate]);
 
   useEffect(() => {
     const countdown =
@@ -64,9 +76,24 @@ const VerifyOTPComponent = () => {
   };
 
   const handleResend = async () => {
-    setCanResend(false);
-    setTimer(60);
-    // Xử lý logic gửi lại OTP
+    try {
+      setCanResend(false);
+      setTimer(60);
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/v1/Auth/ForgotPassword`,
+        { email }
+      );
+
+      if (response.status == 200) {
+        setError("");
+      }
+    } catch (error) {
+      console.error("Error resending OTP:", error);
+      setError(error.response?.data?.message || "Không thể gửi lại mã OTP");
+      setCanResend(true);
+      setTimer(0);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -79,12 +106,30 @@ const VerifyOTPComponent = () => {
 
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      // Xử lý logic verify OTP
-      console.log("OTP submitted:", otp.join(""));
+      const response = await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/v1/Auth/Confirm_OTP_ResetPassword`,
+        {
+          email: email,
+          otp: otp.join(""),
+        }
+      );
+
+      if (response.status == 200) {
+        // Chuyển đến trang reset password
+        navigate("/auth/reset-password", {
+          state: {
+            email,
+            verifiedOTP: true, // Đánh dấu đã verify OTP thành công
+          },
+        });
+      }
     } catch (error) {
-      console.error(error);
-      setError("Mã OTP không hợp lệ");
+      console.error("Error verifying OTP:", error);
+      setError(error.response?.data?.message || "Mã OTP không hợp lệ");
+      // Clear OTP khi verify thất bại
+      setOtp(["", "", "", "", "", ""]);
+      // Focus vào ô đầu tiên
+      inputRefs.current[0]?.focus();
     } finally {
       setLoading(false);
     }
@@ -114,7 +159,7 @@ const VerifyOTPComponent = () => {
           Xác thực OTP <strong style={{ color: "#e67e22" }}>Nông trại</strong>
         </h3>
         <p style={{ color: "#7f8c8d", fontSize: "1.1rem" }}>
-          Vui lòng nhập mã OTP đã được gửi đến email của bạn
+          Vui lòng nhập mã OTP đã được gửi đến email: <strong>{email}</strong>
         </p>
       </div>
 
@@ -144,7 +189,7 @@ const VerifyOTPComponent = () => {
                 textAlign: "center",
                 fontSize: "1.5rem",
                 borderRadius: "10px",
-                border: "2px solid #eee",
+                border: error ? "2px solid #e74c3c" : "2px solid #eee",
                 outline: "none",
                 transition: "all 0.3s ease",
               }}
@@ -203,7 +248,7 @@ const VerifyOTPComponent = () => {
         >
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || otp.some((digit) => !digit)}
             style={{
               flex: 1,
               height: "50px",
@@ -213,9 +258,12 @@ const VerifyOTPComponent = () => {
               color: "white",
               fontWeight: 500,
               fontSize: "1.1rem",
-              cursor: loading ? "not-allowed" : "pointer",
+              cursor:
+                loading || otp.some((digit) => !digit)
+                  ? "not-allowed"
+                  : "pointer",
               transition: "all 0.3s ease",
-              opacity: loading ? 0.7 : 1,
+              opacity: loading || otp.some((digit) => !digit) ? 0.7 : 1,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
