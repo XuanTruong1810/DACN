@@ -35,6 +35,9 @@ public static class DependencyInjection
         services.AddScoped<IFoodImportService, FoodImportService>();
         services.AddScoped<IEmailService, EmailService>();
 
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<ICloudinaryService, CloudinaryService>();
+
     }
     public static void AddMapping(this IServiceCollection services)
     {

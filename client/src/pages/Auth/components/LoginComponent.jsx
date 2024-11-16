@@ -47,7 +47,7 @@ const LoginComponent = () => {
         localStorage.setItem("token", response.data.data.accessToken);
         localStorage.setItem("refreshToken", response.data.data.refreshToken);
         message.success("Đăng nhập thành công!");
-        navigate("/admin/dashboard");
+        navigate("/admin");
       }
     } catch (error) {
       console.error("Login error:", error);

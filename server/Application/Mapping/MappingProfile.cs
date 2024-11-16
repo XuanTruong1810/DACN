@@ -121,6 +121,9 @@ namespace Application.Mapping
                         })));
             CreateMap<Pigs, PigCancelModelView>().ReverseMap();
             CreateMap<PigCancelDTO, Pigs>().ReverseMap();
+
+
+
         }
     }
 }

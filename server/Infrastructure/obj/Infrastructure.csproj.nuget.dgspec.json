@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\AnhNhi\\Desktop\\DACN\\PigManagement\\server\\Infrastructure\\Infrastructure.csproj": {}
+    "C:\\Users\\AnhNhi\\Documents\\Desktop\\DACN\\PigManagement\\server\\Infrastructure\\Infrastructure.csproj": {}
   },
   "projects": {
-    "C:\\Users\\AnhNhi\\Desktop\\DACN\\PigManagement\\server\\Core\\Core.csproj": {
+    "C:\\Users\\AnhNhi\\Documents\\Desktop\\DACN\\PigManagement\\server\\Core\\Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\AnhNhi\\Desktop\\DACN\\PigManagement\\server\\Core\\Core.csproj",
+        "projectUniqueName": "C:\\Users\\AnhNhi\\Documents\\Desktop\\DACN\\PigManagement\\server\\Core\\Core.csproj",
         "projectName": "Core",
-        "projectPath": "C:\\Users\\AnhNhi\\Desktop\\DACN\\PigManagement\\server\\Core\\Core.csproj",
+        "projectPath": "C:\\Users\\AnhNhi\\Documents\\Desktop\\DACN\\PigManagement\\server\\Core\\Core.csproj",
         "packagesPath": "C:\\Users\\AnhNhi\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\AnhNhi\\Desktop\\DACN\\PigManagement\\server\\Core\\obj\\",
+        "outputPath": "C:\\Users\\AnhNhi\\Documents\\Desktop\\DACN\\PigManagement\\server\\Core\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\AnhNhi\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -71,14 +71,14 @@
         }
       }
     },
-    "C:\\Users\\AnhNhi\\Desktop\\DACN\\PigManagement\\server\\Infrastructure\\Infrastructure.csproj": {
+    "C:\\Users\\AnhNhi\\Documents\\Desktop\\DACN\\PigManagement\\server\\Infrastructure\\Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\AnhNhi\\Desktop\\DACN\\PigManagement\\server\\Infrastructure\\Infrastructure.csproj",
+        "projectUniqueName": "C:\\Users\\AnhNhi\\Documents\\Desktop\\DACN\\PigManagement\\server\\Infrastructure\\Infrastructure.csproj",
         "projectName": "Infrastructure",
-        "projectPath": "C:\\Users\\AnhNhi\\Desktop\\DACN\\PigManagement\\server\\Infrastructure\\Infrastructure.csproj",
+        "projectPath": "C:\\Users\\AnhNhi\\Documents\\Desktop\\DACN\\PigManagement\\server\\Infrastructure\\Infrastructure.csproj",
         "packagesPath": "C:\\Users\\AnhNhi\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\AnhNhi\\Desktop\\DACN\\PigManagement\\server\\Infrastructure\\obj\\",
+        "outputPath": "C:\\Users\\AnhNhi\\Documents\\Desktop\\DACN\\PigManagement\\server\\Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\AnhNhi\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -96,8 +96,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Users\\AnhNhi\\Desktop\\DACN\\PigManagement\\server\\Core\\Core.csproj": {
-                "projectPath": "C:\\Users\\AnhNhi\\Desktop\\DACN\\PigManagement\\server\\Core\\Core.csproj"
+              "C:\\Users\\AnhNhi\\Documents\\Desktop\\DACN\\PigManagement\\server\\Core\\Core.csproj": {
+                "projectPath": "C:\\Users\\AnhNhi\\Documents\\Desktop\\DACN\\PigManagement\\server\\Core\\Core.csproj"
               }
             }
           }

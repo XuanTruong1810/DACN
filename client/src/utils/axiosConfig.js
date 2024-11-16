@@ -60,31 +60,32 @@ instance.interceptors.response.use(
             isRefreshing = true;
 
             const refreshToken = localStorage.getItem('refreshToken');
+            const token = localStorage.getItem('token');
 
-            if (!refreshToken) {
-                // Nếu không có refresh token, chuyển về trang login
+            if (!refreshToken && !token) {
+                // Chỉ chuyển về trang login khi không có cả refresh token và token
                 window.location.href = '/auth/login';
                 return Promise.reject(error);
             }
 
             try {
                 // Gọi API refresh token
-                const response = await instance.post(`${import.meta.env.VITE_API_URL}/api/v1/auth/refresh-token`, {
+                const response = await instance.post(`${import.meta.env.VITE_API_URL}/api/v1/auth/refreshtoken`, {
                     refreshToken: refreshToken
                 });
 
-                if (response.data.isSuccess) {
-                    const { token, refreshToken: newRefreshToken } = response.data.data;
+                if (response.status === 200) {
+                    const { accessToken: newToken, refreshToken: newRefreshToken } = response.data.data;
 
                     // Lưu token mới
-                    localStorage.setItem('token', token);
+                    localStorage.setItem('token', newToken);
                     localStorage.setItem('refreshToken', newRefreshToken);
 
                     // Cập nhật header cho request gốc
-                    originalRequest.headers['Authorization'] = `Bearer ${token}`;
+                    originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
 
                     // Xử lý queue
-                    processQueue(null, token);
+                    processQueue(null, newToken);
 
                     return instance(originalRequest);
                 } else {
@@ -95,7 +96,6 @@ instance.interceptors.response.use(
                 }
             } catch (err) {
                 processQueue(err, null);
-                // Nếu có lỗi khi refresh token, chuyển về trang login
                 window.location.href = '/auth/login';
                 return Promise.reject(err);
             } finally {
@@ -103,9 +103,12 @@ instance.interceptors.response.use(
             }
         }
 
-        // Nếu là lỗi 401 khác hoặc đã thử refresh token
+        // Chỉ chuyển về login khi không có token hợp lệ
         if (error.response?.status === 401) {
-            window.location.href = '/auth/login';
+            const currentToken = localStorage.getItem('token');
+            if (!currentToken) {
+                window.location.href = '/auth/login';
+            }
         }
 
         return Promise.reject(error);

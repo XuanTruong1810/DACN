@@ -167,7 +167,7 @@ namespace Application.Services
         public async Task ChangePassword(ChangePasswordDTO model)
         {
             string? userId = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-            throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Token không hợp lệ");
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Token không hợp lệ");
             ApplicationUser? admin = await userManager.FindByIdAsync(userId) ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy user");
             if (admin.DeleteTime.HasValue)
             {
@@ -178,7 +178,7 @@ namespace Application.Services
                 IdentityResult result = await userManager.ChangePasswordAsync(admin, model.Password, model.NewPassword);
                 if (!result.Succeeded)
                 {
-                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, result.Errors.FirstOrDefault()?.Description);
+                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Đổi mật khẩu thất bại");
                 }
             }
         }

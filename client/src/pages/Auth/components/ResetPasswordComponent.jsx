@@ -58,7 +58,7 @@ const ResetPasswordComponent = () => {
         `${import.meta.env.VITE_API_URL}/api/v1/Auth/ResetPassword`,
         {
           email: email,
-          newPassword: formData.newPassword,
+          password: formData.newPassword,
         }
       );
 

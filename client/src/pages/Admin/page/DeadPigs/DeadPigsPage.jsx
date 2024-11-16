@@ -38,13 +38,13 @@ const DeadPigsPage = () => {
         `${import.meta.env.VITE_API_URL}/api/v1/pigs/cancel`,
         {
           params: {
-            pageIndex: Math.max(0, pagination.current - 1),
-            pageSize: pagination.pageSize,
+            pageIndex: 1,
+            pageSize: 10,
           },
         }
       );
 
-      if (response.data.isSuccess) {
+      if (response.status === 200) {
         const { items, total } = response.data.data;
         setDeadPigs(items);
         setPagination((prev) => ({

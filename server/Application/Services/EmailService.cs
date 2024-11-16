@@ -12,7 +12,7 @@ namespace Application.Services
         public async Task SendEmailAsync(string email, string subject, string body)
         {
             MimeMessage? emailMessage = new MimeMessage();
-            emailMessage.From.Add(new MailboxAddress("MilkStore", _emailSettings.SenderEmail));
+            emailMessage.From.Add(new MailboxAddress("PigFarm", _emailSettings.SenderEmail));
             emailMessage.To.Add(new MailboxAddress("Customer", email));
             emailMessage.Subject = subject;
 

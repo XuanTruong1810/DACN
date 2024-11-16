@@ -43,7 +43,7 @@ function App() {
             <Route path="Login" element={<LoginPage />} />
             <Route path="Forgot-Password" element={<ForgotPasswordPage />} />
             <Route path="Reset-Password" element={<ResetPasswordPage />} />
-            <Route path="Verify-OTP" element={<VerifyOTPPage />} />
+            <Route path="confirm-otp" element={<VerifyOTPPage />} />
           </Route>
           <Route path="/Admin" element={<MainLayout />}>
             <Route path="Employees" element={<EmployeeManagement />} />

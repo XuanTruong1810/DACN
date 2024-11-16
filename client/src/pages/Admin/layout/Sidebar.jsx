@@ -336,7 +336,11 @@ const Sidebar = () => {
 
   const handleUserMenuClick = ({ key }) => {
     if (key === "profile") navigate("/profile");
-    if (key === "logout") navigate("/auth/login");
+    if (key === "logout") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      navigate("/auth/login");
+    }
   };
 
   return (

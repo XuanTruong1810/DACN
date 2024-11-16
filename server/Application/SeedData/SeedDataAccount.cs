@@ -28,7 +28,7 @@ namespace Application.SeedData
                     UserName = emailAdmin,
                     Email = emailAdmin,
                     EmailConfirmed = true,
-                    Name = nameAdmin
+                    FullName = nameAdmin
                 };
                 await userManager.CreateAsync(newAccount, passwordAdmin);
                 await userManager.AddToRoleAsync(newAccount, "Admin");
@@ -51,7 +51,7 @@ namespace Application.SeedData
 
                     Email = emailMember,
                     EmailConfirmed = true,
-                    Name = nameMem,
+                    FullName = nameMem,
                 };
                 await userManager.CreateAsync(newAccount, passwordMember);
                 await userManager.AddToRoleAsync(newAccount, "Dispatch");
@@ -75,7 +75,7 @@ namespace Application.SeedData
                     UserName = emailFeedManager,
                     Email = emailFeedManager,
                     EmailConfirmed = true,
-                    Name = NameFeedManager,
+                    FullName = NameFeedManager,
                 };
                 await userManager.CreateAsync(newAccount, passwordFeedManager);
                 await userManager.AddToRoleAsync(newAccount, "FeedManager");
@@ -98,7 +98,7 @@ namespace Application.SeedData
                     UserName = emailVeterinarian,
                     Email = emailVeterinarian,
                     EmailConfirmed = true,
-                    Name = NameVeterinarian,
+                    FullName = NameVeterinarian,
                 };
                 await userManager.CreateAsync(newAccount, passwordVeterinarian);
                 await userManager.AddToRoleAsync(newAccount, "Veterinarian");

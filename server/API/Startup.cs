@@ -2,6 +2,7 @@ using System.Text;
 using Application.Interfaces;
 using Application.Services;
 using Core.Entities;
+using Core.Settings;
 using Infrastructure;
 using Infrastructure.Context;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -24,6 +25,7 @@ public static class Startup
         services.AddAuthenticationJWTBearer();
         services.AddConfigTimeToken();
         services.AddInfrastructure();
+
         return services;
     }
 

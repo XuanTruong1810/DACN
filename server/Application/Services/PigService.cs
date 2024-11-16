@@ -189,6 +189,11 @@ namespace Application.Services
 
         public async Task<BasePagination<PigCancelModelView>> GetPigCancelAsync(int pageIndex, int pageSize)
         {
+            // Đảm bảo pageIndex luôn >= 1
+            pageIndex = Math.Max(1, pageIndex);
+            // Đảm bảo pageSize luôn > 0
+            pageSize = Math.Max(1, pageSize);
+
             IQueryable<Pigs>? query = _unitOfWork.GetRepository<Pigs>()
                 .GetEntities
                 .Where(p => p.DeleteTime != null && p.Status == "dead");

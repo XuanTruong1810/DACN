@@ -1,4 +1,5 @@
 using Application.SeedData;
+using Core.Settings;
 using dotenv.net;
 
 WebApplicationBuilder? builder = WebApplication.CreateBuilder(args);
@@ -6,7 +7,7 @@ WebApplicationBuilder? builder = WebApplication.CreateBuilder(args);
 DotEnv.Load();
 
 builder.Services.ConfigureServices();
-
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -17,6 +18,7 @@ builder.Services.AddControllers()
     });
 builder.Services.AddSwaggerGen();
 builder.Services.AddEndpointsApiExplorer();
+
 WebApplication? app = builder.Build();
 
 
