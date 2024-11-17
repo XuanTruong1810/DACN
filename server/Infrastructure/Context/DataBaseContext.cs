@@ -39,6 +39,21 @@ namespace Infrastructure.Context
         public DbSet<FoodImports> FoodImports { get; set; }
         public DbSet<FoodImportDetails> FoodImportDetails { get; set; }
 
+        public DbSet<Customers> Customers { get; set; }
+        public DbSet<PigExportRequest> PigExportRequests { get; set; }
+        public DbSet<PigExportRequestDetail> PigExportRequestDetails { get; set; }
+        public DbSet<PigExport> PigExports { get; set; }
+        public DbSet<PigExportDetail> PigExportDetails { get; set; }
+
+
+        public DbSet<Medicines> Medicines { get; set; }
+        public DbSet<VaccinationPlan> VaccinationPlans { get; set; }
+
+
+
+
+
+
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -58,6 +73,11 @@ namespace Infrastructure.Context
                 .HasIndex(d => new { d.MedicineUnitId, d.SupplierId })
                 .IsUnique();
 
+            builder.Entity<PigExportRequestDetail>()
+                .HasKey(d => new { d.PigExportRequestId, d.PigId });
+
+            builder.Entity<PigExportDetail>()
+                .HasKey(d => new { d.PigExportId, d.PigId });
 
             builder.Entity<FoodSuppliers>()
                 .HasKey(d => new { d.FoodsId, d.SuppliersId });
@@ -69,6 +89,12 @@ namespace Infrastructure.Context
                 .HasKey(d => new { d.FoodImportId, d.FoodId });
 
 
+            builder.Entity<VaccinationPlan>()
+                .HasKey(d => new { d.PigId, d.MedicineId });
+
+
+            builder.Entity<PigExportRequestDetail>()
+                .HasKey(d => new { d.PigExportRequestId, d.PigId });
 
             /// Create tables
             builder.Entity<ApplicationUser>().ToTable("User");
@@ -105,6 +131,16 @@ namespace Infrastructure.Context
 
             builder.Entity<FoodImports>().ToTable("FoodImports");
             builder.Entity<FoodImportDetails>().ToTable("FoodImportDetails");
+
+
+            builder.Entity<Customers>().ToTable("Customers");
+            builder.Entity<PigExportRequest>().ToTable("PigExportRequest");
+            builder.Entity<PigExportRequestDetail>().ToTable("PigExportRequestDetail");
+            builder.Entity<PigExport>().ToTable("PigExport");
+            builder.Entity<PigExportDetail>().ToTable("PigExportDetail");
+
+            builder.Entity<Medicines>().ToTable("Medicines");
+            builder.Entity<VaccinationPlan>().ToTable("VaccinationPlan");
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

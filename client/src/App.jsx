@@ -16,7 +16,6 @@ import AreasPage from "./pages/Admin/page/Areas/AreasPage";
 import HousesPage from "./pages/Admin/page/Houses/HousesPage";
 import FoodsPage from "./pages/Admin/page/Foods/FoodsPage";
 import CreateExport from "./pages/Admin/page/Exports/CreateExport";
-import ExportList from "./pages/Admin/page/Exports/ExportList";
 import DeadPigsPage from "./pages/Admin/page/DeadPigs/DeadPigsPage";
 import PigImportApproval from "./pages/Admin/page/PigImport/PigImportApproval";
 import PigImportRequest from "./pages/Admin/page/PigImport/PigImportRequest";
@@ -31,6 +30,9 @@ import FoodImportApproval from "./pages/Admin/page/Inventory/FoodImportApproval"
 import FoodImportList from "./pages/Admin/page/Inventory/FoodImportList";
 import DailyFoodExport from "./pages/Admin/page/Exports/DailyFoodExport";
 import PigsManagement from "./pages/Admin/page/Pigs/PigsManagement";
+import CreateExportRequest from "./pages/Admin/ExportRequest/CreateExportRequest";
+import ExportRequestList from "./pages/Admin/ExportRequest/ExportRequestList";
+import ExportList from "./pages/Admin/Export/ExportList";
 
 function App() {
   return (
@@ -58,7 +60,16 @@ function App() {
             <Route path="inventory/foods" element={<FoodsPage />} />
 
             <Route path="exports/create" element={<CreateExport />} />
-            <Route path="exports/pigs" element={<ExportList />} />
+            <Route
+              path="exports/create-request"
+              element={<CreateExportRequest />}
+            />
+            <Route
+              path="exports/request/list"
+              element={<ExportRequestList />}
+            />
+            <Route path="exports/animals/list" element={<ExportList />} />
+            {/* <Route path="exports/pigs" element={<ExportList />} /> */}
             <Route path="exports/daily-food" element={<DailyFoodExport />} />
             <Route path="DeadPigs" element={<DeadPigsPage />} />
             <Route path="inventory">

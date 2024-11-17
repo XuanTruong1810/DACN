@@ -146,6 +146,45 @@ namespace Infrastructure.Migrations
                     b.ToTable("Areas", (string)null);
                 });
 
+            modelBuilder.Entity("Core.Entities.Customers", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Customers", (string)null);
+                });
+
             modelBuilder.Entity("Core.Entities.FeedInTakeDetails", b =>
                 {
                     b.Property<string>("FeedInTakeId")
@@ -765,10 +804,6 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("MedicineTypeId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int?>("NumberOfInjections")
                         .HasColumnType("int");
 
@@ -781,7 +816,172 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Medicines");
+                    b.ToTable("Medicines", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExport", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CustomerId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ExportDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PigExportRequestId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalWeight")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("PigExportRequestId");
+
+                    b.ToTable("PigExport", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExportDetail", b =>
+                {
+                    b.Property<string>("PigExportId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("PigId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("ActualWeight")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("PigExportId", "PigId");
+
+                    b.HasIndex("PigId");
+
+                    b.ToTable("PigExportDetail", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExportRequest", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("ApprovalDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ApprovedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RejectReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("RequestDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PigExportRequest", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExportRequestDetail", b =>
+                {
+                    b.Property<string>("PigExportRequestId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("PigId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("CurrentWeight")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("HealthStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RejectReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("PigExportRequestId", "PigId");
+
+                    b.HasIndex("PigId");
+
+                    b.ToTable("PigExportRequestDetail", (string)null);
                 });
 
             modelBuilder.Entity("Core.Entities.PigIntakes", b =>
@@ -871,6 +1071,13 @@ namespace Infrastructure.Migrations
                     b.Property<string>("HandlingNotes")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("HealthStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTimeOffset?>("SoldDate")
                         .HasColumnType("datetimeoffset");
 
@@ -884,6 +1091,9 @@ namespace Infrastructure.Migrations
 
                     b.Property<DateTimeOffset?>("UpdatedTime")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal?>("Weight")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -1031,28 +1241,44 @@ namespace Infrastructure.Migrations
                     b.ToTable("Suppliers", (string)null);
                 });
 
-            modelBuilder.Entity("Core.Entities.VaccinationSchedule", b =>
+            modelBuilder.Entity("Core.Entities.VaccinationPlan", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<string>("PigId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTimeOffset?>("CreatedTime")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<string>("MedicineId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("ActualDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("CanVaccinate")
+                        .HasColumnType("bit");
 
                     b.Property<DateTimeOffset?>("DeleteTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("MedicinesId")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
-                    b.Property<DateTimeOffset?>("UpdatedTime")
+                    b.Property<DateTimeOffset?>("LastModifiedTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.HasKey("Id");
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
 
-                    b.HasIndex("MedicinesId");
+                    b.Property<DateTime>("ScheduledDate")
+                        .HasColumnType("datetime2");
 
-                    b.ToTable("VaccinationSchedule");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("PigId", "MedicineId");
+
+                    b.HasIndex("MedicineId");
+
+                    b.ToTable("VaccinationPlan", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -1431,6 +1657,63 @@ namespace Infrastructure.Migrations
                     b.Navigation("Unit");
                 });
 
+            modelBuilder.Entity("Core.Entities.PigExport", b =>
+                {
+                    b.HasOne("Core.Entities.Customers", "Customers")
+                        .WithMany("PigExports")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.PigExportRequest", "PigExportRequest")
+                        .WithMany()
+                        .HasForeignKey("PigExportRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customers");
+
+                    b.Navigation("PigExportRequest");
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExportDetail", b =>
+                {
+                    b.HasOne("Core.Entities.PigExport", "PigExport")
+                        .WithMany("Details")
+                        .HasForeignKey("PigExportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.Pigs", "Pig")
+                        .WithMany()
+                        .HasForeignKey("PigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pig");
+
+                    b.Navigation("PigExport");
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExportRequestDetail", b =>
+                {
+                    b.HasOne("Core.Entities.PigExportRequest", "PigExportRequest")
+                        .WithMany("Details")
+                        .HasForeignKey("PigExportRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.Pigs", "Pig")
+                        .WithMany()
+                        .HasForeignKey("PigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pig");
+
+                    b.Navigation("PigExportRequest");
+                });
+
             modelBuilder.Entity("Core.Entities.PigIntakes", b =>
                 {
                     b.HasOne("Core.Entities.Suppliers", "Suppliers")
@@ -1481,11 +1764,23 @@ namespace Infrastructure.Migrations
                     b.Navigation("Areas");
                 });
 
-            modelBuilder.Entity("Core.Entities.VaccinationSchedule", b =>
+            modelBuilder.Entity("Core.Entities.VaccinationPlan", b =>
                 {
-                    b.HasOne("Core.Entities.Medicines", null)
-                        .WithMany("VaccinationSchedules")
-                        .HasForeignKey("MedicinesId");
+                    b.HasOne("Core.Entities.Medicines", "Medicine")
+                        .WithMany("VaccinationPlans")
+                        .HasForeignKey("MedicineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.Pigs", "Pig")
+                        .WithMany("VaccinationPlans")
+                        .HasForeignKey("PigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Medicine");
+
+                    b.Navigation("Pig");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1548,6 +1843,11 @@ namespace Infrastructure.Migrations
                     b.Navigation("Stables");
                 });
 
+            modelBuilder.Entity("Core.Entities.Customers", b =>
+                {
+                    b.Navigation("PigExports");
+                });
+
             modelBuilder.Entity("Core.Entities.FeedInTakes", b =>
                 {
                     b.Navigation("FeedInTakeDetails");
@@ -1596,7 +1896,22 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("MedicineUnits");
 
-                    b.Navigation("VaccinationSchedules");
+                    b.Navigation("VaccinationPlans");
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExport", b =>
+                {
+                    b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExportRequest", b =>
+                {
+                    b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("Core.Entities.Pigs", b =>
+                {
+                    b.Navigation("VaccinationPlans");
                 });
 
             modelBuilder.Entity("Core.Entities.RequestMedicine", b =>

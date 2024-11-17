@@ -221,9 +221,38 @@ const Sidebar = () => {
           label: "Xuất kho",
           children: [
             {
-              key: "exportsList",
-              icon: <UnorderedListOutlined />,
-              label: <Link to="/admin/exports/pigs">Xuất vật nuôi</Link>,
+              key: "exportAnimals",
+              icon: <BugOutlined />,
+              label: "Xuất vật nuôi",
+              children: [
+                {
+                  key: "createExportRequest",
+                  icon: <FileTextOutlined />,
+                  label: (
+                    <Link to="/admin/exports/animals/create">
+                      Đề xuất xuất vật nuôi
+                    </Link>
+                  ),
+                },
+                {
+                  key: "pendingExports",
+                  icon: <CheckSquareOutlined />,
+                  label: (
+                    <Link to="/admin/exports/animals/pending">
+                      Duyệt phiếu xuất
+                    </Link>
+                  ),
+                },
+                {
+                  key: "exportsList",
+                  icon: <UnorderedListOutlined />,
+                  label: (
+                    <Link to="/admin/exports/animals/list">
+                      Danh sách phiếu xuất heo
+                    </Link>
+                  ),
+                },
+              ],
             },
             {
               key: "dailyFoodExport",

@@ -1,14 +1,18 @@
 using Application.DTOs;
+using Application.DTOs.ExportPig;
 using Application.DTOs.Food;
 using Application.DTOs.FoodImport;
 using Application.DTOs.FoodImportRequest;
 using Application.DTOs.FoodType;
+using Application.DTOs.Medicines;
 using Application.DTOs.Pig;
 using Application.Models;
 using Application.Models.FoodImportRequestModelView;
 using Application.Models.FoodModelView;
 using Application.Models.FoodTypeModelView;
+using Application.Models.Medicine;
 using Application.Models.PigCancelModelView;
+using Application.Models.PigExport;
 using AutoMapper;
 using Core.Entities;
 
@@ -121,6 +125,17 @@ namespace Application.Mapping
                         })));
             CreateMap<Pigs, PigCancelModelView>().ReverseMap();
             CreateMap<PigCancelDTO, Pigs>().ReverseMap();
+
+
+            CreateMap<InsertMedicineDTO, Medicines>().ReverseMap();
+            CreateMap<UpdateMedicineDTO, Medicines>().ReverseMap();
+            CreateMap<MedicineModelView, Medicines>().ReverseMap();
+
+
+            CreateMap<CreatePigExportRequestDTO, PigExportRequest>().ReverseMap();
+            CreateMap<PigExportRequest, PigExportRequestModelView>().ReverseMap();
+            CreateMap<PigExportRequestDetail, PigExportRequestDetailModelView>().ReverseMap();
+
 
 
 

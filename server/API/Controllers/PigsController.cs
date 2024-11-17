@@ -4,6 +4,7 @@ using Application.DTOs.Pig;
 using Application.Interfaces;
 using Application.Models;
 using Application.Models.PigCancelModelView;
+using Application.Models.PigExport;
 using Core.Base;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -70,6 +71,23 @@ namespace API.Controllers
         {
             BasePagination<PigCancelModelView> pigs = await pigService.GetPigCancelAsync(pageIndex ?? 1, pageSize ?? 10);
             return Ok(BaseResponse<BasePagination<PigCancelModelView>>.OkResponse(pigs));
+        }
+
+
+        [HttpGet("export")]
+        [Authorize(Roles = "Admin,Dispatch")]
+        public async Task<IActionResult> GetPigsForExportAsync()
+        {
+            List<PigExportModelView> pigs = await pigService.GetPigsForExportAsync();
+            return Ok(BaseResponse<List<PigExportModelView>>.OkResponse(pigs));
+        }
+
+        [HttpGet("export/pending")]
+        [Authorize(Roles = "Admin,Dispatch")]
+        public async Task<IActionResult> GetPigsStatusPendingAsync()
+        {
+            List<PigExportModelView> pigs = await pigService.GetPigsStatusPendingAsync();
+            return Ok(BaseResponse<List<PigExportModelView>>.OkResponse(pigs));
         }
     }
 }

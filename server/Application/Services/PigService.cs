@@ -3,12 +3,14 @@ using Application.DTOs.Pig;
 using Application.Interfaces;
 using Application.Models;
 using Application.Models.PigCancelModelView;
+using Application.Models.PigExport;
 using AutoMapper;
 using Core.Base;
 using Core.Entities;
 using Core.Repositories;
 using Core.Stores;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Application.Services
 {
@@ -159,32 +161,67 @@ namespace Application.Services
 
         public async Task<PigCancelModelView> CancelPigAsync(string id, PigCancelDTO dto)
         {
-            if (string.IsNullOrWhiteSpace(id))
+            using IDbContextTransaction? transaction = await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Id không được để trống!");
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Id không được để trống!");
+                }
+
+                Pigs? pig = await _unitOfWork.GetRepository<Pigs>()
+                    .GetEntities
+                    .Include(p => p.Stables)
+                    .FirstOrDefaultAsync(p => p.Id == id && p.DeleteTime == null && p.Status == "alive")
+                    ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy heo");
+
+                Stables stable = pig.Stables;
+                stable.CurrentOccupancy--;
+                if (stable.CurrentOccupancy < stable.Capacity)
+                {
+                    stable.Status = StatusStables.Available;
+                }
+                await _unitOfWork.GetRepository<Stables>().UpdateAsync(stable);
+
+
+                List<VaccinationPlan>? vaccinationPlans = await _unitOfWork.GetRepository<VaccinationPlan>()
+                    .GetEntities
+                    .Where(vp => vp.PigId == id
+                        && vp.IsActive
+                        && vp.Status == "pending"
+                        && vp.DeleteTime == null)
+                    .ToListAsync();
+
+                foreach (VaccinationPlan vaccinationPlan in vaccinationPlans)
+                {
+                    vaccinationPlan.Status = "cancelled";
+                    vaccinationPlan.CanVaccinate = false;
+                    vaccinationPlan.LastModifiedTime = DateTimeOffset.UtcNow;
+                    vaccinationPlan.DeleteTime = DateTimeOffset.UtcNow;
+                    await _unitOfWork.GetRepository<VaccinationPlan>().UpdateAsync(vaccinationPlan);
+                }
+                _mapper.Map(dto, pig);
+                pig.DeleteTime = DateTimeOffset.UtcNow;
+                pig.Status = "dead";
+                await _unitOfWork.GetRepository<Pigs>().UpdateAsync(pig);
+
+
+
+
+
+                await _unitOfWork.SaveAsync();
+
+
+                await transaction.CommitAsync();
+
+
+                return _mapper.Map<PigCancelModelView>(pig);
             }
-
-            Pigs? pig = await _unitOfWork.GetRepository<Pigs>()
-                .GetEntities
-                .Include(p => p.Stables)
-                .FirstOrDefaultAsync(p => p.Id == id && p.DeleteTime == null && p.Status == "alive")
-                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy heo");
-
-            Stables stable = pig.Stables;
-            stable.CurrentOccupancy--;
-            if (stable.CurrentOccupancy < stable.Capacity)
+            catch
             {
-                stable.Status = StatusStables.Available;
+                await transaction.RollbackAsync();
+                throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError, "Lỗi hệ thống");
             }
-            await _unitOfWork.GetRepository<Stables>().UpdateAsync(stable);
-
-            _mapper.Map(dto, pig);
-            pig.DeleteTime = DateTimeOffset.UtcNow;
-            pig.Status = "dead";
-            await _unitOfWork.GetRepository<Pigs>().UpdateAsync(pig);
-            await _unitOfWork.SaveAsync();
-
-            return _mapper.Map<PigCancelModelView>(pig);
         }
 
         public async Task<BasePagination<PigCancelModelView>> GetPigCancelAsync(int pageIndex, int pageSize)
@@ -212,6 +249,73 @@ namespace Application.Services
             BasePagination<PigCancelModelView>? pagination = new BasePagination<PigCancelModelView>(pigCancelModels, totalItems, pageIndex, pageSize);
 
             return pagination;
+        }
+
+        public async Task<List<PigExportModelView>> GetPigsForExportAsync()
+        {
+            List<PigExportModelView>? pigs = await _unitOfWork.GetRepository<Pigs>()
+                .GetEntities
+                .Include(p => p.Stables)
+                .ThenInclude(s => s.Areas)
+                .Include(p => p.VaccinationPlans)
+                .Where(p => p.DeleteTime == null
+                    && p.Status == "alive"
+                    && p.Weight >= 95
+                    && !_unitOfWork.GetRepository<PigExportRequestDetail>()
+                        .GetEntities
+                        .Any(d => d.PigId == p.Id
+                            && d.PigExportRequest.Status == "pending"
+                            && d.PigExportRequest.DeleteTime == null)
+                    && p.VaccinationPlans.Any(v => v.IsActive
+                        && v.DeleteTime == null
+                        && v.Status == "completed"
+                        && v.ActualDate != null))
+                .Select(p => new PigExportModelView
+                {
+                    Id = p.Id,
+                    Weight = p.Weight ?? 0,
+                    StableName = p.Stables.Name,
+                    AreaName = p.Stables.Areas.Name,
+                    StableId = p.StableId,
+                    AreaId = p.Stables.AreasId,
+                    IsVaccinationComplete = p.VaccinationPlans.Any(v => v.IsActive
+                        && v.DeleteTime == null
+                        && v.Status == "completed"
+                        && v.ActualDate != null),
+                    HealthStatus = p.HealthStatus,
+                    Note = "Đủ diều kiện xuất chuồng"
+                })
+                .OrderByDescending(p => p.Weight)
+                .ToListAsync();
+
+            return _mapper.Map<List<PigExportModelView>>(pigs);
+        }
+
+        public async Task<List<PigExportModelView>> GetPigsStatusPendingAsync(string status = "pending")
+        {
+            List<Pigs>? pigs = await _unitOfWork.GetRepository<Pigs>()
+                .GetEntities
+                .Include(p => p.Stables)
+                .ThenInclude(s => s.Areas)
+                .Where(p => p.Status == status && p.DeleteTime == null)
+                .ToListAsync();
+            List<PigExportModelView>? result = pigs.Select(p => new PigExportModelView
+            {
+                Id = p.Id,
+                Weight = p.Weight ?? 0,
+                StableName = p.Stables.Name,
+                AreaName = p.Stables.Areas.Name,
+                StableId = p.StableId,
+                AreaId = p.Stables.AreasId,
+                IsVaccinationComplete = p.VaccinationPlans.Any(v => v.IsActive
+                    && v.DeleteTime == null
+                    && v.Status == "completed"
+                    && v.ActualDate != null),
+                HealthStatus = p.HealthStatus,
+                Note = "Đang chờ duyệt"
+
+            }).ToList();
+            return result;
         }
     }
 }

@@ -2,6 +2,7 @@ using Application.DTOs;
 using Application.DTOs.Pig;
 using Application.Models;
 using Application.Models.PigCancelModelView;
+using Application.Models.PigExport;
 using Core.Base;
 
 namespace Application.Interfaces
@@ -17,5 +18,11 @@ namespace Application.Interfaces
         Task<PigCancelModelView> CancelPigAsync(string id, PigCancelDTO dto);
 
         Task<BasePagination<PigCancelModelView>> GetPigCancelAsync(int pageIndex, int pageSize);
+
+
+        Task<List<PigExportModelView>> GetPigsForExportAsync();
+
+
+        Task<List<PigExportModelView>> GetPigsStatusPendingAsync(string status = "pending");
     }
 }
