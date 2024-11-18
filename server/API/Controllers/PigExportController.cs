@@ -44,4 +44,32 @@ public class PigExportController(IPigExportService pigExportService) : Controlle
         PigExportRequestModelView? result = await _pigExportService.ApprovePigExportRequest(id);
         return Ok(BaseResponse<PigExportRequestModelView>.OkResponse(result));
     }
+
+    [HttpPost("export")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreatePigExport([FromBody] PigExportDTO dto)
+    {
+        PigExportViewModel? result = await _pigExportService.CreatePigExport(dto);
+        return CreatedAtAction(nameof(GetPigExportById), new { id = result?.Id }, BaseResponse<PigExportViewModel>.OkResponse(result));
+    }
+
+    [HttpGet("export/{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetPigExportById(string id)
+    {
+        PigExportViewModel? result = await _pigExportService.GetPigExportById(id);
+        return Ok(BaseResponse<PigExportViewModel>.OkResponse(result));
+    }
+
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllPigExports()
+    {
+        List<PigExportViewModel>? result = await _pigExportService.GetAllPigExports();
+        return Ok(BaseResponse<List<PigExportViewModel>>.OkResponse(result));
+    }
+
+
+
+
 }

@@ -277,5 +277,170 @@ namespace Application.Services
                     "Lỗi khi duyệt đề xuất xuất heo");
             }
         }
+
+        public async Task<PigExportViewModel> CreatePigExport(PigExportDTO dto)
+        {
+            // Validate input
+            if (dto.Details == null || !dto.Details.Any())
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                    "Phải có ít nhất một heo trong phiếu xuất");
+            }
+
+            // Kiểm tra khách hàng tồn tại
+            Customers? customer = await _unitOfWork.GetRepository<Customers>()
+                .GetEntities
+                .FirstOrDefaultAsync(c => c.Id == dto.CustomerId && c.DeleteTime == null)
+                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
+                    "Không tìm thấy thông tin khách hàng");
+
+            // Validate đơn giá
+            if (dto.UnitPrice <= 0)
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                    "Đơn giá phải lớn hơn 0");
+            }
+
+            using IDbContextTransaction? transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // Kiểm tra và lấy thông tin các heo
+                decimal totalWeight = 0;
+                List<PigExportDetail>? exportDetails = new List<PigExportDetail>();
+
+                foreach (PigExportDetailDTO detail in dto.Details)
+                {
+                    Pigs? pig = await _unitOfWork.GetRepository<Pigs>()
+                        .GetEntities
+                        .FirstOrDefaultAsync(p => p.Id == detail.PigId
+                            && p.Status == "pending"
+                            && p.DeleteTime == null)
+                        ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
+                            $"Không tìm thấy heo {detail.PigId} hoặc heo chưa được duyệt xuất");
+
+                    if (detail.ActualWeight <= 0)
+                    {
+                        throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                            $"Cân nặng của heo {detail.PigId} không hợp lệ");
+                    }
+
+                    totalWeight += detail.ActualWeight;
+
+                    exportDetails.Add(new PigExportDetail
+                    {
+                        PigId = detail.PigId,
+                        ActualWeight = detail.ActualWeight,
+                        TotalAmount = detail.ActualWeight * dto.UnitPrice
+                    });
+
+                    // Cập nhật trạng thái heo thành đã xuất
+                    pig.Status = "exported";
+                }
+
+                // Tạo phiếu xuất
+                PigExport? pigExport = new PigExport
+                {
+                    Id = await GenerateExportId(),
+                    CustomerId = dto.CustomerId,
+                    ExportDate = dto.ExportDate,
+                    CreatedBy = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+                    UnitPrice = dto.UnitPrice,
+                    TotalWeight = totalWeight,
+                    TotalAmount = totalWeight * dto.UnitPrice,
+                    Details = exportDetails
+                };
+
+                await _unitOfWork.GetRepository<PigExport>().InsertAsync(pigExport);
+                await _unitOfWork.SaveAsync();
+                await transaction.CommitAsync();
+
+                PigExport? result = await _unitOfWork.GetRepository<PigExport>()
+                    .GetEntities
+                    .Include(e => e.Customers)
+                    .Include(e => e.Details)
+                        .ThenInclude(d => d.Pig)
+                    .FirstOrDefaultAsync(e => e.Id == pigExport.Id);
+
+                return _mapper.Map<PigExportViewModel>(result);
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError,
+                    "Lỗi khi tạo phiếu xuất");
+            }
+        }
+
+        private async Task<string> GenerateExportId()
+        {
+            string dateStr = DateTime.Now.ToString("yyyyMMdd");
+
+            // Lấy số thứ tự cao nhất trong ngày
+            PigExport? lastExport = await _unitOfWork.GetRepository<PigExport>()
+                .GetEntities
+                .Where(e => e.Id.StartsWith($"PEX{dateStr}"))
+                .OrderByDescending(e => e.Id)
+                .FirstOrDefaultAsync();
+
+            int sequence = 1;
+            if (lastExport != null)
+            {
+                string lastSequence = lastExport.Id.Substring(11); // Lấy 3 số cuối
+                sequence = int.Parse(lastSequence) + 1;
+            }
+
+            return $"PEX{dateStr}{sequence:D3}";
+        }
+
+        public async Task<PigExportViewModel> GetPigExportById(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                    "Id không được để trống");
+            }
+
+            // Lấy thông tin phiếu xuất kèm theo các quan hệ
+            PigExport? export = await _unitOfWork.GetRepository<PigExport>()
+                .GetEntities
+                .Include(e => e.Customers)
+                .Include(e => e.Details)
+                    .ThenInclude(d => d.Pig)
+                .FirstOrDefaultAsync(e => e.Id == id && e.DeleteTime == null)
+                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
+                    "Không tìm thấy phiếu xuất");
+
+            PigExportViewModel? result = _mapper.Map<PigExportViewModel>(export);
+
+            // Lấy thông tin người tạo
+            ApplicationUser? createdByUser = await _userManager.FindByIdAsync(export.CreatedBy);
+            result.CreatedBy = createdByUser?.UserName;
+
+            return result;
+        }
+
+        public async Task<List<PigExportViewModel>> GetAllPigExports()
+        {
+            // Lấy danh sách phiếu xuất
+            List<PigExport>? exports = await _unitOfWork.GetRepository<PigExport>()
+                .GetEntities
+                .Include(e => e.Customers)
+                .Include(e => e.Details)
+                    .ThenInclude(d => d.Pig)
+                .Where(e => e.DeleteTime == null)
+                .OrderByDescending(e => e.ExportDate)
+                .ToListAsync();
+
+            List<PigExportViewModel>? result = _mapper.Map<List<PigExportViewModel>>(exports);
+
+            // Lấy thông tin người tạo cho từng phiếu xuất
+            foreach (PigExportViewModel export in result)
+            {
+                ApplicationUser? createdByUser = await _userManager.FindByIdAsync(export.CreatedBy);
+                export.CreatedBy = createdByUser?.UserName;
+            }
+
+            return result;
+        }
     }
 }

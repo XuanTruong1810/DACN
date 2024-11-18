@@ -40,7 +40,7 @@ public static class DependencyInjection
 
         services.AddScoped<IMedicineService, MedicineService>();
         services.AddScoped<IPigExportService, PigExportService>();
-
+        services.AddScoped<ICustomerService, CustomerService>();
     }
     public static void AddMapping(this IServiceCollection services)
     {

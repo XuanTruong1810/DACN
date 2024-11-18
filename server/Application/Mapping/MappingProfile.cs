@@ -1,4 +1,5 @@
 using Application.DTOs;
+using Application.DTOs.Customer;
 using Application.DTOs.ExportPig;
 using Application.DTOs.Food;
 using Application.DTOs.FoodImport;
@@ -7,6 +8,7 @@ using Application.DTOs.FoodType;
 using Application.DTOs.Medicines;
 using Application.DTOs.Pig;
 using Application.Models;
+using Application.Models.Customer;
 using Application.Models.FoodImportRequestModelView;
 using Application.Models.FoodModelView;
 using Application.Models.FoodTypeModelView;
@@ -137,7 +139,10 @@ namespace Application.Mapping
             CreateMap<PigExportRequestDetail, PigExportRequestDetailModelView>().ReverseMap();
 
 
+            CreateMap<CustomerDTO, Customers>().ReverseMap();
+            CreateMap<CustomerModelView, Customers>().ReverseMap();
 
+            CreateMap<PigExport, PigExportViewModel>().ReverseMap();
 
         }
     }

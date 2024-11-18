@@ -61,7 +61,7 @@ function App() {
 
             <Route path="exports/create" element={<CreateExport />} />
             <Route
-              path="exports/create-request"
+              path="exports/animals/create"
               element={<CreateExportRequest />}
             />
             <Route

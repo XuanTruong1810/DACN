@@ -4,7 +4,6 @@ namespace Core.Entities
 {
     public class PigExport : BaseEntity
     {
-        public string Code { get; set; }                     // Mã phiếu xuất
         public string CustomerId { get; set; }               // Khách hàng
         public DateTimeOffset ExportDate { get; set; }       // Ngày xuất
         public string CreatedBy { get; set; }              // Người tạo
@@ -17,8 +16,6 @@ namespace Core.Entities
 
         [ForeignKey("CustomerId")]
         public virtual Customers Customers { get; set; }
-        [ForeignKey("PigExportRequestId")]
-        public virtual PigExportRequest PigExportRequest { get; set; }
         [InverseProperty("PigExport")]
         public virtual ICollection<PigExportDetail> Details { get; set; }
     }

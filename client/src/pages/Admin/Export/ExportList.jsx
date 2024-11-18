@@ -407,11 +407,24 @@ const ExportList = () => {
                       marginBottom: "4px",
                     }}
                   >
-                    Khách hàng:
+                    Tên doanh nghiệp:
                   </Text>
                   <Text strong style={{ fontSize: "15px" }}>
-                    {invoiceData.customer.name}
+                    {invoiceData.customer.name || "Doanh nghiệp lẻ"}
                   </Text>
+                </div>
+                <div>
+                  <Text
+                    type="secondary"
+                    style={{
+                      fontSize: "13px",
+                      display: "block",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Người đại diện:
+                  </Text>
+                  <Text style={{ fontSize: "14px" }}>Nguyễn Văn A</Text>
                 </div>
                 <div>
                   <Text

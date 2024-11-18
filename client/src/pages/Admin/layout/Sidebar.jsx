@@ -238,7 +238,7 @@ const Sidebar = () => {
                   key: "pendingExports",
                   icon: <CheckSquareOutlined />,
                   label: (
-                    <Link to="/admin/exports/animals/pending">
+                    <Link to="/admin/exports/request/list">
                       Duyệt phiếu xuất
                     </Link>
                   ),

@@ -14,5 +14,14 @@ namespace Application.Interfaces
 
         Task<PigExportRequestModelView> ApprovePigExportRequest(string id);
 
+
+
+        Task<PigExportViewModel> CreatePigExport(PigExportDTO dto);
+
+
+        Task<PigExportViewModel> GetPigExportById(string id);
+
+        Task<List<PigExportViewModel>> GetAllPigExports();
+
     }
 }

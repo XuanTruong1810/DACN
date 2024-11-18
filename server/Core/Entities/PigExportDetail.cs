@@ -7,6 +7,7 @@ namespace Core.Entities
         public string PigExportId { get; set; }
         public string PigId { get; set; }                    // Mã heo
         public decimal ActualWeight { get; set; }            // Cân nặng thực tế
+        public decimal TotalAmount { get; set; }            // Thành tiền của 1 con
 
         [ForeignKey("PigId")]
         public virtual Pigs Pig { get; set; }
