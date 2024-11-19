@@ -341,6 +341,58 @@ namespace Infrastructure.Migrations
                     b.ToTable("Feeds", (string)null);
                 });
 
+            modelBuilder.Entity("Core.Entities.FoodExport", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("AreaName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ExportBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("ExportDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FoodExport", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.FoodExportDetail", b =>
+                {
+                    b.Property<string>("FoodExportId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("FoodId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("FoodExportId", "FoodId");
+
+                    b.HasIndex("FoodId");
+
+                    b.ToTable("FoodExportDetail", (string)null);
+                });
+
             modelBuilder.Entity("Core.Entities.FoodImportDetails", b =>
                 {
                     b.Property<string>("FoodImportId")
@@ -827,10 +879,6 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("CreatedBy")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -851,10 +899,6 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PigExportRequestId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
@@ -870,8 +914,6 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId");
-
-                    b.HasIndex("PigExportRequestId");
 
                     b.ToTable("PigExport", (string)null);
                 });
@@ -895,6 +937,9 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTimeOffset?>("UpdatedTime")
                         .HasColumnType("datetimeoffset");
@@ -1477,6 +1522,25 @@ namespace Infrastructure.Migrations
                     b.Navigation("FeedTypes");
                 });
 
+            modelBuilder.Entity("Core.Entities.FoodExportDetail", b =>
+                {
+                    b.HasOne("Core.Entities.FoodExport", "FoodExport")
+                        .WithMany("FoodExportDetails")
+                        .HasForeignKey("FoodExportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.Foods", "Food")
+                        .WithMany("FoodExportDetails")
+                        .HasForeignKey("FoodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Food");
+
+                    b.Navigation("FoodExport");
+                });
+
             modelBuilder.Entity("Core.Entities.FoodImportDetails", b =>
                 {
                     b.HasOne("Core.Entities.Foods", "Food")
@@ -1658,15 +1722,7 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Core.Entities.PigExportRequest", "PigExportRequest")
-                        .WithMany()
-                        .HasForeignKey("PigExportRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Customers");
-
-                    b.Navigation("PigExportRequest");
                 });
 
             modelBuilder.Entity("Core.Entities.PigExportDetail", b =>
@@ -1851,6 +1907,11 @@ namespace Infrastructure.Migrations
                     b.Navigation("Feeds");
                 });
 
+            modelBuilder.Entity("Core.Entities.FoodExport", b =>
+                {
+                    b.Navigation("FoodExportDetails");
+                });
+
             modelBuilder.Entity("Core.Entities.FoodImportRequests", b =>
                 {
                     b.Navigation("FoodImportRequestDetails");
@@ -1870,6 +1931,8 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.Foods", b =>
                 {
+                    b.Navigation("FoodExportDetails");
+
                     b.Navigation("FoodSuppliers");
                 });
 

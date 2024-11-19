@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IMedicineService, MedicineService>();
         services.AddScoped<IPigExportService, PigExportService>();
         services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<IFoodExportService, FoodExportService>();
     }
     public static void AddMapping(this IServiceCollection services)
     {

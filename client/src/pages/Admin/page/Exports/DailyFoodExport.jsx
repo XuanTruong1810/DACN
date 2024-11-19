@@ -38,9 +38,108 @@ import {
 } from "@ant-design/icons";
 import { createGlobalStyle } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
+import styled from "styled-components";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+// Thêm styled-components cho các thành phần tùy chỉnh
+const PageWrapper = styled.div`
+  background: #f0f2f5;
+  min-height: 100vh;
+  padding: 24px;
+`;
+
+const MainCard = styled(Card)`
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+`;
+
+const HeaderTitle = styled(Title)`
+  background: linear-gradient(120deg, #1890ff, #69c0ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px !important;
+`;
+
+const StyledForm = styled(Form)`
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+`;
+
+// Cập nhật GlobalStyle
+const GlobalStyle = createGlobalStyle`
+  .ant-select-selector {
+    border-radius: 6px !important;
+  }
+  
+  .ant-picker {
+    border-radius: 6px !important;
+  }
+
+  .ant-table {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .ant-table-title {
+    background: linear-gradient(to right, #f0f7ff, #e6f4ff);
+    padding: 16px 24px;
+  }
+
+  .ant-card {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .ant-btn {
+    height: 40px;
+    padding: 0 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+    }
+  }
+
+  .ant-btn-primary {
+    background: linear-gradient(120deg, #1890ff, #40a9ff);
+    border: none;
+    
+    &:hover {
+      background: linear-gradient(120deg, #40a9ff, #69c0ff);
+    }
+  }
+
+  .ant-tag {
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-weight: 500;
+  }
+
+  .ant-badge-status-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .ant-select-selector,
+  .ant-picker,
+  .ant-input,
+  .ant-input-search .ant-input-group-addon {
+    border-radius: 8px !important;
+    height: 40px !important;
+  }
+
+  .ant-select-selector .ant-select-selection-search-input {
+    height: 38px !important;
+  }
+`;
 
 const DailyFoodExport = () => {
   const [form] = Form.useForm();
@@ -969,154 +1068,117 @@ const DailyFoodExport = () => {
   };
 
   return (
-    <div style={{ background: "#f5f5f5", minHeight: "100vh" }}>
-      <Card
-        bordered={false}
-        style={{
-          borderRadius: "8px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-        }}
-      >
+    <PageWrapper>
+      <GlobalStyle />
+      <MainCard>
         {/* Header Section */}
-        <div style={{ marginBottom: "16px" }}>
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Title level={3} style={{ margin: 0, marginBottom: "4px" }}>
-                <Space>
-                  <FileTextOutlined style={{ color: "#1890ff" }} />
-                  Xuất thức ăn hằng ngày
-                </Space>
-              </Title>
-              <Text type="secondary">
-                Quản lý xuất thức ăn theo khu vực và định mức cho từng loại heo
-              </Text>
-            </Col>
-          </Row>
-        </div>
+        <Row
+          justify="space-between"
+          align="middle"
+          style={{ marginBottom: 24 }}
+        >
+          <Col>
+            <HeaderTitle level={3}>
+              <Space>
+                <FileTextOutlined />
+                Xuất thức ăn hằng ngày
+              </Space>
+            </HeaderTitle>
+            <Text type="secondary" style={{ fontSize: 16 }}>
+              Quản lý xuất thức ăn theo khu vực và định mức cho từng loại heo
+            </Text>
+          </Col>
+        </Row>
 
         {/* Form Section */}
-        <Card
-          bordered={false}
-          style={{
-            background: "#fafafa",
-            borderRadius: "8px",
-            marginBottom: "16px",
-            padding: "16px",
-          }}
-        >
-          <Form form={form} layout="vertical">
-            <Row gutter={24}>
-              <Col span={8}>
-                <Form.Item
-                  name="date"
-                  label={
-                    <Space>
-                      <CalendarOutlined />
-                      <span>Ngày xuất</span>
-                    </Space>
-                  }
-                  rules={[
-                    { required: true, message: "Vui lòng chọn ngày xuất!" },
-                  ]}
+        <StyledForm form={form} layout="vertical">
+          <Row gutter={24}>
+            <Col span={8}>
+              <Form.Item
+                name="date"
+                label={
+                  <Space>
+                    <CalendarOutlined />
+                    <span>Ngày xuất</span>
+                  </Space>
+                }
+                rules={[
+                  { required: true, message: "Vui lòng chọn ngày xuất!" },
+                ]}
+              >
+                <DatePicker
+                  style={{ width: "100%" }}
+                  format="DD/MM/YYYY"
+                  placeholder="Chọn ngày xuất"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={10}>
+              <Form.Item
+                name="area"
+                label={
+                  <Space>
+                    <ApartmentOutlined />
+                    <span>Khu vực</span>
+                  </Space>
+                }
+                rules={[{ required: true, message: "Vui lòng chọn khu vực!" }]}
+              >
+                <Select
+                  placeholder="Chọn khu vực"
+                  onChange={handleAreaChange}
+                  allowClear
+                  style={{ width: "100%" }}
                 >
-                  <DatePicker
-                    style={{ width: "100%" }}
-                    format="DD/MM/YYYY"
-                    placeholder="Chọn ngày xuất"
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={10}>
-                <Form.Item
-                  name="area"
-                  label={
-                    <Space>
-                      <ApartmentOutlined />
-                      <span>Khu vực</span>
-                    </Space>
-                  }
-                  rules={[
-                    { required: true, message: "Vui lòng chọn khu vực!" },
-                  ]}
-                >
-                  <Select
-                    placeholder="Chọn khu vực"
-                    onChange={handleAreaChange}
-                    allowClear
-                    style={{ width: "100%" }}
-                  >
-                    {areas.map((area) => (
-                      <Option key={area.id} value={area.id}>
-                        <Space>
-                          <span>{area.name}</span>
-                          <Tag color="blue">{area.totalPigs} con</Tag>
-                        </Space>
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form>
-        </Card>
-
-        {/* Table Section */}
-        {selectedArea && (
-          <div style={{ marginBottom: "16px" }}>
-            <Table
-              columns={columns}
-              dataSource={foodList}
-              pagination={false}
-              rowKey="id"
-              bordered
-              style={{
-                background: "white",
-                borderRadius: "8px",
-                overflow: "hidden",
-              }}
-              title={() => (
-                <div
-                  style={{
-                    padding: "12px 16px",
-                    borderBottom: "1px solid #f0f0f0",
-                    background: "#fafafa",
-                  }}
-                >
-                  <Row justify="space-between" align="middle">
-                    <Col>
-                      <Space size="large">
-                        <Text strong style={{ fontSize: "16px" }}>
-                          Danh sách thức ăn cho:{" "}
-                          {areas.find((a) => a.id === selectedArea)?.name}
-                        </Text>
-                        <Tag color="blue" style={{ padding: "4px 12px" }}>
-                          <Space>
-                            <TeamOutlined />
-                            {
-                              areas.find((a) => a.id === selectedArea)
-                                ?.totalPigs
-                            }{" "}
-                            con
-                          </Space>
-                        </Tag>
+                  {areas.map((area) => (
+                    <Option key={area.id} value={area.id}>
+                      <Space>
+                        <span>{area.name}</span>
+                        <Tag color="blue">{area.totalPigs} con</Tag>
                       </Space>
-                    </Col>
-                  </Row>
-                </div>
-              )}
-            />
-          </div>
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+        </StyledForm>
+
+        {/* Filter Section with updated styling */}
+        {selectedArea && (
+          <Card
+            style={{
+              marginTop: 24,
+              borderRadius: 12,
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+            }}
+          >
+            <FilterSection />
+          </Card>
         )}
 
-        {/* Action Buttons */}
-        <div
-          style={{
-            marginTop: "16px",
-            textAlign: "right",
-            padding: "12px 0 0",
-            borderTop: "1px solid #f0f0f0",
-          }}
-        >
+        {/* Table Section with updated styling */}
+        {selectedArea && (
+          <Card
+            style={{
+              marginTop: 24,
+              borderRadius: 12,
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+            }}
+          >
+            <Table
+              columns={columns}
+              dataSource={getFilteredData()}
+              pagination={false}
+              rowKey="id"
+              bordered={false}
+              // ... rest of table props
+            />
+          </Card>
+        )}
+
+        {/* Action Buttons with updated styling */}
+        <Row justify="end" style={{ marginTop: 24 }}>
           <Space size="middle">
             <Button
               icon={<FileTextOutlined />}
@@ -1124,9 +1186,9 @@ const DailyFoodExport = () => {
               disabled={Object.keys(selectedFoodsByArea).length === 0}
               loading={loading.print}
               style={{
-                height: "40px",
-                padding: "0 20px",
-                borderRadius: "6px",
+                background: "#fff",
+                borderColor: "#1890ff",
+                color: "#1890ff",
               }}
             >
               Xem phiếu xuất
@@ -1137,184 +1199,30 @@ const DailyFoodExport = () => {
               onClick={handleSave}
               disabled={Object.keys(selectedFoodsByArea).length === 0}
               loading={loading.save}
-              style={{
-                height: "40px",
-                padding: "0 20px",
-                borderRadius: "6px",
-              }}
             >
               Lưu phiếu xuất
             </Button>
           </Space>
-        </div>
+        </Row>
 
-        {/* Modal Component */}
-        <ExportModal />
-      </Card>
-    </div>
+        {/* Modal with updated styling */}
+        <Modal
+          title={
+            <Space style={{ color: "#1890ff" }}>
+              <FileTextOutlined />
+              <span style={{ fontWeight: 500 }}>Phiếu xuất thức ăn</span>
+            </Space>
+          }
+          open={isModalVisible}
+          onCancel={() => setIsModalVisible(false)}
+          width={1000}
+          // ... rest of modal props
+        >
+          {/* ... existing modal content ... */}
+        </Modal>
+      </MainCard>
+    </PageWrapper>
   );
 };
-
-// Thêm CSS toàn cục
-const GlobalStyle = createGlobalStyle`
-  .ant-select-selector {
-    border-radius: 6px !important;
-  }
-  
-  .ant-picker {
-    border-radius: 6px !important;
-  }
-
-  .ant-table {
-    border-radius: 8px;
-  }
-
-  .ant-table-title {
-    border-radius: 8px 8px 0 0;
-  }
-
-  .ant-table-container {
-    border-radius: 8px;
-  }
-
-  .ant-card {
-    border-radius: 8px;
-  }
-
-  .ant-btn {
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.3s;
-  }
-
-  .ant-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  }
-
-  .ant-btn-primary {
-    background: linear-gradient(to right, #1890ff, #40a9ff);
-  }
-
-  .ant-btn-primary:hover {
-    background: linear-gradient(to right, #40a9ff, #69c0ff);
-  }
-
-  .ant-tag {
-    border-radius: 4px;
-  }
-
-  .ant-tooltip {
-    font-size: 12px;
-  }
-
-  .action-button {
-    position: relative;
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-    
-    &::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      transition: width 0.6s ease-out, height 0.6s ease-out;
-    }
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      
-      &::before {
-        width: 300px;
-        height: 300px;
-        opacity: 0;
-      }
-    }
-
-    &:active {
-      transform: translateY(1px);
-    }
-
-    &.selected {
-      background: linear-gradient(45deg, #1890ff, #40a9ff);
-      border: none;
-      color: white;
-      
-      &::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
-        animation: shine 2s infinite;
-      }
-    }
-  }
-
-  .info-button {
-    position: relative;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s;
-    overflow: hidden;
-    color: #8c8c8c;
-
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.04);
-      transform: scale(0);
-      border-radius: 50%;
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    &:hover {
-      color: #1890ff;
-      transform: rotate(360deg);
-      
-      &::before {
-        transform: scale(1);
-      }
-    }
-
-    &:active {
-      transform: rotate(360deg) scale(0.95);
-    }
-  }
-
-  @keyframes shine {
-    0% {
-      background-position: 200% center;
-    }
-    100% {
-      background-position: -200% center;
-    }
-  }
-`;
 
 export default DailyFoodExport;

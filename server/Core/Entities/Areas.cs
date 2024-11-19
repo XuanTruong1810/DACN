@@ -25,5 +25,6 @@ namespace Core.Entities
 
         [InverseProperty("Areas")]
         public virtual ICollection<Foods> Foods { get; set; } = new List<Foods>();
+
     }
 }

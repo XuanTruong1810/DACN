@@ -335,6 +335,11 @@ const Sidebar = () => {
           icon: <TeamOutlined />,
           label: <Link to="/admin/employees">Nhân viên</Link>,
         },
+        {
+          key: "customers",
+          icon: <UserOutlined />,
+          label: <Link to="/admin/customers">Khách hàng</Link>,
+        },
       ],
     },
     {

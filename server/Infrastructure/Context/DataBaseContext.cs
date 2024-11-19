@@ -45,6 +45,10 @@ namespace Infrastructure.Context
         public DbSet<PigExport> PigExports { get; set; }
         public DbSet<PigExportDetail> PigExportDetails { get; set; }
 
+        public DbSet<FoodExport> FoodExports { get; set; }
+        public DbSet<FoodExportDetail> FoodExportDetails { get; set; }
+
+
 
         public DbSet<Medicines> Medicines { get; set; }
         public DbSet<VaccinationPlan> VaccinationPlans { get; set; }
@@ -96,6 +100,10 @@ namespace Infrastructure.Context
             builder.Entity<PigExportRequestDetail>()
                 .HasKey(d => new { d.PigExportRequestId, d.PigId });
 
+
+            builder.Entity<FoodExportDetail>()
+                .HasKey(d => new { d.FoodExportId, d.FoodId });
+
             /// Create tables
             builder.Entity<ApplicationUser>().ToTable("User");
             builder.Entity<IdentityRole>().ToTable("Role");
@@ -141,6 +149,10 @@ namespace Infrastructure.Context
 
             builder.Entity<Medicines>().ToTable("Medicines");
             builder.Entity<VaccinationPlan>().ToTable("VaccinationPlan");
+
+
+            builder.Entity<FoodExport>().ToTable("FoodExport");
+            builder.Entity<FoodExportDetail>().ToTable("FoodExportDetail");
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

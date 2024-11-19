@@ -33,6 +33,7 @@ import PigsManagement from "./pages/Admin/page/Pigs/PigsManagement";
 import CreateExportRequest from "./pages/Admin/ExportRequest/CreateExportRequest";
 import ExportRequestList from "./pages/Admin/ExportRequest/ExportRequestList";
 import ExportList from "./pages/Admin/Export/ExportList";
+import CustomerManagement from "./pages/Admin/page/Customer/CustomerManagement";
 
 function App() {
   return (
@@ -72,6 +73,7 @@ function App() {
             {/* <Route path="exports/pigs" element={<ExportList />} /> */}
             <Route path="exports/daily-food" element={<DailyFoodExport />} />
             <Route path="DeadPigs" element={<DeadPigsPage />} />
+            <Route path="customers" element={<CustomerManagement />} />
             <Route path="inventory">
               <Route path="pending-requests" element={<PigImportApproval />} />
               <Route path="create-request" element={<PigImportRequest />} />
