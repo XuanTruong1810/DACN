@@ -63,6 +63,16 @@ const Sidebar = () => {
               icon: <FileTextOutlined />,
               label: <Link to="/admin/animals/dead">Hủy heo</Link>,
             },
+            {
+              key: "weighingSchedule",
+              icon: <FileTextOutlined />,
+              label: <Link to="/admin/weighing-schedule">Lịch cân heo</Link>,
+            },
+            {
+              key: "moveHouse",
+              icon: <HomeOutlined />,
+              label: <Link to="/admin/animals/move-house">Chuyển chuồng</Link>,
+            },
           ],
         },
         {

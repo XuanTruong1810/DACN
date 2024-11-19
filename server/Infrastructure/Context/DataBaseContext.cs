@@ -54,6 +54,14 @@ namespace Infrastructure.Context
         public DbSet<VaccinationPlan> VaccinationPlans { get; set; }
 
 
+        public DbSet<WeighingHistory> WeighingHistories { get; set; }
+        public DbSet<WeighingDetail> WeighingDetails { get; set; }
+
+
+        public DbSet<MovePigs> MovePigs { get; set; }
+        public DbSet<MovePigDetails> MovePigDetails { get; set; }
+
+
 
 
 
@@ -67,6 +75,9 @@ namespace Infrastructure.Context
             // Constraints
 
             /// Key
+            /// 
+
+
             builder.Entity<FeedInTakeDetails>()
                 .HasKey(d => new { d.FeedInTakeId, d.FeedId });
 
@@ -103,6 +114,15 @@ namespace Infrastructure.Context
 
             builder.Entity<FoodExportDetail>()
                 .HasKey(d => new { d.FoodExportId, d.FoodId });
+
+            builder.Entity<WeighingDetail>()
+                .HasKey(d => new { d.WeighingHistoryId, d.PigId });
+
+
+            builder.Entity<MovePigDetails>()
+                .HasKey(d => new { d.MovePigId, d.PigId });
+
+
 
             /// Create tables
             builder.Entity<ApplicationUser>().ToTable("User");
@@ -153,6 +173,13 @@ namespace Infrastructure.Context
 
             builder.Entity<FoodExport>().ToTable("FoodExport");
             builder.Entity<FoodExportDetail>().ToTable("FoodExportDetail");
+
+
+            builder.Entity<WeighingHistory>().ToTable("WeighingHistory");
+            builder.Entity<WeighingDetail>().ToTable("WeighingDetail");
+
+            builder.Entity<MovePigDetails>().ToTable("MovePigDetails");
+            builder.Entity<MovePigs>().ToTable("MovePig");
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

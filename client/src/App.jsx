@@ -34,6 +34,9 @@ import CreateExportRequest from "./pages/Admin/ExportRequest/CreateExportRequest
 import ExportRequestList from "./pages/Admin/ExportRequest/ExportRequestList";
 import ExportList from "./pages/Admin/Export/ExportList";
 import CustomerManagement from "./pages/Admin/page/Customer/CustomerManagement";
+import WeighingSchedule from "./pages/Admin/Schedule/WeighingSchedule";
+import FoodExport from "./pages/Admin/FoodManagement/FoodExport";
+import MoveHouse from "./pages/Admin/page/Animals/MoveHouse";
 
 function App() {
   return (
@@ -59,7 +62,7 @@ function App() {
             <Route path="Areas" element={<AreasPage />} />
             <Route path="Houses" element={<HousesPage />} />
             <Route path="inventory/foods" element={<FoodsPage />} />
-
+            <Route path="animals/move-house" element={<MoveHouse />} />
             <Route path="exports/create" element={<CreateExport />} />
             <Route
               path="exports/animals/create"
@@ -69,6 +72,7 @@ function App() {
               path="exports/request/list"
               element={<ExportRequestList />}
             />
+            <Route path="weighing-schedule" element={<WeighingSchedule />} />
             <Route path="exports/animals/list" element={<ExportList />} />
             {/* <Route path="exports/pigs" element={<ExportList />} /> */}
             <Route path="exports/daily-food" element={<DailyFoodExport />} />
@@ -82,6 +86,7 @@ function App() {
                 element={<ImportRequestManagement />}
               />
             </Route>
+            <Route path="food-export" element={<FoodExport />} />
             <Route path="animals">
               <Route path="dead" element={<DeadPigsPage />} />
               <Route path="pigs" element={<PigsManagement />} />

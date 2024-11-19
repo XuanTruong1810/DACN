@@ -19,7 +19,7 @@ namespace Core.Entities
         public DateTimeOffset? LastModifiedTime { get; set; }
 
         [ForeignKey("PigId")]
-        public virtual Pigs Pig { get; set; }
+        public virtual Pigs Pigs { get; set; }
 
         [ForeignKey("MedicineId")]
         public virtual Medicines Medicine { get; set; }

@@ -1,21 +1,16 @@
-using System;
 using System.ComponentModel.DataAnnotations.Schema;
+namespace Core.Entities;
 
-namespace Core.Entities
+public class WeighingHistory : BaseEntity
 {
-    public class WeighingHistory : BaseEntity
-    {
-        public string AreaId { get; set; }
-        [ForeignKey("AreaId")]
-        public virtual Areas Area { get; set; }
 
-        public DateTimeOffset ScheduledDate { get; set; }  // Ngày theo lịch
-        public DateTimeOffset? ActualDate { get; set; }    // Ngày thực hiện
-        public string Status { get; set; }                 // Completed, Pending, Skipped, Delayed
-        public string Note { get; set; }
-        public string HandledBy { get; set; }             // Người thực hiện/xử lý
+    public DateTimeOffset WeighingDate { get; set; }
+    public int TotalPigs { get; set; }  // Tổng số heo đã cân
+    public decimal AverageWeight { get; set; }  // Trọng lượng trung bình
+    public string Note { get; set; }
+    public string CreatedBy { get; set; }
+    [InverseProperty("WeighingHistory")]
 
-        [InverseProperty("WeighingHistory")]
-        public virtual ICollection<PigWeighing> PigWeighings { get; set; }
-    }
+    // Navigation property
+    public virtual ICollection<WeighingDetail> WeighingDetails { get; set; } = new List<WeighingDetail>();
 }

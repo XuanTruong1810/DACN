@@ -24,5 +24,10 @@ namespace Application.Interfaces
 
 
         Task<List<PigExportModelView>> GetPigsStatusPendingAsync(string status = "pending");
+
+
+        Task<List<PigVaccinationModelView>> GetPigsVaccinationAsync(string? areaId, string? stableId);
+
+
     }
 }

@@ -317,5 +317,36 @@ namespace Application.Services
             }).ToList();
             return result;
         }
+        public async Task<List<PigVaccinationModelView>> GetPigsVaccinationAsync(string? areaId, string? stableId)
+        {
+            IQueryable<Pigs>? query = _unitOfWork.GetRepository<Pigs>()
+                .GetEntities
+                .Include(p => p.Stables)
+                .ThenInclude(s => s.Areas)
+                .AsNoTracking()
+                .Where(p => p.DeleteTime == null && p.Status == "alive");
+
+            if (!string.IsNullOrEmpty(areaId))
+            {
+                query = query.Where(p => p.Stables.AreasId == areaId);
+            }
+
+            if (!string.IsNullOrEmpty(stableId))
+            {
+                query = query.Where(p => p.StableId == stableId);
+            }
+            List<Pigs>? pigs = await query.ToListAsync();
+            return pigs.Select(p => new PigVaccinationModelView
+            {
+                Id = p.Id,
+                StableId = p.StableId,
+                StableName = p.Stables.Name,
+                AreaId = p.Stables.AreasId,
+                AreaName = p.Stables.Areas.Name,
+                Weight = p.Weight ?? 0,
+                HealthStatus = p.HealthStatus,
+                VaccinationStatus = p.VaccinationPlans.Any(v => v.IsActive && v.DeleteTime == null && v.Status == "pending") ? "Chưa tiêm" : "Đã tiêm"
+            }).ToList();
+        }
     }
 }

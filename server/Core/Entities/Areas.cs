@@ -27,4 +27,6 @@ namespace Core.Entities
         public virtual ICollection<Foods> Foods { get; set; } = new List<Foods>();
 
     }
+
+
 }

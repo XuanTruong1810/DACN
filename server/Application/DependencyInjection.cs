@@ -42,6 +42,9 @@ public static class DependencyInjection
         services.AddScoped<IPigExportService, PigExportService>();
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IFoodExportService, FoodExportService>();
+        services.AddScoped<IWeighingHistoryService, WeighingHistoryService>();
+        services.AddScoped<IMovePigService, MovePigService>();
+
     }
     public static void AddMapping(this IServiceCollection services)
     {

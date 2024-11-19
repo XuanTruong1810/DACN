@@ -633,8 +633,8 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("QuantityInStock")
-                        .HasColumnType("int");
+                    b.Property<decimal>("QuantityInStock")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<double?>("QuantityPerMeal")
                         .HasColumnType("float");
@@ -872,6 +872,73 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Medicines", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.MovePigDetails", b =>
+                {
+                    b.Property<string>("MovePigId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("PigId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("FromStable")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ToStable")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("MovePigId", "PigId");
+
+                    b.HasIndex("PigId");
+
+                    b.ToTable("MovePigDetails", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.MovePigs", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CreateBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("FromArea")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("MoveDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ToArea")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TotalPigs")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MovePig", (string)null);
                 });
 
             modelBuilder.Entity("Core.Entities.PigExport", b =>
@@ -1319,6 +1386,63 @@ namespace Infrastructure.Migrations
                     b.ToTable("VaccinationPlan", (string)null);
                 });
 
+            modelBuilder.Entity("Core.Entities.WeighingDetail", b =>
+                {
+                    b.Property<string>("WeighingHistoryId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("PigId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Weight")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("WeighingHistoryId", "PigId");
+
+                    b.HasIndex("PigId");
+
+                    b.ToTable("WeighingDetail", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.WeighingHistory", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("AverageWeight")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TotalPigs")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("WeighingDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WeighingHistory", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -1714,6 +1838,25 @@ namespace Infrastructure.Migrations
                     b.Navigation("Unit");
                 });
 
+            modelBuilder.Entity("Core.Entities.MovePigDetails", b =>
+                {
+                    b.HasOne("Core.Entities.MovePigs", "MovePigs")
+                        .WithMany("MovePigDetails")
+                        .HasForeignKey("MovePigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.Pigs", "Pig")
+                        .WithMany("MovePigDetails")
+                        .HasForeignKey("PigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MovePigs");
+
+                    b.Navigation("Pig");
+                });
+
             modelBuilder.Entity("Core.Entities.PigExport", b =>
                 {
                     b.HasOne("Core.Entities.Customers", "Customers")
@@ -1821,7 +1964,7 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Core.Entities.Pigs", "Pig")
+                    b.HasOne("Core.Entities.Pigs", "Pigs")
                         .WithMany("VaccinationPlans")
                         .HasForeignKey("PigId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1829,7 +1972,26 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("Medicine");
 
-                    b.Navigation("Pig");
+                    b.Navigation("Pigs");
+                });
+
+            modelBuilder.Entity("Core.Entities.WeighingDetail", b =>
+                {
+                    b.HasOne("Core.Entities.Pigs", "Pigs")
+                        .WithMany("WeighingDetails")
+                        .HasForeignKey("PigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.WeighingHistory", "WeighingHistory")
+                        .WithMany("WeighingDetails")
+                        .HasForeignKey("WeighingHistoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pigs");
+
+                    b.Navigation("WeighingHistory");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1955,6 +2117,11 @@ namespace Infrastructure.Migrations
                     b.Navigation("VaccinationPlans");
                 });
 
+            modelBuilder.Entity("Core.Entities.MovePigs", b =>
+                {
+                    b.Navigation("MovePigDetails");
+                });
+
             modelBuilder.Entity("Core.Entities.PigExport", b =>
                 {
                     b.Navigation("Details");
@@ -1967,7 +2134,11 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.Pigs", b =>
                 {
+                    b.Navigation("MovePigDetails");
+
                     b.Navigation("VaccinationPlans");
+
+                    b.Navigation("WeighingDetails");
                 });
 
             modelBuilder.Entity("Core.Entities.RequestMedicine", b =>
@@ -1991,6 +2162,11 @@ namespace Infrastructure.Migrations
                     b.Navigation("MedicineSuppliers");
 
                     b.Navigation("PigIntakes");
+                });
+
+            modelBuilder.Entity("Core.Entities.WeighingHistory", b =>
+                {
+                    b.Navigation("WeighingDetails");
                 });
 
             modelBuilder.Entity("Unit", b =>

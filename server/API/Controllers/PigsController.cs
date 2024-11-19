@@ -89,5 +89,13 @@ namespace API.Controllers
             List<PigExportModelView> pigs = await pigService.GetPigsStatusPendingAsync();
             return Ok(BaseResponse<List<PigExportModelView>>.OkResponse(pigs));
         }
+
+        [HttpGet("vaccination")]
+        [Authorize(Roles = "Admin,Dispatch")]
+        public async Task<IActionResult> GetPigsVaccinationAsync([FromQuery] string? areaId, [FromQuery] string? stableId)
+        {
+            List<PigVaccinationModelView> pigs = await pigService.GetPigsVaccinationAsync(areaId, stableId);
+            return Ok(BaseResponse<List<PigVaccinationModelView>>.OkResponse(pigs));
+        }
     }
 }

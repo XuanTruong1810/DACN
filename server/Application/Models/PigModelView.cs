@@ -8,4 +8,16 @@ public class PigModelView
     public string AreaName { get; set; }
     public DateTimeOffset CreatedTime { get; set; }
     public DateTimeOffset? UpdatedTime { get; set; }
+
+
+}
+
+
+public class PigVaccinationModelView : PigModelView
+{
+    public decimal Weight { get; set; }
+
+    public string HealthStatus { get; set; }
+
+    public string VaccinationStatus { get; set; }
 }
