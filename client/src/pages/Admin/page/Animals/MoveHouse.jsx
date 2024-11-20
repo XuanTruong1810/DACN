@@ -108,9 +108,14 @@ const MoveHouse = () => {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
+            params: {
+              page: 1,
+              pageSize: 10,
+            },
           }
         );
-        setMoveRecords(moveResponse.data.data.items);
+        console.log("Move records:", moveResponse.data.data);
+        setMoveRecords(moveResponse.data.data);
       } catch (error) {
         console.log("Error:", error);
         // message.error("Không thể tải dữ liệu ban đầu!");

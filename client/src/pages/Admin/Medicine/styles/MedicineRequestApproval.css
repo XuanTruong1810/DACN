@@ -1,0 +1,175 @@
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.supplier-info-details {
+  padding: 8px 16px;
+  background: #fafafa;
+  border-radius: 6px;
+}
+
+.supplier-info-details .anticon {
+  color: #8c8c8c;
+}
+/* Card styles */
+.supplier-card {
+  margin-bottom: 32px;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  animation: fadeIn 0.3s ease;
+  overflow: hidden;
+}
+
+.supplier-card .ant-card-head {
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 20px 24px;
+}
+
+.supplier-main-info {
+  padding: 4px 0;
+}
+
+.supplier-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.supplier-controls {
+  background: #f8f9fa;
+  padding: 24px;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  margin-top: 8px;
+}
+
+.supplier-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 24px;
+  height: 100%;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Table styles */
+.details-table {
+  margin-top: 16px;
+}
+
+.details-table .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.details-table .ant-table-tbody > tr:hover > td {
+  background: #f5f5f5;
+}
+
+/* Unassigned warning section */
+.unassigned-warning {
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  animation: fadeIn 0.3s ease;
+}
+
+.unassigned-warning .ant-table {
+  margin-top: 24px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Footer buttons */
+.footer-buttons {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #f0f0f0;
+  text-align: right;
+}
+
+.footer-buttons .ant-btn {
+  min-width: 120px;
+  height: 40px;
+  border-radius: 6px;
+}
+
+/* Common utilities */
+.w-full {
+  width: 100%;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .supplier-card .ant-card-head {
+    padding: 16px;
+  }
+
+  .supplier-controls {
+    padding: 16px;
+  }
+
+  .supplier-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+
+.medicine-request-page {
+  background: #f0f2f5;
+}
+
+.statistic-card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s;
+}
+
+.statistic-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+}
+
+.main-table-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.main-table-title {
+  font-size: 20px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+  margin-bottom: 0;
+}
+
+.detail-modal-title {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.supplier-section {
+  background: #fafafa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.supplier-header {
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+}

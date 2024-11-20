@@ -37,6 +37,9 @@ import CustomerManagement from "./pages/Admin/page/Customer/CustomerManagement";
 import WeighingSchedule from "./pages/Admin/Schedule/WeighingSchedule";
 import FoodExport from "./pages/Admin/FoodManagement/FoodExport";
 import MoveHouse from "./pages/Admin/page/Animals/MoveHouse";
+import MedicinePage from "./pages/Admin/Medicine/MedicinePage";
+import MedicineRequestPage from "./pages/Admin/Medicine/MedicineRequestPage";
+import MedicineRequestApproval from "./pages/Admin/Medicine/MedicineRequestApproval ";
 
 function App() {
   return (
@@ -73,6 +76,7 @@ function App() {
               element={<ExportRequestList />}
             />
             <Route path="weighing-schedule" element={<WeighingSchedule />} />
+            <Route path="inventory/medicines" element={<MedicinePage />} />
             <Route path="exports/animals/list" element={<ExportList />} />
             {/* <Route path="exports/pigs" element={<ExportList />} /> */}
             <Route path="exports/daily-food" element={<DailyFoodExport />} />
@@ -81,6 +85,14 @@ function App() {
             <Route path="inventory">
               <Route path="pending-requests" element={<PigImportApproval />} />
               <Route path="create-request" element={<PigImportRequest />} />
+              <Route
+                path="import-medicines/pending"
+                element={<MedicineRequestApproval />}
+              />
+              <Route
+                path="import-medicines/create"
+                element={<MedicineRequestPage />}
+              />
               <Route
                 path="request-list"
                 element={<ImportRequestManagement />}
