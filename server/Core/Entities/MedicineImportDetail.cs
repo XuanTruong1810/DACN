@@ -8,13 +8,13 @@ namespace Core.Entities
     {
         [Key]
         [StringLength(450)]
-        public string Id { get; set; }
+
 
         [ForeignKey("MedicineImport")]
         public string MedicineImportId { get; set; }
 
-        [ForeignKey("MedicineSupplier")]
-        public string MedicineSupplierId { get; set; }
+        [ForeignKey("Medicines")]
+        public string MedicineId { get; set; }
 
         public decimal ExpectedQuantity { get; set; } // Số lượng dự kiến
         public decimal? ReceivedQuantity { get; set; }  // Số lượng thực nhận
@@ -24,11 +24,10 @@ namespace Core.Entities
         public decimal Price { get; set; } // Đơn giá
         public decimal Amount { get; set; } // Thành tiền
 
-        public DateTimeOffset ManufacturingDate { get; set; } // Ngày sản xuất
-        public DateTimeOffset ExpiryDate { get; set; } // Ngày hết hạn
+
 
         // Navigation properties
         public virtual MedicineImport MedicineImport { get; set; }
-        public virtual MedicineSupplier MedicineSupplier { get; set; }
+        public virtual Medicines Medicines { get; set; }
     }
 }

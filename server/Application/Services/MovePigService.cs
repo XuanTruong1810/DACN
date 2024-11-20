@@ -6,6 +6,7 @@ using Core.Entities;
 using Core.Repositories;
 using Core.Stores;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Application.Services;
@@ -35,9 +36,29 @@ public class MovePigService : IMovePigService
             ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Khu chăn nuôi không tồn tại");
             Areas? toArea = await _unitOfWork.GetRepository<Areas>().GetByIdAsync(createMovePigDTO.ToArea)
             ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Khu chăn nuôi không tồn tại");
+
+            string datePrefix = createMovePigDTO.MoveDate.ToString("ddMMyyyy");
+            string baseId = "MP" + datePrefix;
+
+            var existingMoves = await _unitOfWork.GetRepository<MovePigs>()
+                .GetEntities
+                .Where(m => m.Id.StartsWith(baseId))
+                .ToListAsync();
+
+            int maxNumber = 0;
+            foreach (var move in existingMoves)
+            {
+                if (int.TryParse(move.Id.Substring(baseId.Length), out int number))
+                {
+                    maxNumber = Math.Max(maxNumber, number);
+                }
+            }
+
+            string newId = baseId + (maxNumber + 1).ToString("D3");
+
             MovePigs? movePig = new MovePigs
             {
-                Id = Guid.NewGuid().ToString(),
+                Id = newId,
                 MoveDate = createMovePigDTO.MoveDate,
                 FromArea = fromArea.Name,
                 ToArea = toArea.Name,

@@ -2,6 +2,7 @@ using Application.Interfaces;
 using Application.Mapping;
 using Application.Services;
 using Microsoft.Extensions.DependencyInjection;
+using server.Application.Services;
 
 public static class DependencyInjection
 {
@@ -44,6 +45,8 @@ public static class DependencyInjection
         services.AddScoped<IFoodExportService, FoodExportService>();
         services.AddScoped<IWeighingHistoryService, WeighingHistoryService>();
         services.AddScoped<IMovePigService, MovePigService>();
+
+        services.AddScoped<IMedicineRequestService, MedicineRequestService>();
 
     }
     public static void AddMapping(this IServiceCollection services)

@@ -664,8 +664,21 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTimeOffset>("CreatedDate")
+                    b.Property<DateTimeOffset?>("CreatedTime")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("Deposit")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTimeOffset>("ExpectedDeliveryTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Receiver")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RequestMedicineId")
                         .IsRequired()
@@ -681,8 +694,11 @@ namespace Infrastructure.Migrations
                     b.Property<string>("SuppliersId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<decimal>("TotalAmount")
+                    b.Property<decimal?>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -695,8 +711,11 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.MedicineImportDetail", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<string>("MedicineImportId")
                         .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("MedicineId")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal>("AcceptedQuantity")
@@ -708,20 +727,6 @@ namespace Infrastructure.Migrations
                     b.Property<decimal>("ExpectedQuantity")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTimeOffset>("ExpiryDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset>("ManufacturingDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("MedicineImportId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("MedicineSupplierId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
@@ -731,101 +736,38 @@ namespace Infrastructure.Migrations
                     b.Property<decimal?>("RejectedQuantity")
                         .HasColumnType("decimal(18,2)");
 
-                    b.HasKey("Id");
+                    b.HasKey("MedicineImportId", "MedicineId");
 
-                    b.HasIndex("MedicineImportId");
-
-                    b.HasIndex("MedicineSupplierId");
+                    b.HasIndex("MedicineId");
 
                     b.ToTable("MedicineImportDetail", (string)null);
                 });
 
             modelBuilder.Entity("Core.Entities.MedicineSupplier", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<string>("MedicineId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTimeOffset?>("CreatedTime")
+                    b.Property<string>("SupplierId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset>("CreateTime")
                         .HasColumnType("datetimeoffset");
 
                     b.Property<DateTimeOffset?>("DeleteTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("MedicineUnitId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("MedicinesId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Note")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SupplierId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTimeOffset?>("UpdatedTime")
+                    b.Property<DateTimeOffset?>("LastUpdateTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.HasKey("Id");
+                    b.Property<bool>("Status")
+                        .HasColumnType("bit");
 
-                    b.HasIndex("MedicinesId");
+                    b.HasKey("MedicineId", "SupplierId");
 
                     b.HasIndex("SupplierId");
 
-                    b.HasIndex("MedicineUnitId", "SupplierId")
-                        .IsUnique();
-
                     b.ToTable("MedicineSuppliers");
-                });
-
-            modelBuilder.Entity("Core.Entities.MedicineUnit", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<decimal>("ConversionRate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTimeOffset?>("CreatedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("DeleteTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsBaseUnit")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("MedicineId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("UnitId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("UnitName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset?>("UpdatedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MedicineId");
-
-                    b.HasIndex("UnitId");
-
-                    b.ToTable("MedicineUnit", (string)null);
                 });
 
             modelBuilder.Entity("Core.Entities.Medicines", b =>
@@ -837,9 +779,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<int?>("DaysAfterImport")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("DaysBetweenInjections")
                         .HasColumnType("int");
 
                     b.Property<DateTimeOffset?>("DeleteTime")
@@ -859,8 +798,12 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("NumberOfInjections")
-                        .HasColumnType("int");
+                    b.Property<decimal>("QuantityInStock")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset?>("UpdatedTime")
                         .HasColumnType("datetimeoffset");
@@ -1238,11 +1181,8 @@ namespace Infrastructure.Migrations
                     b.Property<string>("RequestMedicineId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("MedicineUnitId")
+                    b.Property<string>("MedicineId")
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
@@ -1250,9 +1190,12 @@ namespace Infrastructure.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,2)");
 
-                    b.HasKey("RequestMedicineId", "MedicineUnitId");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
-                    b.HasIndex("MedicineUnitId");
+                    b.HasKey("RequestMedicineId", "MedicineId");
+
+                    b.HasIndex("MedicineId");
 
                     b.ToTable("RequestMedicineDetail", (string)null);
                 });
@@ -1576,29 +1519,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("UserToken", (string)null);
                 });
 
-            modelBuilder.Entity("Unit", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTimeOffset?>("CreatedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("DeleteTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("UnitName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset?>("UpdatedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Unit", (string)null);
-                });
-
             modelBuilder.Entity("Core.Entities.FeedInTakeDetails", b =>
                 {
                     b.HasOne("Core.Entities.Feeds", "Feeds")
@@ -1779,34 +1699,30 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.MedicineImportDetail", b =>
                 {
+                    b.HasOne("Core.Entities.Medicines", "Medicines")
+                        .WithMany()
+                        .HasForeignKey("MedicineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Core.Entities.MedicineImport", "MedicineImport")
                         .WithMany("MedicineImportDetails")
                         .HasForeignKey("MedicineImportId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Core.Entities.MedicineSupplier", "MedicineSupplier")
-                        .WithMany()
-                        .HasForeignKey("MedicineSupplierId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("MedicineImport");
 
-                    b.Navigation("MedicineSupplier");
+                    b.Navigation("Medicines");
                 });
 
             modelBuilder.Entity("Core.Entities.MedicineSupplier", b =>
                 {
-                    b.HasOne("Core.Entities.MedicineUnit", "MedicineUnit")
+                    b.HasOne("Core.Entities.Medicines", "Medicines")
                         .WithMany("MedicineSuppliers")
-                        .HasForeignKey("MedicineUnitId")
+                        .HasForeignKey("MedicineId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Core.Entities.Medicines", null)
-                        .WithMany("MedicineSuppliers")
-                        .HasForeignKey("MedicinesId");
 
                     b.HasOne("Core.Entities.Suppliers", "Suppliers")
                         .WithMany("MedicineSuppliers")
@@ -1814,28 +1730,9 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("MedicineUnit");
-
-                    b.Navigation("Suppliers");
-                });
-
-            modelBuilder.Entity("Core.Entities.MedicineUnit", b =>
-                {
-                    b.HasOne("Core.Entities.Medicines", "Medicines")
-                        .WithMany("MedicineUnits")
-                        .HasForeignKey("MedicineId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Unit", "Unit")
-                        .WithMany("MedicineUnits")
-                        .HasForeignKey("UnitId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Medicines");
 
-                    b.Navigation("Unit");
+                    b.Navigation("Suppliers");
                 });
 
             modelBuilder.Entity("Core.Entities.MovePigDetails", b =>
@@ -1928,9 +1825,9 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.RequestMedicineDetail", b =>
                 {
-                    b.HasOne("Core.Entities.MedicineUnit", "MedicineUnit")
+                    b.HasOne("Core.Entities.Medicines", "Medicines")
                         .WithMany()
-                        .HasForeignKey("MedicineUnitId")
+                        .HasForeignKey("MedicineId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1940,7 +1837,7 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("MedicineUnit");
+                    b.Navigation("Medicines");
 
                     b.Navigation("RequestMedicine");
                 });
@@ -2103,16 +2000,9 @@ namespace Infrastructure.Migrations
                     b.Navigation("MedicineImportDetails");
                 });
 
-            modelBuilder.Entity("Core.Entities.MedicineUnit", b =>
-                {
-                    b.Navigation("MedicineSuppliers");
-                });
-
             modelBuilder.Entity("Core.Entities.Medicines", b =>
                 {
                     b.Navigation("MedicineSuppliers");
-
-                    b.Navigation("MedicineUnits");
 
                     b.Navigation("VaccinationPlans");
                 });
@@ -2167,11 +2057,6 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Entities.WeighingHistory", b =>
                 {
                     b.Navigation("WeighingDetails");
-                });
-
-            modelBuilder.Entity("Unit", b =>
-                {
-                    b.Navigation("MedicineUnits");
                 });
 #pragma warning restore 612, 618
         }

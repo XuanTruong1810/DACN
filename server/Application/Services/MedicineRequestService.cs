@@ -2,7 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Application.DTOs;
+using Application.DTOs.MedicineImport;
 using Application.Interfaces;
+using Application.Models;
+using Application.Models.Medicine;
 using Application.ViewModels.Medicine;
 using AutoMapper;
 using Core.Entities;
@@ -17,390 +21,326 @@ namespace server.Application.Services
     public class MedicineRequestService : IMedicineRequestService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMapper _mapper;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public MedicineRequestService(
             IUnitOfWork unitOfWork,
-            IHttpContextAccessor httpContextAccessor,
-            IMapper mapper
-           )
+            IMapper mapper,
+            IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork;
-            _httpContextAccessor = httpContextAccessor;
             _mapper = mapper;
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<string> CreateRequest(CreateMedicineRequestDTO dto)
+        private async Task<string> GenerateRequestIdAsync()
         {
-            string userId = _httpContextAccessor.HttpContext?.User?
-                .FindFirst(ClaimTypes.NameIdentifier)?.Value
-                ?? throw new BaseException(StatusCodeHelper.Unauthorized, ErrorCode.Unauthorized, "Unauthorized");
+            string today = DateTime.UtcNow.ToString("yyyyMMdd");
+            string prefix = $"RQM_{today}_";
 
-            // Validate medicine units exist and are active
-            foreach (var detail in dto.Details)
+            var lastRequest = await _unitOfWork.GetRepository<RequestMedicine>()
+                .GetEntities
+                .Where(x => x.ID.StartsWith(prefix))
+                .OrderByDescending(x => x.ID)
+                .FirstOrDefaultAsync();
+
+            int sequence = 1;
+            if (lastRequest != null)
             {
-                var medicineUnit = await _unitOfWork.GetRepository<MedicineUnit>()
-                    .GetEntities
-                    .Include(mu => mu.Medicines)
-                    .FirstOrDefaultAsync(mu => mu.Id == detail.MedicineUnitId && mu.IsActive)
-                    ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
-                        $"Đơn vị thuốc không tồn tại hoặc không còn hoạt động");
-
-                if (!medicineUnit.Medicines.IsActive)
-                {
-                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
-                        $"Thuốc {medicineUnit.Medicines.MedicineName} không còn hoạt động");
-                }
+                string lastSequence = lastRequest.ID.Split('_').Last();
+                sequence = int.Parse(lastSequence) + 1;
             }
 
-            RequestMedicine? request = new RequestMedicine
-            {
-                ID = Guid.NewGuid().ToString(),
-                RequestBy = userId,
-                RequestDate = DateTimeOffset.UtcNow,
-                Note = dto.Note,
-                Status = RequestStatus.Pending
-            };
-
-            await _unitOfWork.GetRepository<RequestMedicine>().InsertAsync(request);
-
-            var details = dto.Details.Select(d => new RequestMedicineDetail
-            {
-                Id = Guid.NewGuid().ToString(),
-                RequestMedicineId = request.ID,
-                MedicineUnitId = d.MedicineUnitId,
-                Quantity = d.Quantity,
-                Note = d.Note
-            }).ToList();
-
-            await _unitOfWork.GetRepository<RequestMedicineDetail>().AddRangeAsync(details);
-            await _unitOfWork.SaveAsync();
-
-            return request.ID;
+            return $"{prefix}{sequence:D3}";
         }
 
-        public async Task ApproveRequest(string requestId, string supplierId)
+        public async Task CreateRequest(CreateMedicineRequestDTO dto)
         {
-            var request = await _unitOfWork.GetRepository<RequestMedicine>()
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // Validate input
+                if (dto.Details == null || !dto.Details.Any())
+                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                        "Chi tiết phiếu đề xuất không được trống");
+
+                // Validate medicines exist
+                foreach (var detail in dto.Details)
+                {
+                    var medicine = await _unitOfWork.GetRepository<Medicines>()
+                        .GetEntities
+                        .Include(m => m.MedicineSuppliers)
+                        .FirstOrDefaultAsync(m => m.Id == detail.MedicineId && m.IsActive)
+                        ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
+                            $"Thuốc không tồn tại hoặc không còn hoạt động");
+                }
+
+                // Check duplicates
+                var duplicateMedicine = dto.Details
+                    .GroupBy(x => x.MedicineId)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .FirstOrDefault();
+
+                if (duplicateMedicine != null)
+                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                        "Không được chọn trùng thuốc trong một phiếu");
+
+                string userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? throw new BaseException(StatusCodeHelper.Unauthorized, ErrorCode.Unauthorized,
+                        "Người dùng chưa đăng nhập");
+
+                string requestId = await GenerateRequestIdAsync();
+
+                RequestMedicine request = new()
+                {
+                    ID = requestId,
+                    RequestBy = userId,
+                    RequestDate = DateTimeOffset.UtcNow,
+                    Note = dto.Note,
+                    Status = RequestStatus.Pending
+                };
+
+                await _unitOfWork.GetRepository<RequestMedicine>().InsertAsync(request);
+
+                List<RequestMedicineDetail>? details = dto.Details.Select(d => new RequestMedicineDetail
+                {
+                    RequestMedicineId = requestId,
+                    MedicineId = d.MedicineId,
+                    Quantity = d.Quantity,
+                    Note = d.Note
+                }).ToList();
+
+                await _unitOfWork.GetRepository<RequestMedicineDetail>().AddRangeAsync(details);
+                await _unitOfWork.SaveAsync();
+                await transaction.CommitAsync();
+
+
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                    "Lỗi khi tạo phiếu đề xuất: " + ex.Message);
+            }
+        }
+
+        public async Task<RequestMedicineModelView> GetRequestById(string id)
+        {
+            RequestMedicine? request = await _unitOfWork.GetRepository<RequestMedicine>()
                 .GetEntities
-                .Include(r => r.Details)
-                .FirstOrDefaultAsync(r => r.ID == requestId)
-                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Yêu cầu không tồn tại");
+                .Include(x => x.Details)
+                    .ThenInclude(x => x.Medicines)
+                .FirstOrDefaultAsync(x => x.ID == id)
+                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
+                    "Không tìm thấy phiếu yêu cầu");
+
+            return new RequestMedicineModelView
+            {
+                Id = request.ID,
+                Status = request.Status.ToString(),
+                Note = request.Note,
+                CreatedBy = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(x => x.Id == request.RequestBy)?.FullName,
+                CreatedById = request.RequestBy,
+                CreatedTime = request.RequestDate,
+                Details = request.Details.Select(d => new RequestMedicineDetailModelView
+                {
+                    MedicineId = d.MedicineId,
+                    MedicineName = d.Medicines.MedicineName,
+                    IsVaccine = d.Medicines.IsVaccine,
+                    Unit = d.Medicines.Unit,
+                    Quantity = (double)d.Quantity,
+                    Note = d.Note,
+                    Medicine = new MedicineModelView
+                    {
+                        Id = d.Medicines.Id,
+                        MedicineName = d.Medicines.MedicineName,
+                        Unit = d.Medicines.Unit,
+                        DaysAfterImport = d.Medicines.DaysAfterImport,
+                        IsVaccine = d.Medicines.IsVaccine,
+                        Description = d.Medicines.Description,
+                        QuantityInStock = d.Medicines.QuantityInStock,
+                        Suppliers = d.Medicines.MedicineSuppliers.Select(ms => new SupplierModelView
+                        {
+                            Id = ms.SupplierId,
+                            Name = ms.Suppliers.Name
+                        }).ToList()
+                    }
+                }).ToList()
+            };
+        }
+
+        public async Task<List<RequestMedicineModelView>> GetRequests()
+        {
+            List<RequestMedicine>? requests = await _unitOfWork.GetRepository<RequestMedicine>()
+                .GetEntities
+                .Include(x => x.Details)
+                    .ThenInclude(x => x.Medicines)
+                .OrderByDescending(x => x.RequestDate)
+                .ToListAsync();
+
+            return requests.Select(request => new RequestMedicineModelView
+            {
+                Id = request.ID,
+                Status = request.Status.ToString(),
+                Note = request.Note,
+                CreatedBy = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(x => x.Id == request.RequestBy)?.FullName,
+                CreatedById = request.RequestBy,
+                CreatedTime = request.RequestDate,
+                Details = request.Details.Select(d => new RequestMedicineDetailModelView
+                {
+                    MedicineId = d.MedicineId,
+                    MedicineName = d.Medicines.MedicineName,
+                    IsVaccine = d.Medicines.IsVaccine,
+                    Unit = d.Medicines.Unit,
+                    Quantity = (double)d.Quantity,
+                    Note = d.Note,
+                    Status = d.Status.ToString(),
+                    Medicine = new MedicineModelView
+                    {
+                        Id = d.Medicines.Id,
+                        MedicineName = d.Medicines.MedicineName,
+                        Unit = d.Medicines.Unit,
+                        DaysAfterImport = d.Medicines.DaysAfterImport,
+                        IsVaccine = d.Medicines.IsVaccine,
+                        Description = d.Medicines.Description,
+                        QuantityInStock = d.Medicines.QuantityInStock,
+                        Suppliers = d.Medicines.MedicineSuppliers.Select(ms => new SupplierModelView
+                        {
+                            Id = ms.SupplierId,
+                            Name = ms.Suppliers.Name
+                        }).ToList()
+                    }
+                }).ToList()
+            }).ToList();
+        }
+
+        public async Task ApproveRequest(string id, MedicineImportDTO dto)
+        {
+            RequestMedicine? request = await _unitOfWork.GetRepository<RequestMedicine>()
+                .GetEntities
+                .Include(x => x.Details)
+                .FirstOrDefaultAsync(x => x.ID == id)
+                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
+                    "Không tìm thấy phiếu yêu cầu");
+
+            if (request.Status == RequestStatus.Completed)
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                    "Phiếu yêu cầu đã được chấp nhận");
+            }
+
+            if (request.Status == RequestStatus.Rejected)
+            {
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                    "Phiếu yêu cầu đã bị từ chối");
+            }
 
             if (request.Status != RequestStatus.Pending)
             {
                 throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
-                    "Yêu cầu này không trong trạng thái chờ duyệt");
+                    "Chỉ có thể chấp nhận phiếu đang chờ duyệt");
             }
-
-            var supplier = await _unitOfWork.GetRepository<Suppliers>()
-                .GetByIdAsync(supplierId)
-                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Nhà cung cấp không tồn tại");
-
-            // Validate supplier provides all requested medicines
-            foreach (var detail in request.Details)
+            if (dto.Rejects != null && dto.Rejects.Any())
             {
-                var medicineSupplier = await _unitOfWork.GetRepository<MedicineSupplier>()
-                    .GetEntities
-                    .AnyAsync(ms => ms.MedicineUnitId == detail.MedicineUnitId && ms.SupplierId == supplierId);
-
-                if (!medicineSupplier)
+                foreach (MedicineRejectDTO reject in dto.Rejects)
                 {
-                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
-                        "Nhà cung cấp không cung cấp tất cả các loại thuốc yêu cầu");
+                    RequestMedicineDetail? detail = request.Details.FirstOrDefault(x => x.MedicineId == reject.MedicineId)
+                        ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
+                            "Không tìm thấy chi tiết thuốc trong phiếu yêu cầu");
+                    detail.Status = RequestStatus.Rejected;
+                    detail.Note = reject.Reason;
+                    await _unitOfWork.GetRepository<RequestMedicineDetail>().UpdateAsync(detail);
                 }
             }
 
-            // Create import record
-            var import = new MedicineImport
+            if (dto.Accepts != null && dto.Accepts.Any())
             {
-                Id = Guid.NewGuid().ToString(),
-                RequestMedicineId = requestId,
-                SupplierId = supplierId,
-                CreatedBy = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value,
-                CreatedDate = DateTimeOffset.UtcNow,
-                Status = ImportStatus.Pending,
-                TotalAmount = 0 // Will be updated when receiving
-            };
+                foreach (MedicineImportAcceptDTO accept in dto.Accepts)
+                {
+                    List<string>? medicines = accept.Details.Select(x => x.MedicineId).ToList();
+                    foreach (string medicineId in medicines)
+                    {
+                        RequestMedicineDetail? detail = request.Details.FirstOrDefault(x => x.MedicineId == medicineId)
+                            ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
+                                "Không tìm thấy chi tiết thuốc trong phiếu yêu cầu");
+                        detail.Status = RequestStatus.Completed;
+                        detail.Note = "Chấp nhận yêu cầu";
+                        await _unitOfWork.GetRepository<RequestMedicineDetail>().UpdateAsync(detail);
+                    }
+                    string currentDate = DateTime.Now.ToString("yyyyMMdd");
+                    string prefix = $"MEDICINE-{currentDate}-";
 
-            await _unitOfWork.GetRepository<MedicineImport>().InsertAsync(import);
+                    MedicineImport? lastImport = await _unitOfWork.GetRepository<MedicineImport>()
+                        .GetEntities
+                        .Where(x => x.Id.StartsWith(prefix))
+                        .OrderByDescending(x => x.Id)
+                        .FirstOrDefaultAsync();
 
-            request.Status = RequestStatus.Processing;
-            await _unitOfWork.GetRepository<RequestMedicine>().UpdateAsync(request);
+                    int sequence = 1;
+                    if (lastImport != null)
+                    {
+                        string lastSequence = lastImport.Id.Split('-').Last();
+                        if (int.TryParse(lastSequence, out int lastNumber))
+                        {
+                            sequence = lastNumber + 1;
+                        }
+                    }
+
+                    string medicineImportId = $"{prefix}{sequence:D3}";
+
+                    MedicineImport medicineImport = new()
+                    {
+                        Id = medicineImportId,
+                        ExpectedDeliveryTime = accept.ExpectedDeliveryTime,
+                        Deposit = accept.Deposit,
+                        SupplierId = accept.SupplierId,
+                        Status = ImportStatus.Pending,
+                        CreatedBy = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                            ?? throw new BaseException(StatusCodeHelper.Unauthorized, ErrorCode.Unauthorized,
+                                "Người dùng chưa đăng nhập"),
+                        RequestMedicineId = request.ID,
+                        Receiver = request.RequestBy,
+                        MedicineImportDetails = accept.Details.Select(d => new MedicineImportDetail
+                        {
+                            MedicineId = d.MedicineId,
+                            ExpectedQuantity = d.ExpectedQuantity,
+                            Price = d.UnitPrice,
+                            MedicineImportId = medicineImportId
+                        }).ToList()
+                    };
+                    await _unitOfWork.GetRepository<MedicineImport>().InsertAsync(medicineImport);
+                    await _unitOfWork.SaveAsync();
+                }
+            }
+            request.Status = RequestStatus.Completed;
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task ReceiveImport(string importId, List<MedicineImportReceiveDetailDTO> details)
+        public async Task RejectRequest(string id, string reason)
         {
-            var import = await _unitOfWork.GetRepository<MedicineImport>()
+            RequestMedicine? request = await _unitOfWork.GetRepository<RequestMedicine>()
                 .GetEntities
-                .Include(i => i.RequestMedicine)
-                .ThenInclude(r => r.Details)
-                .FirstOrDefaultAsync(i => i.Id == importId)
-                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Phiếu nhập không tồn tại");
+                .FirstOrDefaultAsync(x => x.ID == id)
+                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
+                    "Không tìm thấy phiếu yêu cầu");
 
-            if (import.Status != ImportStatus.Pending)
+            if (request.Status == RequestStatus.Completed)
             {
                 throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
-                    "Phiếu nhập không trong trạng thái chờ nhận");
+                    "Không thể từ chối phiếu đã hoàn thành hoặc đang xử lý");
             }
 
-            decimal totalAmount = 0;
-
-            foreach (var detail in details)
+            if (request.Status != RequestStatus.Pending)
             {
-                // Validate quantities
-                if (detail.AcceptedQuantity > detail.ReceivedQuantity)
-                {
-                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
-                        "Số lượng chấp nhận không thể lớn hơn số lượng nhận");
-                }
-
-                var medicineSupplier = await _unitOfWork.GetRepository<MedicineSupplier>()
-                    .GetEntities
-                    .Include(ms => ms.MedicineUnit)
-                    .FirstOrDefaultAsync(ms => ms.Id == detail.MedicineSupplierId)
-                    ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
-                        "Không tìm thấy thông tin thuốc của nhà cung cấp");
-
-                // Validate against request quantity
-                var requestDetail = import.RequestMedicine.Details
-                    .FirstOrDefault(d => d.MedicineUnitId == medicineSupplier.MedicineUnitId);
-
-                if (requestDetail == null || detail.ReceivedQuantity > requestDetail.Quantity)
-                {
-                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
-                        "Số lượng nhận vượt quá số lượng yêu cầu");
-                }
-
-                var importDetail = new MedicineImportDetail
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    MedicineImportId = importId,
-                    MedicineSupplierId = detail.MedicineSupplierId,
-                    ExpectedQuantity = requestDetail.Quantity,
-                    ReceivedQuantity = detail.ReceivedQuantity,
-                    AcceptedQuantity = detail.AcceptedQuantity,
-                    RejectedQuantity = detail.ReceivedQuantity - detail.AcceptedQuantity,
-                    Price = detail.Price,
-                    Amount = detail.AcceptedQuantity * detail.Price,
-                    ManufacturingDate = detail.ManufacturingDate,
-                    ExpiryDate = detail.ExpiryDate
-                };
-
-                totalAmount += importDetail.Amount;
-
-                // Update medicine unit quantity
-                medicineSupplier.MedicineUnit.Quantity += detail.AcceptedQuantity;
-                await _unitOfWork.GetRepository<MedicineUnit>().UpdateAsync(medicineSupplier.MedicineUnit);
-
-                await _unitOfWork.GetRepository<MedicineImportDetail>().InsertAsync(importDetail);
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                    "Chỉ có thể từ chối phiếu đang chờ duyệt");
             }
 
-            import.Status = ImportStatus.Completed;
-            import.TotalAmount = totalAmount;
-            await _unitOfWork.GetRepository<MedicineImport>().UpdateAsync(import);
-
-            import.RequestMedicine.Status = RequestStatus.Completed;
-            await _unitOfWork.GetRepository<RequestMedicine>().UpdateAsync(import.RequestMedicine);
-
+            request.Status = RequestStatus.Rejected;
+            request.RejectReason = reason;
             await _unitOfWork.SaveAsync();
-        }
-
-        public async Task<List<MedicineRequestViewModel>> GetRequests(RequestStatus? status = null)
-        {
-            IQueryable<RequestMedicine>? query = _unitOfWork.GetRepository<RequestMedicine>()
-                .GetEntities
-                .Include(r => r.Details)
-                .AsQueryable();
-
-            if (status.HasValue)
-            {
-                query = query.Where(r => r.Status == status.Value);
-            }
-
-            List<RequestMedicine>? requests = await query
-                .OrderByDescending(r => r.RequestDate)
-                .ToListAsync();
-
-            List<MedicineRequestViewModel>? requestViewModels = new List<MedicineRequestViewModel>();
-
-            foreach (var request in requests)
-            {
-
-
-                requestViewModels.Add(new MedicineRequestViewModel
-                {
-                    Id = request.ID,
-                    RequestBy = request.RequestBy,
-                    RequestByName = "Unknown",
-                    RequestDate = request.RequestDate,
-                    Note = request.Note,
-                    Status = request.Status,
-                    StatusDisplay = GetStatusDisplay(request.Status),
-                    TotalItems = request.Details.Count
-                });
-            }
-
-            return requestViewModels;
-        }
-
-        public async Task<MedicineRequestDetailViewModel> GetRequestDetail(string requestId)
-        {
-            var request = await _unitOfWork.GetRepository<RequestMedicine>()
-                .GetEntities
-                .Include(r => r.Details)
-                .ThenInclude(d => d.MedicineUnit)
-                .ThenInclude(mu => mu.Medicines)
-                .Include(r => r.MedicineImports)
-                .FirstOrDefaultAsync(r => r.ID == requestId)
-                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Yêu cầu không tồn tại");
-
-            // var requestBy = await _userService.GetUserById(request.RequestBy);
-
-            var viewModel = new MedicineRequestDetailViewModel
-            {
-                Id = request.ID,
-                RequestBy = request.RequestBy,
-                RequestByName = "Unknown",
-                RequestDate = request.RequestDate,
-                Note = request.Note,
-                Status = request.Status,
-                StatusDisplay = GetStatusDisplay(request.Status),
-                TotalItems = request.Details.Count,
-                Details = request.Details.Select(d => new RequestDetailItemViewModel
-                {
-                    MedicineUnitId = d.MedicineUnitId,
-                    MedicineName = d.MedicineUnit.Medicines.MedicineName,
-                    UnitName = d.MedicineUnit.UnitName,
-                    Quantity = d.Quantity,
-                    Note = d.Note
-                }).ToList()
-            };
-
-            // Add import information if exists
-            var import = request.MedicineImports.FirstOrDefault();
-            if (import != null)
-            {
-                viewModel.Import = await GetImportViewModel(import);
-            }
-
-            return viewModel;
-        }
-
-        public async Task<List<MedicineImportViewModel>> GetImports(ImportStatus? status = null)
-        {
-            var query = _unitOfWork.GetRepository<MedicineImport>()
-                .GetEntities
-                .Include(i => i.Suppliers)
-                .AsQueryable();
-
-            if (status.HasValue)
-            {
-                query = query.Where(i => i.Status == status.Value);
-            }
-
-            var imports = await query
-                .OrderByDescending(i => i.CreatedDate)
-                .ToListAsync();
-
-            var importViewModels = new List<MedicineImportViewModel>();
-
-            foreach (var import in imports)
-            {
-                importViewModels.Add(await GetImportViewModel(import));
-            }
-
-            return importViewModels;
-        }
-
-        public async Task<MedicineImportDetailViewModel> GetImportDetail(string importId)
-        {
-            var import = await _unitOfWork.GetRepository<MedicineImport>()
-                .GetEntities
-                .Include(i => i.Suppliers)
-                .Include(i => i.MedicineImportDetails)
-                .ThenInclude(d => d.MedicineSupplier)
-                .ThenInclude(ms => ms.MedicineUnit)
-                .ThenInclude(mu => mu.Medicines)
-                .FirstOrDefaultAsync(i => i.Id == importId)
-                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Phiếu nhập không tồn tại");
-
-            // var createdBy = await _userService.GetUserById(import.CreatedBy);
-
-            MedicineImportDetailViewModel? viewModel = new MedicineImportDetailViewModel
-            {
-                Id = import.Id,
-                RequestId = import.RequestMedicineId,
-                SupplierId = import.SupplierId,
-                SupplierName = import.Suppliers.Name,
-                CreatedBy = import.CreatedBy,
-                CreatedByName = "Unknown",
-                CreatedDate = import.CreatedDate,
-                Status = import.Status,
-                StatusDisplay = GetImportStatusDisplay(import.Status),
-                TotalAmount = import.TotalAmount,
-                Details = import.MedicineImportDetails.Select(d => new ImportDetailItemViewModel
-                {
-                    MedicineSupplierId = d.MedicineSupplierId,
-                    MedicineName = d.MedicineSupplier.MedicineUnit.Medicines.MedicineName,
-                    UnitName = d.MedicineSupplier.MedicineUnit.UnitName,
-                    ExpectedQuantity = d.ExpectedQuantity,
-                    ReceivedQuantity = d.ReceivedQuantity,
-                    AcceptedQuantity = d.AcceptedQuantity,
-                    RejectedQuantity = d.RejectedQuantity,
-                    Price = d.Price,
-                    Amount = d.Amount,
-                    ManufacturingDate = d.ManufacturingDate,
-                    ExpiryDate = d.ExpiryDate
-                }).ToList()
-            };
-
-            return viewModel;
-        }
-
-        private async Task<MedicineImportViewModel> GetImportViewModel(MedicineImport import)
-        {
-            // var createdBy = await _userService.GetUserById(import.CreatedBy);
-
-            return new MedicineImportViewModel
-            {
-                Id = import.Id,
-                RequestId = import.RequestMedicineId,
-                SupplierId = import.SupplierId,
-                SupplierName = import.Suppliers.Name,
-                CreatedBy = import.CreatedBy,
-                CreatedByName = "Unknown",
-                CreatedDate = import.CreatedDate,
-                Status = import.Status,
-                StatusDisplay = GetImportStatusDisplay(import.Status),
-                TotalAmount = import.TotalAmount
-            };
-        }
-
-        private string GetStatusDisplay(RequestStatus status)
-        {
-            return status switch
-            {
-                RequestStatus.Draft => "Nháp",
-                RequestStatus.Pending => "Chờ duyệt",
-                RequestStatus.Processing => "Đang xử lý",
-                RequestStatus.Completed => "Hoàn thành",
-                RequestStatus.Rejected => "Từ chối",
-                _ => "Không xác định"
-            };
-        }
-
-        private string GetImportStatusDisplay(ImportStatus status)
-        {
-            return status switch
-            {
-                ImportStatus.Pending => "Chờ nhận hàng",
-                ImportStatus.Completed => "Đã nhận hàng",
-                ImportStatus.Rejected => "Từ chối",
-                _ => "Không xác định"
-            };
         }
     }
 }

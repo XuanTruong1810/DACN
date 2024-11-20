@@ -7,8 +7,6 @@ namespace Application.DTOs.Medicines
         public string? Usage { get; set; }
         public bool? IsVaccine { get; set; }
         public int? DaysAfterImport { get; set; }
-        public int? NumberOfInjections { get; set; }
-        public int? DaysBetweenInjections { get; set; }
         public bool? IsActive { get; set; }
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Application.DTOs;
 using Application.Services;
 using Application.Interfaces;
+using Application.DTOs.MedicineImport;
 
 namespace API.Controllers
 {
@@ -18,27 +19,38 @@ namespace API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Veterinarian")]
+        [Authorize(Roles = "Veterinarian,Admin")]
         public async Task<IActionResult> CreateRequest([FromBody] CreateMedicineRequestDTO dto)
         {
-            string requestId = await _medicineRequestService.CreateRequest(dto);
+            await _medicineRequestService.CreateRequest(dto);
             return Ok(BaseResponse<string>.OkResponse("Tạo yêu cầu nhập thuốc thành công"));
         }
-
+        [HttpGet]
+        [Authorize(Roles = "Veterinarian,Admin")]
+        public async Task<IActionResult> GetRequests()
+        {
+            return Ok(BaseResponse<List<RequestMedicineModelView>>.OkResponse(await _medicineRequestService.GetRequests()));
+        }
+        [HttpGet("{requestId}")]
+        [Authorize(Roles = "Veterinarian,Admin")]
+        public async Task<IActionResult> GetRequestById(string requestId)
+        {
+            return Ok(BaseResponse<RequestMedicineModelView>.OkResponse(await _medicineRequestService.GetRequestById(requestId)));
+        }
         [HttpPost("{requestId}/approve")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> ApproveRequest(string requestId, [FromBody] string supplierId)
+        public async Task<IActionResult> ApproveRequest(string requestId, [FromBody] MedicineImportDTO dto)
         {
-            await _medicineRequestService.ApproveRequest(requestId, supplierId);
+            await _medicineRequestService.ApproveRequest(requestId, dto);
             return Ok(BaseResponse<object>.OkResponse("Đã duyệt yêu cầu nhập thuốc"));
         }
 
-        [HttpPost("import/{importId}/receive")]
-        [Authorize(Roles = "Veterinarian")]
-        public async Task<IActionResult> ReceiveImport(string importId, [FromBody] List<MedicineImportReceiveDetailDTO> details)
+        [HttpPost("{requestId}/reject")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RejectRequest(string requestId, [FromBody] string reason)
         {
-            await _medicineRequestService.ReceiveImport(importId, details);
-            return Ok(BaseResponse<object>.OkResponse("Đã nhận thuốc vào kho"));
+            await _medicineRequestService.RejectRequest(requestId, reason);
+            return Ok(BaseResponse<object>.OkResponse("Đã từ chối yêu cầu nhập thuốc"));
         }
     }
 }

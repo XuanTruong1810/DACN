@@ -13,12 +13,14 @@ namespace Application.DTOs.Medicines
         [Required(ErrorMessage = "Vui lòng nhập cách dùng")]
         public string? Usage { get; set; }
 
+        public string Unit { get; set; }
+
         public bool IsVaccine { get; set; } = false;
 
         public int? DaysAfterImport { get; set; }
-        public int? NumberOfInjections { get; set; }
-        public int? DaysBetweenInjections { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        public List<InsertMedicineSupplierDTO>? MedicineSuppliers { get; set; }
     }
 }

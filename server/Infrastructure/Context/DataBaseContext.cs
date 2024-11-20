@@ -25,9 +25,6 @@ namespace Infrastructure.Context
         public DbSet<MedicineImport> MedicineImports { get; set; }
         public DbSet<MedicineImportDetail> MedicineImportDetails { get; set; }
         public DbSet<RequestMedicineDetail> RequestMedicineDetails { get; set; }
-        public DbSet<MedicineUnit> MedicineUnits { get; set; }
-        public DbSet<Unit> Units { get; set; }
-
 
         public DbSet<FoodTypes> FoodTypes { get; set; }
         public DbSet<Foods> Foods { get; set; }
@@ -82,11 +79,13 @@ namespace Infrastructure.Context
                 .HasKey(d => new { d.FeedInTakeId, d.FeedId });
 
             builder.Entity<RequestMedicineDetail>()
-                .HasKey(d => new { d.RequestMedicineId, d.MedicineUnitId });
+                .HasKey(d => new { d.RequestMedicineId, d.MedicineId });
+
+            builder.Entity<MedicineImportDetail>()
+                .HasKey(d => new { d.MedicineImportId, d.MedicineId });
 
             builder.Entity<MedicineSupplier>()
-                .HasIndex(d => new { d.MedicineUnitId, d.SupplierId })
-                .IsUnique();
+                .HasKey(d => new { d.MedicineId, d.SupplierId });
 
             builder.Entity<PigExportRequestDetail>()
                 .HasKey(d => new { d.PigExportRequestId, d.PigId });
@@ -147,8 +146,6 @@ namespace Infrastructure.Context
             builder.Entity<RequestMedicineDetail>().ToTable("RequestMedicineDetail");
             builder.Entity<MedicineImport>().ToTable("MedicineImport");
             builder.Entity<MedicineImportDetail>().ToTable("MedicineImportDetail");
-            builder.Entity<MedicineUnit>().ToTable("MedicineUnit");
-            builder.Entity<Unit>().ToTable("Unit");
 
             builder.Entity<FoodTypes>().ToTable("FoodTypes");
             builder.Entity<Foods>().ToTable("Foods");

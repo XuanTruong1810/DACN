@@ -59,22 +59,6 @@ namespace Application.Mapping
             CreateMap<PigDTO, Pigs>().ReverseMap();
             CreateMap<PigModelView, Pigs>().ReverseMap();
 
-
-            // CreateMap<MedVacDTO, MedicationAndVaccines>().ReverseMap();
-            // CreateMap<MedVacGetDTO, MedicationAndVaccines>().ReverseMap();
-            // CreateMap<MedVacGetModelView, MedicationAndVaccines>().ReverseMap();
-
-
-            // CreateMap<MedVacIntakeDTO, MedicationAndVaccines>().ReverseMap();
-
-            // CreateMap<MedVacIntakeAcceptDTO, MedicationAndVaccines>().ReverseMap();
-
-
-
-            // CreateMap<HealthRecordCreateDto, HealthRecords>().ReverseMap();
-
-            // CreateMap<HealthRecordDetailDTO, HealthRecordDetails>().ReverseMap();
-
             CreateMap<CreateFoodTypeDto, FoodTypes>().ReverseMap();
             CreateMap<UpdateFoodTypeDto, FoodTypes>().ReverseMap();
             CreateMap<FoodTypeModelView, FoodTypes>().ReverseMap();

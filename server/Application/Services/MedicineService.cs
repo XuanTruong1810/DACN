@@ -73,26 +73,70 @@ namespace Application.Services
 
         public async Task<MedicineModelView> InsertMedicine(InsertMedicineDTO dto)
         {
-            bool exists = await _unitOfWork.GetRepository<Medicines>().GetEntities
-                .AnyAsync(x => x.MedicineName == dto.MedicineName && x.IsActive && x.DeleteTime == null);
-
-            if (exists)
+            using IDbContextTransaction? transaction = await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Tên thuốc đã tồn tại");
+                bool exists = await _unitOfWork.GetRepository<Medicines>().GetEntities
+                    .AnyAsync(x => x.MedicineName == dto.MedicineName && x.IsActive && x.DeleteTime == null);
+
+                if (exists)
+                {
+                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Tên thuốc đã tồn tại");
+                }
+
+                int nextNumber = await _unitOfWork.GetRepository<Medicines>().GetEntities
+                    .CountAsync() + 1;
+
+                string newId = $"MED{nextNumber:D4}";
+
+                Medicines? medicine = new Medicines
+                {
+                    Id = newId,
+                    Unit = dto.Unit,
+                    IsVaccine = dto.IsVaccine,
+                    MedicineName = dto.MedicineName,
+                    Description = dto.Description,
+                    Usage = dto.Usage,
+                    QuantityInStock = 0,
+                    DaysAfterImport = dto.DaysAfterImport,
+                    IsActive = dto.IsActive
+                };
+
+                await _unitOfWork.GetRepository<Medicines>().InsertAsync(medicine);
+
+                if (dto.MedicineSuppliers != null && dto.MedicineSuppliers.Any())
+                {
+                    foreach (InsertMedicineSupplierDTO supplierDto in dto.MedicineSuppliers)
+                    {
+                        MedicineSupplier? medicineSupplier = new MedicineSupplier
+                        {
+                            MedicineId = medicine.Id,
+                            SupplierId = supplierDto.SupplierId
+                        };
+                        await _unitOfWork.GetRepository<MedicineSupplier>().InsertAsync(medicineSupplier);
+                    }
+                }
+                await _unitOfWork.SaveAsync();
+                await transaction.CommitAsync();
+
+                return new MedicineModelView
+                {
+                    Id = medicine.Id,
+                    MedicineName = medicine.MedicineName,
+                    Unit = medicine.Unit,
+                    IsVaccine = medicine.IsVaccine,
+                    Description = medicine.Description,
+                    Usage = medicine.Usage,
+                    QuantityInStock = medicine.QuantityInStock,
+                    DaysAfterImport = medicine.DaysAfterImport,
+                    IsActive = medicine.IsActive
+                };
             }
-
-            int nextNumber = await _unitOfWork.GetRepository<Medicines>().GetEntities
-                .CountAsync() + 1;
-
-            string newId = $"MED{nextNumber:D4}";
-
-            Medicines? medicine = _mapper.Map<Medicines>(dto);
-            medicine.Id = newId;
-
-            await _unitOfWork.GetRepository<Medicines>().InsertAsync(medicine);
-            await _unitOfWork.SaveAsync();
-
-            return _mapper.Map<MedicineModelView>(medicine);
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, ex.Message);
+            }
         }
 
         public async Task<MedicineModelView> UpdateMedicine(string id, UpdateMedicineDTO dto)
@@ -116,7 +160,9 @@ namespace Application.Services
                 throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Tên thuốc đã tồn tại");
             }
 
-            _mapper.Map(dto, medicine);
+            medicine.MedicineName = dto.MedicineName;
+            medicine.Description = dto.Description;
+            medicine.UpdatedTime = DateTimeOffset.UtcNow;
             await _unitOfWork.GetRepository<Medicines>().UpdateAsync(medicine);
             await _unitOfWork.SaveAsync();
 

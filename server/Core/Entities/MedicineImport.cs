@@ -5,10 +5,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Entities
 {
-    public class MedicineImport
+    public class MedicineImport : BaseEntity
     {
-        [Key]
-        public string Id { get; set; }
         [Required]
         [ForeignKey("RequestMedicine")]
         public string RequestMedicineId { get; set; }  // Bắt buộc phải có phiếu đề xuất
@@ -18,13 +16,19 @@ namespace Core.Entities
         public string SupplierId { get; set; }  // Bắt buộc phải có nhà cung cấp
 
         public string CreatedBy { get; set; }
-        public DateTimeOffset CreatedDate { get; set; }
         public ImportStatus Status { get; set; }
-        public decimal TotalAmount { get; set; }
+        public decimal? TotalAmount { get; set; }
+
+        public string Receiver { get; set; } // Người nhận hàng
+
+        public DateTimeOffset ExpectedDeliveryTime { get; set; } // Ngày dự kiến giao hàng
+        public decimal Deposit { get; set; } // Tiền cọc
+
 
         // Navigation properties
         public virtual RequestMedicine RequestMedicine { get; set; }
         public virtual Suppliers Suppliers { get; set; }
+        [InverseProperty("MedicineImport")]
         public virtual ICollection<MedicineImportDetail> MedicineImportDetails { get; set; } = new List<MedicineImportDetail>();
     }
     public enum ImportStatus

@@ -8,13 +8,12 @@ namespace Application.Models.Medicine
         public string MedicineName { get; set; }
         public string Description { get; set; }
         public string Usage { get; set; }
+        public string Unit { get; set; }
+        public decimal QuantityInStock { get; set; }
         public bool IsVaccine { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int? DaysAfterImport { get; set; }
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public int? NumberOfInjections { get; set; }
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public int? DaysBetweenInjections { get; set; }
         public bool IsActive { get; set; }
+        public List<SupplierModelView> Suppliers { get; set; }
     }
 }

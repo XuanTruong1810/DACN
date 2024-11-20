@@ -11,15 +11,16 @@ namespace Core.Entities
         public string Usage { get; set; }             // Cách dùng
         public bool IsVaccine { get; set; }           // True nếu là vaccine
 
+        public decimal QuantityInStock { get; set; } = 0;
+
+        public string Unit { get; set; }
+
         // Các trường cho vaccine
         public int? DaysAfterImport { get; set; }      // Ngày sau khi nhập vào
-        public int? NumberOfInjections { get; set; } // Số mũi tiêm
-        public int? DaysBetweenInjections { get; set; } // Khoảng ngày giữa các mũi tiêm
         public bool IsActive { get; set; } = true;
 
         // Navigation properties
 
-        public virtual ICollection<MedicineUnit> MedicineUnits { get; set; }
 
         public virtual ICollection<MedicineSupplier> MedicineSuppliers { get; set; }
 

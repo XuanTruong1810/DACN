@@ -7,9 +7,8 @@ namespace Core.Entities
     {
         Draft = 0,          // Nháp
         Pending = 1,        // Chờ duyệt
-        Processing = 2,     // Đang xử lý (đã tạo phiếu nhập)
-        Completed = 3,      // Hoàn thành
-        Rejected = 4        // Từ chối
+        Completed = 2,      // Hoàn thành
+        Rejected = 3        // Từ chối
     }
     public class RequestMedicine
     {
@@ -29,17 +28,17 @@ namespace Core.Entities
     }
     public class RequestMedicineDetail
     {
-        [Key]
-        public string Id { get; set; }
 
         [ForeignKey("RequestMedicine")]
         public string RequestMedicineId { get; set; }
-        [ForeignKey("MedicineUnit")]
-        public string MedicineUnitId { get; set; }     // Thuốc/Thức ăn
+        [ForeignKey("Medicines")]
+        public string MedicineId { get; set; }     // Thuốc/Vaccine
         public decimal Quantity { get; set; }     // Số lượng yêu cầu
+
+        public RequestStatus Status { get; set; } = RequestStatus.Pending; // Trạng thái yêu cầu
         public string? Note { get; set; }
         public virtual RequestMedicine RequestMedicine { get; set; }
-        public virtual MedicineUnit MedicineUnit { get; set; }
+        public virtual Medicines Medicines { get; set; }
     }
 
 }
