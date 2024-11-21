@@ -515,15 +515,21 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<decimal?>("ReceivedAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("StockedTime")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("SupplierId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<decimal>("TotalAmount")
+                    b.Property<decimal?>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTimeOffset?>("UpdatedTime")
@@ -554,9 +560,6 @@ namespace Infrastructure.Migrations
 
                     b.Property<DateTimeOffset?>("LastUpdatedTime")
                         .HasColumnType("datetimeoffset");
-
-                    b.Property<int>("QuantityInStock")
-                        .HasColumnType("int");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -670,11 +673,17 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("DeleteTime")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<DateTimeOffset?>("DeliveryTime")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<decimal>("Deposit")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTimeOffset>("ExpectedDeliveryTime")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal?>("ReceivedAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Receiver")
                         .IsRequired()
@@ -687,11 +696,11 @@ namespace Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<DateTimeOffset?>("StockTime")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("SupplierId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SuppliersId")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal?>("TotalAmount")
@@ -704,7 +713,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("RequestMedicineId");
 
-                    b.HasIndex("SuppliersId");
+                    b.HasIndex("SupplierId");
 
                     b.ToTable("MedicineImport", (string)null);
                 });
@@ -1689,8 +1698,10 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("Core.Entities.Suppliers", "Suppliers")
-                        .WithMany("Imports")
-                        .HasForeignKey("SuppliersId");
+                        .WithMany("MedicineImports")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("RequestMedicine");
 
@@ -2047,7 +2058,7 @@ namespace Infrastructure.Migrations
                 {
                     b.Navigation("FoodSuppliers");
 
-                    b.Navigation("Imports");
+                    b.Navigation("MedicineImports");
 
                     b.Navigation("MedicineSuppliers");
 

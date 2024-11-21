@@ -40,6 +40,7 @@ import MoveHouse from "./pages/Admin/page/Animals/MoveHouse";
 import MedicinePage from "./pages/Admin/Medicine/MedicinePage";
 import MedicineRequestPage from "./pages/Admin/Medicine/MedicineRequestPage";
 import MedicineRequestApproval from "./pages/Admin/Medicine/MedicineRequestApproval ";
+import MedicineImportList from "./pages/Admin/Medicine/MedicineImportList";
 
 function App() {
   return (
@@ -88,6 +89,10 @@ function App() {
               <Route
                 path="import-medicines/pending"
                 element={<MedicineRequestApproval />}
+              />
+              <Route
+                path="import-medicines/list"
+                element={<MedicineImportList />}
               />
               <Route
                 path="import-medicines/create"

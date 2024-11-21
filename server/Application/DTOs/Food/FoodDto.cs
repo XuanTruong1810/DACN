@@ -51,7 +51,6 @@ namespace Application.DTOs.Food
     public class UpdateFoodSupplierDto
     {
         public string? SuppliersId { get; set; }
-        public double? QuantityInStock { get; set; }
         public string? Status { get; set; }
     }
 }

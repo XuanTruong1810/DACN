@@ -12,12 +12,19 @@ namespace Core.Entities
         public string RequestMedicineId { get; set; }  // Bắt buộc phải có phiếu đề xuất
 
         [Required]
-        [ForeignKey("Supplier")]
+        [ForeignKey("Suppliers")]
         public string SupplierId { get; set; }  // Bắt buộc phải có nhà cung cấp
 
         public string CreatedBy { get; set; }
         public ImportStatus Status { get; set; }
         public decimal? TotalAmount { get; set; }
+
+        public decimal? ReceivedAmount { get; set; }
+
+        public DateTimeOffset? DeliveryTime { get; set; } // Ngày giao hàng
+
+        public DateTimeOffset? StockTime { get; set; } // Ngày nhập kho
+
 
         public string Receiver { get; set; } // Người nhận hàng
 
@@ -33,8 +40,9 @@ namespace Core.Entities
     }
     public enum ImportStatus
     {
-        Pending,
+        Pending, // Đang chờ
         Completed,
-        Rejected
+        Rejected,
+        Stocked
     }
 }

@@ -105,7 +105,7 @@ namespace Application.Services
                     await _unitOfWork.GetRepository<FoodImports>().InsertAsync(import);
 
 
-                    // Save changes sau mỗi lần insert để tránh tracking conflict
+
                     await _unitOfWork.SaveAsync();
                 }
 
@@ -129,7 +129,7 @@ namespace Application.Services
             try
             {
                 // 1. Validate import exists
-                var import = await _unitOfWork.GetRepository<FoodImports>()
+                FoodImports? import = await _unitOfWork.GetRepository<FoodImports>()
                     .GetEntities
                     .Include(x => x.FoodImportDetails)
                     .FirstOrDefaultAsync(x => x.Id == id)
@@ -139,27 +139,33 @@ namespace Application.Services
                 if (import.Status != "pending")
                     throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
                         "Chỉ có thể cập nhật trạng thái cho phiếu nhập đang chờ giao");
-
+                decimal totalAmount = 0;
                 // 2. Validate and update details
-                foreach (var detailDto in dto.Details)
+                foreach (UpdateDeliveryDetailDto detailDto in dto.Details)
                 {
-                    var detail = import.FoodImportDetails.FirstOrDefault(d => d.FoodId == detailDto.FoodId)
+                    FoodImportDetails? detail = import.FoodImportDetails.FirstOrDefault(d => d.FoodId == detailDto.FoodId)
                         ?? throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
                             $"Không tìm thấy thức ăn {detailDto.FoodId} trong phiếu nhập");
 
-                    detail.DeliveredQuantity = detailDto.DeliveredQuantity;
+                    detail.DeliveredQuantity = detailDto.ReceivedQuantity;
                     detail.ActualQuantity = detailDto.ActualQuantity;
-                    detail.RejectedQuantity = detailDto.RejectedQuantity;
-                    detail.Note = detailDto.Note;
+
+                    detail.TotalPrice = (decimal)(detail.UnitPrice * detail.ActualQuantity);
+                    totalAmount += detail.TotalPrice;
+                    detail.RejectedQuantity = detail.DeliveredQuantity - detail.ActualQuantity;
                 }
 
                 // 3. Update import status
                 import.Status = "delivered";
-                import.DeliveredTime = DateTimeOffset.UtcNow;
+                import.TotalAmount = totalAmount;
+
+                import.ReceivedAmount = totalAmount - import.DepositAmount;
+                import.DeliveredTime = dto.DeliveryTime;
+                import.UpdatedTime = DateTimeOffset.UtcNow;
+
                 import.Note = dto.Note;
 
                 await _unitOfWork.SaveAsync();
-                // await _notificationService.NotifyImportDeliveredAsync(id);
 
                 await transaction.CommitAsync();
                 return await GetImportByIdAsync(id);
@@ -177,65 +183,75 @@ namespace Application.Services
             FoodImports? import = await _unitOfWork.GetRepository<FoodImports>()
                 .GetEntities
                 .Include(x => x.FoodImportDetails)
-                    .ThenInclude(d => d.Food)
-                .Include(x => x.Supplier)
                 .FirstOrDefaultAsync(x => x.Id == id)
                 ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
                     "Không tìm thấy phiếu nhập");
+            return new FoodImportModelView
+            {
+                Id = import.Id,
+                SupplierId = import.SupplierId,
+                SupplierName = import.Supplier.Name,
+                Status = import.Status,
+                TotalAmount = import.TotalAmount.GetValueOrDefault(),
+                TotalReceivedQuantity = import.ReceivedAmount.GetValueOrDefault(),
+                ExpectedDeliveryTime = import.ExpectedDeliveryTime,
+                DepositAmount = import.DepositAmount.GetValueOrDefault(),
+                CreateTime = import.CreatedTime.GetValueOrDefault(),
+                CreateBy = import.CreatedById,
+                CreateByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(import.CreatedById).Result?.FullName,
+                DeliveredTime = import.DeliveredTime,
+                StockTime = import.StockedTime,
+                Details = import.FoodImportDetails.Select(d => new FoodImportDetailModelView
+                {
+                    FoodId = d.FoodId,
+                    FoodName = d.Food.Name,
+                    UnitPrice = d.UnitPrice,
+                    TotalPrice = d.TotalPrice,
+                    ExpectedQuantity = d.ExpectedQuantity,
+                    DeliveredQuantity = d.DeliveredQuantity,
+                    ActualQuantity = d.ActualQuantity,
+                    RejectedQuantity = d.RejectedQuantity,
+                    Note = d.Note
+                }).ToList()
+            };
 
-            return _mapper.Map<FoodImportModelView>(import);
         }
 
-        public async Task<BasePagination<FoodImportModelView>> GetImportsAsync(
-            string? search = null,
-            string? status = null,
-            string? supplierId = null,
-            string? requestId = null,
-            DateTimeOffset? fromDate = null,
-            DateTimeOffset? toDate = null,
-            int pageNumber = 1,
-            int pageSize = 10)
+        public async Task<List<FoodImportModelView>> GetImportsAsync()
         {
-            IQueryable<FoodImports>? query = _unitOfWork.GetRepository<FoodImports>()
-                .GetEntities
-                .Include(x => x.FoodImportDetails)
-                .Include(x => x.Supplier)
-                .AsQueryable();
-
-            // Apply filters
-            if (!string.IsNullOrEmpty(search))
-                query = query.Where(x => x.Note.Contains(search) ||
-                                       x.Supplier.Name.Contains(search));
-
-            if (!string.IsNullOrEmpty(status))
-                query = query.Where(x => x.Status == status);
-
-            if (!string.IsNullOrEmpty(supplierId))
-                query = query.Where(x => x.SupplierId == supplierId);
-
-            if (!string.IsNullOrEmpty(requestId))
-                query = query.Where(x => x.FoodImportRequestId == requestId);
-
-            if (fromDate.HasValue)
-                query = query.Where(x => x.CreatedTime >= fromDate.Value);
-
-            if (toDate.HasValue)
-                query = query.Where(x => x.CreatedTime <= toDate.Value);
-
-            // Get total count
-            int totalItems = await query.CountAsync();
-
-            // Apply pagination
-            List<FoodImports>? items = await query
-                .OrderByDescending(x => x.CreatedTime)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            List<FoodImportModelView>? modelViews = _mapper.Map<List<FoodImportModelView>>(items);
-
-            return new BasePagination<FoodImportModelView>(modelViews, totalItems, pageNumber, pageSize);
+            IEnumerable<FoodImports>? foodImports = await _unitOfWork.GetRepository<FoodImports>().GetAllAsync();
+            List<FoodImportModelView> result = foodImports.Select(import => new FoodImportModelView
+            {
+                Id = import.Id,
+                SupplierId = import.SupplierId,
+                SupplierName = import.Supplier.Name,
+                Status = import.Status,
+                TotalAmount = import.TotalAmount.GetValueOrDefault(),
+                TotalReceivedQuantity = import.ReceivedAmount.GetValueOrDefault(),
+                ExpectedDeliveryTime = import.ExpectedDeliveryTime,
+                DepositAmount = import.DepositAmount.GetValueOrDefault(),
+                CreateTime = import.CreatedTime.GetValueOrDefault(),
+                CreateBy = import.CreatedById,
+                CreateByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(import.CreatedById).Result?.FullName,
+                DeliveredTime = import.DeliveredTime,
+                StockTime = import.StockedTime,
+                Details = import.FoodImportDetails.Select(d => new FoodImportDetailModelView
+                {
+                    FoodId = d.FoodId,
+                    FoodName = d.Food.Name,
+                    UnitPrice = d.UnitPrice,
+                    TotalPrice = d.TotalPrice,
+                    ExpectedQuantity = d.ExpectedQuantity,
+                    DeliveredQuantity = d.DeliveredQuantity,
+                    ActualQuantity = d.ActualQuantity,
+                    RejectedQuantity = d.RejectedQuantity,
+                    Note = d.Note
+                }).ToList()
+            }).ToList();
+            return result;
         }
+
+
 
         private async Task<string> GenerateImportIdAsync()
         {
@@ -272,6 +288,46 @@ namespace Application.Services
             } while (exists);
 
             return newId;
+        }
+
+        public async Task<FoodImportModelView> UpdateStockStatusAsync(string id)
+        {
+            using IDbContextTransaction? transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                FoodImports? import = await _unitOfWork.GetRepository<FoodImports>()
+                                .GetEntities
+                                .FirstOrDefaultAsync(x => x.Id == id)
+                                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
+                                    "Không tìm thấy phiếu nhập");
+                foreach (FoodImportDetails detail in import.FoodImportDetails)
+                {
+                    Foods? food = await _unitOfWork.GetRepository<Foods>().GetByIdAsync(detail.FoodId)
+                        ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
+                            $"Không tìm thấy thức ăn {detail.FoodId}");
+
+                    food.QuantityInStock += detail.ActualQuantity.GetValueOrDefault();
+
+                    food.UpdatedTime = DateTimeOffset.UtcNow;
+
+
+                    await _unitOfWork.GetRepository<Foods>().UpdateAsync(food);
+
+                }
+                import.Status = "stocked";
+                import.UpdatedTime = DateTimeOffset.UtcNow;
+                import.StockedTime = DateTimeOffset.UtcNow;
+                await _unitOfWork.SaveAsync();
+                await transaction.CommitAsync();
+
+                return await GetImportByIdAsync(id);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                    "Lỗi khi cập nhật trạng thái kho: " + ex.Message);
+            }
         }
     }
 }

@@ -33,6 +33,8 @@ public class UpdateDeliveryDto
     [Required]
     public List<UpdateDeliveryDetailDto> Details { get; set; }
 
+    public DateTimeOffset DeliveryTime { get; set; }
+
     public string? Note { get; set; }
 }
 
@@ -41,16 +43,13 @@ public class UpdateDeliveryDetailDto
     [Required]
     public string FoodId { get; set; }
 
-    [Required]
-    [Range(0, double.MaxValue)]
-    public decimal DeliveredQuantity { get; set; }
 
     [Required]
     [Range(0, double.MaxValue)]
     public decimal ActualQuantity { get; set; }
 
     [Range(0, double.MaxValue)]
-    public decimal? RejectedQuantity { get; set; }
+    public decimal? ReceivedQuantity { get; set; }
 
     public string? Note { get; set; }
 }

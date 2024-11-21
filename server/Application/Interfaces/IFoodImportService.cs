@@ -11,18 +11,13 @@ namespace Application.Interfaces
         // Quản lý phiếu nhập
         Task CreateImportsAsync(string requestId, List<CreateFoodImportDto> dtos);
         Task<FoodImportModelView> GetImportByIdAsync(string id);
-        Task<BasePagination<FoodImportModelView>> GetImportsAsync(
-            string? search = null,
-            string? status = null,
-            string? supplierId = null,
-            string? requestId = null,
-            DateTimeOffset? fromDate = null,
-            DateTimeOffset? toDate = null,
-            int pageNumber = 1,
-            int pageSize = 10
-        );
+        Task<List<FoodImportModelView>> GetImportsAsync();
 
         // Cập nhật trạng thái nhận hàng
         Task<FoodImportModelView> UpdateDeliveryStatusAsync(string id, UpdateDeliveryDto dto);
+
+
+        // Cập nhật trạng thái kho
+        Task<FoodImportModelView> UpdateStockStatusAsync(string id);
     }
 }

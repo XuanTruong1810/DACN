@@ -72,7 +72,6 @@ namespace Application.Mapping
                     {
                         SupplierId = fs.SuppliersId,
                         SupplierName = fs.Suppliers.Name,
-                        QuantityInStock = fs.QuantityInStock,
                         Status = fs.Status,
                     })));
             CreateMap<FoodModelView, Foods>();

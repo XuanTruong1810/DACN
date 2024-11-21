@@ -28,7 +28,7 @@ namespace Application.Services
         public async Task<FoodModelView> CreateFood(CreateFoodDto createFoodDto)
         {
             // Bắt đầu transaction
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            using IDbContextTransaction? transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 // 1. Validate dữ liệu đầu vào
@@ -47,13 +47,13 @@ namespace Application.Services
                 }
 
                 // 3. Kiểm tra FoodType tồn tại
-                var foodType = await _unitOfWork.GetRepository<FoodTypes>()
+                FoodTypes? foodType = await _unitOfWork.GetRepository<FoodTypes>()
                     .GetByIdAsync(createFoodDto.FoodTypesId)
                     ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
                         "Không tìm thấy loại thức ăn");
 
                 // 4. Kiểm tra tên thức ăn đã tồn tại
-                var existingFood = await _unitOfWork.GetRepository<Foods>()
+                Foods? existingFood = await _unitOfWork.GetRepository<Foods>()
                     .GetEntities
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Name.ToLower() == createFoodDto.Name.ToLower());
@@ -95,7 +95,6 @@ namespace Application.Services
                     {
                         FoodsId = newId,
                         SuppliersId = supplierDto.SuppliersId,
-                        QuantityInStock = (int)supplierDto.QuantityPerMeal,
                         Status = supplierDto.Status,
                         CreatedTime = DateTimeOffset.Now
                     };
@@ -229,7 +228,7 @@ namespace Application.Services
 
         public async Task<FoodModelView> UpdateFood(string id, UpdateFoodDto updateFoodDto)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            using IDbContextTransaction? transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 // 1. Kiểm tra food có tồn tại không
@@ -244,22 +243,22 @@ namespace Application.Services
                 if (updateFoodDto.FoodSuppliers != null && updateFoodDto.FoodSuppliers.Any())
                 {
                     // 2.1 Lấy danh sách supplier hiện tại
-                    var currentSupplierIds = food.FoodSuppliers.Select(x => x.SuppliersId).ToList();
-                    var newSupplierIds = updateFoodDto.FoodSuppliers.Select(x => x.SuppliersId).ToList();
+                    List<string>? currentSupplierIds = food.FoodSuppliers.Select(x => x.SuppliersId).ToList();
+                    List<string?>? newSupplierIds = updateFoodDto.FoodSuppliers.Select(x => x.SuppliersId).ToList();
 
                     // 2.2 Xác định suppliers cần thêm mới
-                    var suppliersToAdd = updateFoodDto.FoodSuppliers
+                    List<UpdateFoodSupplierDto>? suppliersToAdd = updateFoodDto.FoodSuppliers
                         .Where(x => !currentSupplierIds.Contains(x.SuppliersId))
                         .ToList();
 
                     // Thêm mới các suppliers
-                    foreach (var supplierDto in suppliersToAdd)
+                    foreach (UpdateFoodSupplierDto supplierDto in suppliersToAdd)
                     {
-                        var foodSupplier = new FoodSuppliers
+                        FoodSuppliers? foodSupplier = new FoodSuppliers
                         {
                             FoodsId = id,
                             SuppliersId = supplierDto.SuppliersId,
-                            QuantityInStock = (int)(supplierDto.QuantityInStock ?? 0),
+
                             Status = supplierDto.Status ?? "active",
                             CreatedTime = DateTimeOffset.Now
                         };
@@ -268,19 +267,11 @@ namespace Application.Services
                     }
 
                     // 2.3 Xác định suppliers cần xóa (chỉ xóa khi số lượng = 0)
-                    var suppliersToRemove = food.FoodSuppliers
+                    List<FoodSuppliers>? suppliersToRemove = food.FoodSuppliers
                         .Where(x => !newSupplierIds.Contains(x.SuppliersId))
                         .ToList();
 
-                    foreach (var supplier in suppliersToRemove)
-                    {
-                        if (supplier.QuantityInStock > 0)
-                        {
-                            throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
-                                "Không thể xóa nhà cung cấp khi còn hàng tồn kho. Vui lòng đưa số lượng về 0 trước khi xóa!");
-                        }
-                        food.FoodSuppliers.Remove(supplier);
-                    }
+
 
                     // 2.4 Cập nhật thông tin cho suppliers hiện có
                     foreach (var supplierDto in updateFoodDto.FoodSuppliers
@@ -290,8 +281,6 @@ namespace Application.Services
                             .First(x => x.SuppliersId == supplierDto.SuppliersId);
 
                         // Chỉ cập nhật khi có thay đổi
-                        if (supplierDto.QuantityInStock.HasValue)
-                            existingSupplier.QuantityInStock = (int)supplierDto.QuantityInStock;
                         if (!string.IsNullOrEmpty(supplierDto.Status))
                             existingSupplier.Status = supplierDto.Status;
 

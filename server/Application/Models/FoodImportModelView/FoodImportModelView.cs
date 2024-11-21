@@ -9,8 +9,14 @@ namespace Application.Models.FoodImportModelView
         public string SupplierName { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal? DepositAmount { get; set; }
+        public decimal TotalReceivedQuantity { get; set; }
+        public DateTimeOffset CreateTime { get; set; }
+        public string CreateBy { get; set; }
+        public string CreateByName { get; set; }
         public DateTimeOffset ExpectedDeliveryTime { get; set; }
         public DateTimeOffset? DeliveredTime { get; set; }
+        public DateTimeOffset? StockTime { get; set; }
+
         public string Status { get; set; }  // pending, delivered, completed
         public string? Note { get; set; }
         public List<FoodImportDetailModelView> Details { get; set; }

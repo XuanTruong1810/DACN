@@ -1,5 +1,3 @@
-// src/pages/Admin/page/Inventory/FoodImportList/index.jsx
-import React, { useState, useEffect } from "react";
 import {
   Card,
   Table,
@@ -17,228 +15,75 @@ import {
   Tag,
   Select,
   Drawer,
-  InputNumber,
-  Divider,
   Statistic,
+  Modal,
+  Descriptions,
+  InputNumber,
+  Alert,
 } from "antd";
 import {
   ShoppingCartOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
-  PrinterOutlined,
   EyeOutlined,
   FilterOutlined,
-  ExportOutlined,
   ReloadOutlined,
-  DeleteOutlined,
   SearchOutlined,
   DollarOutlined,
+  FileDoneOutlined,
+  ClockCircleOutlined,
+  InboxOutlined,
 } from "@ant-design/icons";
-import dayjs from "dayjs";
-import { mockBills } from "./mock/FoodImportListdata";
-import ReceiveModal from "./components/ReceiveModal";
-import "./styles/FoodImportList.css";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import moment from "moment";
 
-const { Title } = Typography;
-const { Search } = Input;
-const { RangePicker } = DatePicker;
+const { Text } = Typography;
 
 const FoodImportList = () => {
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  // States
   const [loading, setLoading] = useState(false);
-  const [bills, setBills] = useState([]);
-  const [selectedBill, setSelectedBill] = useState(null);
-  const [receiveModalVisible, setReceiveModalVisible] = useState(false);
+  const [foodImports, setFoodImports] = useState([]);
+  const [selectedImport, setSelectedImport] = useState(null);
+  const [showViewDetail, setShowViewDetail] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [filters, setFilters] = useState({
     status: "all",
     dateRange: [],
   });
-  const [receiveForm] = Form.useForm();
-  const [selectedRows, setSelectedRows] = useState([]);
-  const [summaryData, setSummaryData] = useState({
-    totalBills: 0,
-    pendingBills: 0,
-    totalAmount: 0,
-  });
   const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [deliveryDetails, setDeliveryDetails] = useState([]);
+  const [selectedDelivery, setSelectedDelivery] = useState(null);
+  const [deliveryDate, setDeliveryDate] = useState(moment());
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [formErrors, setFormErrors] = useState({
+    deliveryDate: false,
+    quantities: false,
+  });
+  const [showStockConfirmModal, setShowStockConfirmModal] = useState(false);
+  const [stockingId, setStockingId] = useState(null);
 
   useEffect(() => {
-    fetchData();
-  }, [searchText, filters]);
+    getFoodImports();
+  }, []);
 
-  useEffect(() => {
-    const summary = bills.reduce(
-      (acc, bill) => ({
-        totalBills: acc.totalBills + 1,
-        pendingBills: acc.pendingBills + (bill.status === "pending" ? 1 : 0),
-        totalAmount: acc.totalAmount + bill.totalAmount,
-      }),
-      { totalBills: 0, pendingBills: 0, totalAmount: 0 }
-    );
-
-    setSummaryData(summary);
-  }, [bills]);
-
-  const fetchData = async () => {
+  const getFoodImports = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      let filteredData = [...mockBills];
-
-      const filterFunctions = {
-        search: (data) =>
-          !searchText
-            ? data
-            : data.filter(
-                (bill) =>
-                  bill.id.toLowerCase().includes(searchText.toLowerCase()) ||
-                  bill.supplier.name
-                    .toLowerCase()
-                    .includes(searchText.toLowerCase())
-              ),
-        status: (data) =>
-          filters.status === "all"
-            ? data
-            : data.filter((bill) => bill.status === filters.status),
-        dateRange: (data) =>
-          !filters.dateRange?.length
-            ? data
-            : data.filter((bill) => {
-                const billDate = dayjs(bill.createdAt);
-                return (
-                  billDate.isAfter(filters.dateRange[0], "day") &&
-                  billDate.isBefore(filters.dateRange[1], "day")
-                );
-              }),
-        amount: (data) =>
-          data.filter((bill) => {
-            const valid = {
-              min: !filters.minAmount || bill.totalAmount >= filters.minAmount,
-              max: !filters.maxAmount || bill.totalAmount <= filters.maxAmount,
-            };
-            return valid.min && valid.max;
-          }),
-      };
-
-      filteredData = Object.values(filterFunctions).reduce(
-        (data, filterFn) => filterFn(data),
-        filteredData
-      );
-
-      setBills(filteredData);
-
-      const summary = filteredData.reduce(
-        (acc, bill) => ({
-          totalBills: acc.totalBills + 1,
-          pendingBills: acc.pendingBills + (bill.status === "pending" ? 1 : 0),
-          totalAmount: acc.totalAmount + bill.totalAmount,
-        }),
-        { totalBills: 0, pendingBills: 0, totalAmount: 0 }
-      );
-      setSummaryData(summary);
+      const response = await axios.get(`${API_URL}/api/FoodImport`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      setFoodImports(response.data.data);
     } catch (error) {
-      message.error("Có lỗi xảy ra khi tải dữ liệu!");
-    } finally {
-      setLoading(false);
+      message.error("Lỗi khi tải danh sách phiếu nhập");
     }
-  };
-
-  const handleReceive = (record) => {
-    setSelectedBill(record);
-    setReceiveModalVisible(true);
-    receiveForm.setFieldsValue({
-      receiveDate: dayjs(),
-      items: record.items.map(() => ({ receivedQuantity: 0 })),
-    });
-  };
-
-  const handlePrint = (record) => {
-    message.loading({ content: "Đang chuẩn bị in...", key: "print" });
-    setTimeout(() => {
-      message.success({
-        content: "Đã gửi lệnh in thành công!",
-        key: "print",
-        duration: 2,
-      });
-    }, 1000);
-  };
-
-  const handleFinishReceive = async (values) => {
-    try {
-      setLoading(true);
-      // Validate received quantities
-      const hasInvalidQuantity = values.items.some(
-        (item, index) =>
-          item.receivedQuantity > selectedBill.items[index].quantity
-      );
-
-      if (hasInvalidQuantity) {
-        message.error("Số lượng nhận không được vượt quá số lượng đặt!");
-        return;
-      }
-
-      // API call simulation
-      await new Promise((r) => setTimeout(r, 1000));
-
-      message.success("Đã xác nhận nhận hàng thành công!");
-      setReceiveModalVisible(false);
-      receiveForm.resetFields();
-      fetchData();
-    } catch (error) {
-      message.error("Có lỗi xảy ra!");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleExport = () => {
-    message.loading({ content: "Đang xuất dữ liệu...", key: "export" });
-    setTimeout(() => {
-      message.success({
-        content: "Xuất dữ liệu thành công!",
-        key: "export",
-        duration: 2,
-      });
-    }, 1000);
-  };
-
-  const handleRefresh = () => {
-    setSearchText("");
-    setFilters({
-      status: "all",
-      dateRange: [],
-    });
-    fetchData();
-  };
-
-  const handleBatchPrint = () => {
-    if (selectedRows.length === 0) {
-      message.warning("Vui lòng chọn ít nhất một phiếu!");
-      return;
-    }
-    message.loading({ content: "Đang chuẩn bị in...", key: "batchPrint" });
-    setTimeout(() => {
-      message.success({
-        content: `Đã gửi lệnh in ${selectedRows.length} phiếu!`,
-        key: "batchPrint",
-        duration: 2,
-      });
-    }, 1000);
-  };
-
-  const handleFilterChange = (values) => {
-    setFilters((prev) => ({
-      ...prev,
-      ...values,
-    }));
-    setCurrentPage(1);
-  };
-
-  const handleTableChange = (pagination, filters, sorter) => {
-    setCurrentPage(pagination.current);
-    setPageSize(pagination.pageSize);
+    setLoading(false);
   };
 
   const columns = [
@@ -246,357 +91,618 @@ const FoodImportList = () => {
       title: "Mã phiếu",
       dataIndex: "id",
       key: "id",
-      width: 120,
-      fixed: "left",
-      render: (id) => (
-        <Tag color="blue" className="bill-id">
-          {id}
-        </Tag>
-      ),
-    },
-    {
-      title: "Ngày tạo",
-      dataIndex: "createdAt",
-      key: "createdAt",
       width: 150,
-      render: (date) => (
-        <Space>
-          <CalendarOutlined />
-          {dayjs(date).format("DD/MM/YYYY HH:mm")}
-        </Space>
-      ),
     },
     {
       title: "Nhà cung cấp",
-      dataIndex: "supplier",
-      key: "supplier",
-      render: (supplier) => supplier.name,
+      dataIndex: "supplierName",
+      key: "supplierName",
+      width: 200,
     },
     {
-      title: "Tổng tiền",
-      dataIndex: "totalAmount",
-      key: "totalAmount",
+      title: "Ngày tạo",
+      dataIndex: "createTime",
+      key: "createTime",
+      width: 180,
+      render: (date) => (date ? moment(date).format("DD/MM/YYYY HH:mm") : ""),
+    },
+    {
+      title: "Người tạo",
+      dataIndex: "createByName",
+      key: "createByName",
       width: 150,
-      render: (amount) => (
-        <span className="amount">{amount.toLocaleString()}đ</span>
-      ),
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
       width: 150,
-      render: (status) => (
-        <Badge
-          status={
-            status === "pending"
-              ? "warning"
-              : status === "received"
-              ? "success"
-              : "default"
-          }
-          text={
-            status === "pending"
-              ? "Chờ nhận hàng"
-              : status === "received"
-              ? "Đã nhận hàng"
-              : "Khác"
-          }
-          className="status-badge"
-        />
-      ),
+      render: (status) => {
+        const statusConfig = {
+          pending: { color: "warning", text: "Chờ nhận hàng" },
+          delivered: { color: "success", text: "Đã nhận hàng" },
+          stocked: { color: "success", text: "Đã nhập kho" },
+        };
+        return (
+          <Tag color={statusConfig[status]?.color || "default"}>
+            {statusConfig[status]?.text || status}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: "Đặt cọc",
+      dataIndex: "depositAmount",
+      key: "depositAmount",
+      width: 150,
+      render: (value) => (value ? `${value.toLocaleString()}đ` : "0đ"),
     },
     {
       title: "Thao tác",
       key: "action",
       width: 200,
-      fixed: "right",
       render: (_, record) => (
-        <Space size="middle" className="action-space">
+        <Space>
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => handleViewDetail(record)}
+          >
+            Chi tiết
+          </Button>
           {record.status === "pending" && (
             <Button
               type="primary"
-              icon={<CheckCircleOutlined />}
-              onClick={() => handleReceive(record)}
-              className="receive-button"
+              icon={<ShoppingCartOutlined />}
+              onClick={() => handleDelivery(record)}
             >
-              Nhận hàng
+              Giao hàng
             </Button>
           )}
-          <Button.Group>
-            <Tooltip title="Xem chi tiết">
-              <Button
-                icon={<EyeOutlined />}
-                onClick={() => handleView(record)}
-              />
-            </Tooltip>
-            <Tooltip title="In phiếu">
-              <Button
-                icon={<PrinterOutlined />}
-                onClick={() => handlePrint(record)}
-              />
-            </Tooltip>
-          </Button.Group>
+          {record.status === "delivered" && (
+            <Button
+              type="primary"
+              icon={<InboxOutlined />}
+              onClick={() => handleStock(record.id)}
+            >
+              Nhập kho
+            </Button>
+          )}
         </Space>
       ),
     },
   ];
 
+  const handleViewDetail = async (record) => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/api/FoodImport/${record.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      setSelectedImport(response.data.data);
+      setShowDetailModal(true);
+    } catch (error) {
+      message.error("Lỗi khi tải chi tiết phiếu nhập");
+    }
+  };
+
+  const handleSearch = (value) => {
+    setSearchText(value);
+  };
+
+  const handleFilterChange = (values) => {
+    setFilters((prev) => ({ ...prev, ...values }));
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      status: "all",
+      dateRange: [],
+    });
+    setSearchText("");
+    getFoodImports();
+  };
+
+  const handleDelivery = (record) => {
+    setSelectedDelivery(record);
+    setDeliveryDetails(
+      record.details.map((detail) => ({
+        ...detail,
+        actualQuantity: detail.expectedQuantity,
+        receivedQuantity: detail.expectedQuantity,
+      }))
+    );
+    setDeliveryDate(moment());
+    setShowDeliveryModal(true);
+  };
+
+  const validateDeliveryForm = () => {
+    const errors = {
+      deliveryDate: !deliveryDate,
+      quantities: false,
+    };
+
+    // Kiểm tra số lượng
+    const hasInvalidQuantities = deliveryDetails.some((detail) => {
+      // Số lượng thực tế không được vượt quá số lượng yêu cầu
+      if (detail.actualQuantity > detail.expectedQuantity) {
+        return true;
+      }
+      // Số lượng nhận không được vượt quá số lượng thực tế
+      if (detail.receivedQuantity > detail.actualQuantity) {
+        return true;
+      }
+      // Các số lượng phải được nhập
+      if (!detail.actualQuantity || !detail.receivedQuantity) {
+        return true;
+      }
+      return false;
+    });
+
+    errors.quantities = hasInvalidQuantities;
+    setFormErrors(errors);
+
+    return !errors.deliveryDate && !hasInvalidQuantities;
+  };
+
+  const handleDeliveryConfirm = async () => {
+    if (!validateDeliveryForm()) {
+      message.error("Vui lòng kiểm tra lại thông tin giao hàng!");
+      return;
+    }
+
+    try {
+      const payload = {
+        deliveryTime: deliveryDate.toISOString(),
+        details: deliveryDetails.map((detail) => ({
+          foodId: detail.foodId,
+          actualQuantity: detail.actualQuantity,
+          receivedQuantity: detail.receivedQuantity,
+          note: detail.note || null,
+        })),
+        note: null, // Có thể thêm field note nếu cần
+      };
+
+      await axios.put(
+        `${API_URL}/api/FoodImport/${selectedDelivery.id}/delivery`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      message.success("Giao hàng thành công");
+      setShowDeliveryModal(false);
+      setShowConfirmModal(true);
+      getFoodImports();
+    } catch (error) {
+      console.log(error);
+      message.error("Lỗi khi xác nhận giao hàng");
+    }
+  };
+
+  const handleStock = (id) => {
+    setStockingId(id);
+    setShowStockConfirmModal(true);
+  };
+
+  const handleStockConfirm = async () => {
+    try {
+      await axios.put(
+        `${API_URL}/api/FoodImport/${stockingId}/stock`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      message.success("Nhập kho thành công");
+      setShowStockConfirmModal(false);
+      getFoodImports();
+    } catch (error) {
+      console.log(error);
+      message.error("Lỗi khi nhập kho");
+    }
+  };
+
+  const renderDetailModal = () => (
+    <Modal
+      title={`Chi tiết phiếu nhập ${selectedImport?.id}`}
+      open={showDetailModal}
+      onCancel={() => setShowDetailModal(false)}
+      footer={null}
+      width={1000}
+    >
+      <Descriptions bordered column={2}>
+        <Descriptions.Item label="Mã phiếu">
+          {selectedImport?.id}
+        </Descriptions.Item>
+        <Descriptions.Item label="Nhà cung cấp">
+          {selectedImport?.supplierName}
+        </Descriptions.Item>
+        <Descriptions.Item label="Ngày tạo">
+          {moment(selectedImport?.createTime).format("DD/MM/YYYY HH:mm")}
+        </Descriptions.Item>
+        <Descriptions.Item label="Người tạo">
+          {selectedImport?.createByName}
+        </Descriptions.Item>
+        <Descriptions.Item label="Trạng thái">
+          <Tag
+            color={selectedImport?.status === "pending" ? "warning" : "success"}
+          >
+            {selectedImport?.status === "pending"
+              ? "Chờ nhận hàng"
+              : "Đã nhận hàng"}
+          </Tag>
+        </Descriptions.Item>
+        <Descriptions.Item label="Tiền đặt cọc">
+          <Text type="success">
+            {selectedImport?.depositAmount?.toLocaleString()}đ
+          </Text>
+        </Descriptions.Item>
+      </Descriptions>
+
+      <div style={{ marginTop: 24 }}>
+        <Text strong>Chi tiết sản phẩm:</Text>
+        <Table
+          dataSource={selectedImport?.details || []}
+          columns={[
+            {
+              title: "Tên thức ăn",
+              dataIndex: "foodName",
+            },
+            {
+              title: "Đơn giá",
+              dataIndex: "unitPrice",
+              render: (value) => `${value?.toLocaleString()}đ`,
+            },
+            {
+              title: "Số lượng yêu cầu",
+              dataIndex: "expectedQuantity",
+              render: (value) => `${value?.toLocaleString()} kg`,
+            },
+            {
+              title: "Thành tiên",
+              dataIndex: "totalPrice",
+              render: (value) => `${value?.toLocaleString()}đ`,
+            },
+          ]}
+          pagination={false}
+        />
+      </div>
+    </Modal>
+  );
+
   return (
     <div className="food-import-list">
-      <Row gutter={[16, 16]} className="summary-section">
-        <Col xs={24} sm={8}>
-          <Card className="summary-card" hoverable>
+      <Row gutter={[16, 16]}>
+        <Col span={8}>
+          <Card className="statistic-card">
             <Statistic
-              title="Tổng số phiếu"
-              value={summaryData.totalBills}
+              title={<Text strong>Tổng số phiếu</Text>}
+              value={foodImports.length}
               prefix={<ShoppingCartOutlined />}
+              valueStyle={{ fontSize: 24 }}
             />
           </Card>
         </Col>
         <Col span={8}>
-          <Card className="summary-card">
+          <Card className="statistic-card">
             <Statistic
-              title="Chờ nhận hàng"
-              value={summaryData.pendingBills}
-              prefix={<CalendarOutlined />}
-              valueStyle={{ color: "#faad14" }}
+              title={<Text strong>Chờ nhận hàng</Text>}
+              value={foodImports.filter((r) => r.status === "pending").length}
+              prefix={<ClockCircleOutlined />}
+              valueStyle={{ color: "#faad14", fontSize: 24 }}
             />
           </Card>
         </Col>
         <Col span={8}>
-          <Card className="summary-card">
+          <Card className="statistic-card">
             <Statistic
-              title="Tổng giá trị"
-              value={summaryData.totalAmount}
+              title={<Text strong>Tổng giá trị</Text>}
+              value={foodImports.reduce(
+                (sum, item) => sum + (item.depositAmount || 0),
+                0
+              )}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: "#52c41a" }}
+              valueStyle={{ color: "#52c41a", fontSize: 24 }}
               formatter={(value) => `${value.toLocaleString()}đ`}
             />
           </Card>
         </Col>
       </Row>
 
-      <Card className="page-header">
-        <Row justify="space-between" align="middle" gutter={[16, 16]}>
-          <Col xs={24} md={8}>
-            <Title level={3}>
-              <ShoppingCartOutlined /> Danh sách phiếu nhập thức ăn
-            </Title>
-          </Col>
-          <Col xs={24} md={16}>
-            <Space size="middle" className="header-actions">
-              <Search
-                placeholder="Tìm kiếm theo mã phiếu, nhà cung cấp..."
-                allowClear
-                enterButton
-                className="search-input"
-                onChange={(e) => setSearchText(e.target.value)}
-              />
-              <Button
-                icon={<FilterOutlined />}
-                onClick={() => setFilterDrawerVisible(true)}
-                type={
-                  Object.keys(filters).some(
-                    (key) =>
-                      filters[key] !== "all" && filters[key]?.length !== 0
-                  )
-                    ? "primary"
-                    : "default"
-                }
-              >
-                Bộ lọc{" "}
-                {Object.keys(filters).some(
-                  (key) => filters[key] !== "all" && filters[key]?.length !== 0
-                ) &&
-                  `(${
-                    Object.keys(filters).filter(
-                      (key) =>
-                        filters[key] !== "all" && filters[key]?.length !== 0
-                    ).length
-                  })`}
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
-
-      <Card
-        className="table-card"
-        extra={
-          <Space wrap>
-            <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
+      <Card className="main-table-card">
+        <Space
+          style={{
+            marginBottom: 16,
+            justifyContent: "space-between",
+            width: "100%",
+          }}
+        >
+          <Space>
+            <Input.Search
+              placeholder="Tìm kiếm theo mã phiếu, nhà cung cấp..."
+              allowClear
+              onSearch={handleSearch}
+              style={{ width: 300 }}
+            />
+            <Button
+              icon={<FilterOutlined />}
+              onClick={() => setFilterDrawerVisible(true)}
+            >
+              Bộ lọc
+            </Button>
+            <Button icon={<ReloadOutlined />} onClick={resetFilters}>
               Làm mới
             </Button>
-            <Button
-              icon={<PrinterOutlined />}
-              onClick={handleBatchPrint}
-              disabled={selectedRows.length === 0}
-            >
-              In đã chọn ({selectedRows.length})
-            </Button>
-            <Button
-              type="primary"
-              icon={<ExportOutlined />}
-              onClick={handleExport}
-            >
-              Xuất Excel
-            </Button>
           </Space>
-        }
-      >
+        </Space>
+
         <Table
           columns={columns}
-          dataSource={bills}
-          rowKey="id"
+          dataSource={foodImports}
           loading={loading}
-          rowSelection={{
-            onChange: (_, selectedRows) => setSelectedRows(selectedRows),
-            selectedRowKeys: selectedRows.map((row) => row.id),
-          }}
-          onChange={handleTableChange}
+          rowKey="id"
           pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: bills.length,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `Tổng cộng ${total} phiếu`,
-            pageSizeOptions: ["10", "20", "50", "100"],
+            pageSize: 10,
+            showTotal: (total) => `Tổng ${total} phiếu nhập`,
           }}
-          scroll={{ x: 1300 }}
-          className="custom-table"
         />
       </Card>
 
-      <Drawer
+      {renderDetailModal()}
+
+      <Modal
+        title="Xác nhận giao hàng"
+        open={showDeliveryModal}
+        onOk={handleDeliveryConfirm}
+        onCancel={() => setShowDeliveryModal(false)}
+        okButtonProps={{
+          disabled: formErrors.deliveryDate || formErrors.quantities,
+        }}
+        width={1000}
+      >
+        {selectedDelivery && (
+          <>
+            <Card bordered={false} className="mb-4">
+              <Row gutter={[16, 16]}>
+                <Col span={12}>
+                  <Descriptions column={1} bordered>
+                    <Descriptions.Item label="Mã phiếu">
+                      {selectedDelivery.id}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Nhà cung cấp">
+                      {selectedDelivery.supplierName}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Ngày tạo">
+                      {moment(selectedDelivery.createTime).format(
+                        "DD/MM/YYYY HH:mm"
+                      )}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Người tạo">
+                      {selectedDelivery.createByName}
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Col>
+                <Col span={12}>
+                  <Descriptions column={1} bordered>
+                    <Descriptions.Item label="Ngày giao dự kiến">
+                      {moment(selectedDelivery.expectedDeliveryTime).format(
+                        "DD/MM/YYYY"
+                      )}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Tiền đặt cọc">
+                      <Text type="success">
+                        {selectedDelivery.depositAmount?.toLocaleString()}đ
+                      </Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item
+                      label={
+                        <span>
+                          Ngày giao thực tế
+                          <span style={{ color: "#ff4d4f" }}> *</span>
+                        </span>
+                      }
+                      validateStatus={formErrors.deliveryDate ? "error" : ""}
+                    >
+                      <DatePicker
+                        value={deliveryDate}
+                        onChange={(date) => {
+                          setDeliveryDate(date);
+                          setFormErrors((prev) => ({
+                            ...prev,
+                            deliveryDate: !date,
+                          }));
+                        }}
+                        format="DD/MM/YYYY"
+                        style={{ width: "100%" }}
+                      />
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Col>
+              </Row>
+            </Card>
+
+            {formErrors.quantities && (
+              <Alert
+                message="Lỗi nhập số lượng"
+                description="Vui lòng kiểm tra lại:
+                  - Số lượng thực tế không được vượt quá số lượng yêu cầu
+                  - Số lượng nhận không được vượt quá số lượng thực tế
+                  - Phải nhập đầy đủ các số lượng"
+                type="error"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+            )}
+
+            <Table
+              dataSource={deliveryDetails}
+              columns={[
+                {
+                  title: "Tên thức ăn",
+                  dataIndex: "foodName",
+                },
+                {
+                  title: "Số lượng yêu cầu",
+                  dataIndex: "expectedQuantity",
+                  render: (value) => `${value.toLocaleString()} kg`,
+                },
+                {
+                  title: "Số lượng chấp nhận",
+                  dataIndex: "actualQuantity",
+                  render: (_, record, index) => (
+                    <InputNumber
+                      min={0}
+                      max={record.expectedQuantity}
+                      value={record.actualQuantity}
+                      onChange={(value) => {
+                        const newDetails = [...deliveryDetails];
+                        newDetails[index].actualQuantity = value;
+                        newDetails[index].receivedQuantity = Math.min(
+                          value || 0,
+                          newDetails[index].receivedQuantity || 0
+                        );
+                        setDeliveryDetails(newDetails);
+                        validateDeliveryForm();
+                      }}
+                      status={
+                        record.actualQuantity > record.expectedQuantity
+                          ? "error"
+                          : ""
+                      }
+                      addonAfter="kg"
+                    />
+                  ),
+                },
+                {
+                  title: "Số lượng giao tới",
+                  dataIndex: "receivedQuantity",
+                  render: (_, record, index) => (
+                    <InputNumber
+                      min={0}
+                      max={record.actualQuantity}
+                      value={record.receivedQuantity}
+                      onChange={(value) => {
+                        const newDetails = [...deliveryDetails];
+                        newDetails[index].receivedQuantity = value;
+                        setDeliveryDetails(newDetails);
+                        validateDeliveryForm();
+                      }}
+                      status={
+                        record.receivedQuantity > record.actualQuantity
+                          ? "error"
+                          : ""
+                      }
+                      addonAfter="kg"
+                    />
+                  ),
+                },
+              ]}
+              pagination={false}
+            />
+          </>
+        )}
+      </Modal>
+
+      <Modal
         title={
           <Space>
-            <FilterOutlined />
-            <span>Bộ lọc tìm kiếm</span>
+            <DollarOutlined style={{ color: "#52c41a" }} />
+            <span>Thông tin thanh toán</span>
           </Space>
         }
-        width={380}
-        onClose={() => setFilterDrawerVisible(false)}
-        open={filterDrawerVisible}
-        extra={
+        open={showConfirmModal}
+        onOk={() => setShowConfirmModal(false)}
+        onCancel={() => setShowConfirmModal(false)}
+        width={600}
+        footer={[
           <Button
-            type="text"
-            icon={<DeleteOutlined />}
-            onClick={() => {
-              setFilters({
-                status: "all",
-                dateRange: [],
-                minAmount: null,
-                maxAmount: null,
-              });
-              setFilterDrawerVisible(false);
-            }}
+            key="close"
+            type="primary"
+            onClick={() => setShowConfirmModal(false)}
           >
-            Xóa bộ lọc
-          </Button>
-        }
+            Xác nhận
+          </Button>,
+        ]}
       >
-        <Form
-          layout="vertical"
-          initialValues={filters}
-          onValuesChange={(_, allValues) => handleFilterChange(allValues)}
-        >
-          <Form.Item label="Thời gian">
-            <RangePicker
-              style={{ width: "100%" }}
-              format="DD/MM/YYYY"
-              value={filters.dateRange}
-              onChange={(dates) => handleFilterChange({ dateRange: dates })}
-              allowClear
+        {selectedDelivery && (
+          <>
+            <Alert
+              message="Giao hàng thành công!"
+              description="Vui lòng kiểm tra thông tin thanh toán bên dưới"
+              type="success"
+              showIcon
+              style={{ marginBottom: 24 }}
             />
-          </Form.Item>
 
-          <Divider />
+            <Card bordered={false}>
+              <Descriptions bordered column={1}>
+                <Descriptions.Item label={<Text strong>Tổng tiền hàng</Text>}>
+                  <Text type="warning" style={{ fontSize: 16 }}>
+                    {deliveryDetails
+                      .reduce(
+                        (sum, item) =>
+                          sum + item.receivedQuantity * item.unitPrice,
+                        0
+                      )
+                      .toLocaleString()}
+                    đ
+                  </Text>
+                </Descriptions.Item>
 
-          <Form.Item label="Trạng thái">
-            <Select
-              style={{ width: "100%" }}
-              value={filters.status}
-              onChange={(value) => handleFilterChange({ status: value })}
-            >
-              <Select.Option value="all">Tất cả trạng thái</Select.Option>
-              <Select.Option value="pending">
-                <Badge status="warning" text="Chờ nhận hàng" />
-              </Select.Option>
-              <Select.Option value="received">
-                <Badge status="success" text="Đã nhận hàng" />
-              </Select.Option>
-              <Select.Option value="cancelled">
-                <Badge status="error" text="Đã hủy" />
-              </Select.Option>
-            </Select>
-          </Form.Item>
+                <Descriptions.Item label={<Text strong>Đã đặt cọc</Text>}>
+                  <Text type="success" style={{ fontSize: 16 }}>
+                    {selectedDelivery.depositAmount?.toLocaleString()}đ
+                  </Text>
+                </Descriptions.Item>
 
-          <Divider />
+                <Descriptions.Item
+                  label={<Text strong>Còn phải thanh toán</Text>}
+                  className="payment-highlight"
+                >
+                  <Text
+                    type="danger"
+                    style={{ fontSize: 18, fontWeight: "bold" }}
+                  >
+                    {(
+                      deliveryDetails.reduce(
+                        (sum, item) =>
+                          sum + item.receivedQuantity * item.unitPrice,
+                        0
+                      ) - (selectedDelivery.depositAmount || 0)
+                    ).toLocaleString()}
+                    đ
+                  </Text>
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+          </>
+        )}
+      </Modal>
 
-          <Form.Item label="Giá trị">
-            <Space.Compact style={{ width: "100%" }}>
-              <InputNumber
-                style={{ width: "50%" }}
-                placeholder="Từ"
-                value={filters.minAmount}
-                onChange={(value) => handleFilterChange({ minAmount: value })}
-                formatter={(value) =>
-                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                }
-                parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-                addonAfter="đ"
-              />
-              <InputNumber
-                style={{ width: "50%" }}
-                placeholder="Đến"
-                value={filters.maxAmount}
-                onChange={(value) => handleFilterChange({ maxAmount: value })}
-                formatter={(value) =>
-                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                }
-                parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-                addonAfter="đ"
-              />
-            </Space.Compact>
-          </Form.Item>
-
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              padding: "8px 16px",
-              background: "#fff",
-              borderTop: "1px solid #f0f0f0",
-            }}
-          >
-            <Space style={{ float: "right" }}>
-              <Button onClick={() => setFilterDrawerVisible(false)}>Hủy</Button>
-              <Button
-                type="primary"
-                onClick={() => setFilterDrawerVisible(false)}
-              >
-                Áp dụng
-              </Button>
-            </Space>
-          </div>
-        </Form>
-      </Drawer>
-
-      <ReceiveModal
-        visible={receiveModalVisible}
-        onCancel={() => {
-          setReceiveModalVisible(false);
-          receiveForm.resetFields();
-        }}
-        selectedBill={selectedBill}
-        form={receiveForm}
-        loading={loading}
-        onFinish={handleFinishReceive}
-      />
+      <Modal
+        title={
+          <Space>
+            <InboxOutlined style={{ color: "#52c41a" }} />
+            <Text strong>Xác nhận nhập kho</Text>
+          </Space>
+        }
+        open={showStockConfirmModal}
+        onOk={handleStockConfirm}
+        onCancel={() => setShowStockConfirmModal(false)}
+        okText="Xác nhận"
+        cancelText="Hủy"
+      >
+        <p>Bạn có chắc chắn muốn nhập kho phiếu nhập này?</p>
+      </Modal>
     </div>
   );
 };

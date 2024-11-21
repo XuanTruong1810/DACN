@@ -18,20 +18,10 @@ public class FoodImportController(IFoodImportService foodImportService) : Contro
     /// Lấy danh sách phiếu nhập có phân trang và tìm kiếm
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetImports(
-        [FromQuery] string? search,
-        [FromQuery] string? status,
-        [FromQuery] string? supplierId,
-        [FromQuery] string? requestId,
-        [FromQuery] DateTimeOffset? fromDate,
-        [FromQuery] DateTimeOffset? toDate,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
+    public async Task<IActionResult> GetImports()
     {
-        BasePagination<FoodImportModelView>? result = await _foodImportService.GetImportsAsync(
-            search, status, supplierId, requestId,
-            fromDate, toDate, pageNumber, pageSize);
-        return Ok(BaseResponse<BasePagination<FoodImportModelView>>.OkResponse(result));
+        List<FoodImportModelView>? result = await _foodImportService.GetImportsAsync();
+        return Ok(BaseResponse<List<FoodImportModelView>>.OkResponse(result));
     }
 
     /// <summary>
@@ -60,11 +50,20 @@ public class FoodImportController(IFoodImportService foodImportService) : Contro
     /// </summary>
     [HttpPut("{id}/delivery")]
     [Authorize(Roles = "Admin,Manager,Warehouse")]
-    public async Task<IActionResult> UpdateDeliveryStatus(
-        string id,
-        [FromBody] UpdateDeliveryDto dto)
+    public async Task<IActionResult> UpdateDeliveryStatus(string id, [FromBody] UpdateDeliveryDto dto)
     {
         FoodImportModelView? data = await _foodImportService.UpdateDeliveryStatusAsync(id, dto);
+        return Ok(BaseResponse<FoodImportModelView>.OkResponse(data));
+    }
+
+    /// <summary>
+    /// Cập nhật trạng thái kho
+    /// </summary>
+    [HttpPut("{id}/stock")]
+    [Authorize(Roles = "Admin,Manager,Warehouse")]
+    public async Task<IActionResult> UpdateStockStatus(string id)
+    {
+        FoodImportModelView? data = await _foodImportService.UpdateStockStatusAsync(id);
         return Ok(BaseResponse<FoodImportModelView>.OkResponse(data));
     }
 }

@@ -4,8 +4,12 @@ namespace Core.Entities;
 
 public class FoodImports : BaseEntity
 {
-    public decimal TotalAmount { get; set; }
+    public decimal? TotalAmount { get; set; }
     public decimal? DepositAmount { get; set; }
+
+    public decimal? ReceivedAmount { get; set; }
+
+    public DateTimeOffset? StockedTime { get; set; }
 
     public DateTimeOffset ExpectedDeliveryTime { get; set; }
 
