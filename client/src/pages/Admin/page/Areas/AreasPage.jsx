@@ -64,7 +64,7 @@ const AreasPage = () => {
       setAreas(response.data.data.items);
     } catch (error) {
       console.error("Failed to fetch areas:", error);
-      message.error("Không thể tải dữ liệu khu vực");
+      // message.error("Không thể tải dữ liệu khu vực");
     } finally {
       setLoading(false);
     }

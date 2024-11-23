@@ -43,7 +43,6 @@ const DeadPigsPage = () => {
           },
         }
       );
-
       if (response.status === 200) {
         const { items, total } = response.data.data;
         setDeadPigs(items);
@@ -90,6 +89,16 @@ const DeadPigsPage = () => {
       title: "Phương pháp xử lý",
       dataIndex: "handlingMethod",
       key: "handlingMethod",
+      render: (method) => {
+        switch (method) {
+          case "Burial":
+            return "Thiêu hủy";
+          case "Burning":
+            return "Chôn cất";
+          default:
+            return method;
+        }
+      },
     },
     {
       title: "Ghi chú xử lý",
@@ -114,7 +123,7 @@ const DeadPigsPage = () => {
         cancelData
       );
 
-      if (response.data.isSuccess) {
+      if (response.status === 200) {
         message.success("Xử lý heo chết thành công");
         fetchDeadPigs();
         setIsModalVisible(false);

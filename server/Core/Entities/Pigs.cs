@@ -36,7 +36,7 @@ namespace Core.Entities
         [InverseProperty("Pig")]
         public virtual ICollection<MovePigDetails> MovePigDetails { get; set; } = new List<MovePigDetails>();
 
-        // [InverseProperty("Pigs")]
-        // public virtual ICollection<HealthRecordDetails> HealthRecordDetails { get; set; } = new List<HealthRecordDetails>();
+        [InverseProperty("Pig")]
+        public virtual ICollection<PigExaminationDetail> PigExaminationDetails { get; set; } = new List<PigExaminationDetail>();
     }
 }

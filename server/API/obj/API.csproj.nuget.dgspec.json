@@ -64,6 +64,14 @@
               "target": "Package",
               "version": "[8.0.8, )"
             },
+            "Quartz": {
+              "target": "Package",
+              "version": "[3.13.1, )"
+            },
+            "Quartz.Extensions.Hosting": {
+              "target": "Package",
+              "version": "[3.13.1, )"
+            },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[6.4.0, )"
@@ -154,9 +162,17 @@
               "target": "Package",
               "version": "[1.26.2, )"
             },
+            "Dropbox.Api": {
+              "target": "Package",
+              "version": "[7.0.0, )"
+            },
             "MailKit": {
               "target": "Package",
               "version": "[4.8.0, )"
+            },
+            "Quartz": {
+              "target": "Package",
+              "version": "[3.13.1, )"
             }
           },
           "imports": [

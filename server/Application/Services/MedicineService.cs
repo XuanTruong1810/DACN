@@ -40,7 +40,6 @@ namespace Application.Services
                     vaccinationPlan.DeleteTime = DateTimeOffset.UtcNow;
                     vaccinationPlan.IsActive = false;
                     vaccinationPlan.LastModifiedTime = DateTimeOffset.UtcNow;
-                    vaccinationPlan.CanVaccinate = false;
                     vaccinationPlan.Status = "cancelled";
                     await _unitOfWork.GetRepository<VaccinationPlan>().UpdateAsync(vaccinationPlan);
                 }

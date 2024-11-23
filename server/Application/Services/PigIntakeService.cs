@@ -247,7 +247,7 @@ namespace Application.Services
                 .GetEntities
                 .CountAsync();
 
-            List<Pigs> pigsList = new List<Pigs>();
+            List<Pigs> pigsList = new();
             int stableIndex = 0;
 
             for (int i = 1; i <= pigAccept; i++)
@@ -267,7 +267,7 @@ namespace Application.Services
 
                 string pigCode = $"{PigIntake.DeliveryDate:yyyyMMdd}_{totalExistingPigsCount + i}";
 
-                Pigs newPig = new Pigs
+                Pigs newPig = new()
                 {
                     Id = pigCode,
                     StableId = currentStable.Id,
@@ -276,17 +276,32 @@ namespace Application.Services
 
                 currentStable.CurrentOccupancy++;
             }
-
             try
             {
                 await unitOfWork.GetRepository<Pigs>().AddRangeAsync(pigsList);
+                List<Medicines> medicines = await unitOfWork
+                    .GetRepository<Medicines>()
+                    .GetEntities
+                    .Where(m => m.IsVaccine && m.DaysAfterImport.HasValue)
+                    .ToListAsync();
 
-                foreach (var stable in availableStables.Where(s => s.CurrentOccupancy > 0))
+                List<VaccinationPlan> vaccinationPlans = pigsList
+                    .SelectMany(pig => medicines.Select(medicine => new VaccinationPlan
+                    {
+                        PigId = pig.Id,
+                        MedicineId = medicine.Id,
+                        ScheduledDate = DateTime.UtcNow.AddDays(medicine.DaysAfterImport!.Value),
+                        Status = "pending"
+                    }))
+                    .ToList();
+
+                await unitOfWork.GetRepository<VaccinationPlan>().AddRangeAsync(vaccinationPlans);
+                foreach (Stables stable in availableStables.Where(s => s.CurrentOccupancy > 0))
                 {
                     await unitOfWork.GetRepository<Stables>().UpdateAsync(stable);
                 }
 
-                PigIntake.StokeDate = DateTimeOffset.Now;
+                PigIntake.StokeDate = DateTimeOffset.UtcNow;
                 await unitOfWork.GetRepository<PigIntakes>().UpdateAsync(PigIntake);
 
                 await unitOfWork.SaveAsync();

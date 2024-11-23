@@ -195,7 +195,6 @@ namespace Application.Services
                 foreach (VaccinationPlan vaccinationPlan in vaccinationPlans)
                 {
                     vaccinationPlan.Status = "cancelled";
-                    vaccinationPlan.CanVaccinate = false;
                     vaccinationPlan.LastModifiedTime = DateTimeOffset.UtcNow;
                     vaccinationPlan.DeleteTime = DateTimeOffset.UtcNow;
                     await _unitOfWork.GetRepository<VaccinationPlan>().UpdateAsync(vaccinationPlan);

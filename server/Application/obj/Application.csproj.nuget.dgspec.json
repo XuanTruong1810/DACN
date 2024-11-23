@@ -62,9 +62,17 @@
               "target": "Package",
               "version": "[1.26.2, )"
             },
+            "Dropbox.Api": {
+              "target": "Package",
+              "version": "[7.0.0, )"
+            },
             "MailKit": {
               "target": "Package",
               "version": "[4.8.0, )"
+            },
+            "Quartz": {
+              "target": "Package",
+              "version": "[3.13.1, )"
             }
           },
           "imports": [

@@ -9,7 +9,6 @@ namespace Core.Entities
         public DateTime ScheduledDate { get; set; }         // Ngày dự kiến tiêm
         public DateTime? ActualDate { get; set; }           // Ngày tiêm thực tế
         public string Status { get; set; }                  // pending/completed/postponed/cancelled
-        public bool CanVaccinate { get; set; } = true;      // Có thể tiêm không
         public string? Note { get; set; }
         public bool IsActive { get; set; } = true;
 

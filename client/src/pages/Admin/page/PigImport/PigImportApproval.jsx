@@ -192,6 +192,26 @@ const PigImportApproval = () => {
               }}
             />
           </Tooltip>
+          {record.status === "pending" && (
+            <>
+              <Tooltip title="Duyệt">
+                <Button
+                  type="text"
+                  icon={<CheckOutlined />}
+                  onClick={() => handleApprove(record)}
+                  style={{ color: "#52c41a" }}
+                />
+              </Tooltip>
+              <Tooltip title="Từ chối">
+                <Button
+                  type="text"
+                  icon={<CloseOutlined />}
+                  onClick={() => handleReject(record)}
+                  style={{ color: "#ff4d4f" }}
+                />
+              </Tooltip>
+            </>
+          )}
         </Space>
       ),
     },

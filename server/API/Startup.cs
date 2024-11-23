@@ -1,5 +1,6 @@
 using System.Text;
 using Application.Interfaces;
+using Application.Jobs;
 using Application.Services;
 using Core.Entities;
 using Core.Settings;
@@ -10,11 +11,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Quartz;
 
 public static class Startup
 {
     public static IServiceCollection ConfigureServices(this IServiceCollection services)
     {
+        services.AddJobs();
+        services.AddQuartzHostedService();
         services.AddCorsConfig();
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
@@ -27,6 +31,30 @@ public static class Startup
         services.AddInfrastructure();
 
         return services;
+    }
+
+    public static void AddJobs(this IServiceCollection services)
+    {
+        services.AddQuartz(options =>
+        {
+            JobKey? jobKey = new JobKey("DatabaseBackupJob");
+
+            options.AddJob<DatabaseBackupJob>(jobKey);
+            options.AddTrigger(opts =>
+            {
+                opts.ForJob(jobKey);
+                opts.WithIdentity("DatabaseBackupJob-trigger");
+                opts.WithCronSchedule(Environment.GetEnvironmentVariable("BACKUPTIME") ?? "0 * * * * ?");
+            });
+        });
+    }
+
+    public static void AddQuartzHostedService(this IServiceCollection services)
+    {
+        services.AddQuartzHostedService(options =>
+        {
+            options.WaitForJobsToComplete = true;
+        });
     }
 
     public static void AddCorsConfig(this IServiceCollection services)

@@ -96,9 +96,12 @@ public class MovePigService : IMovePigService
                 toStable.CurrentOccupancy += 1;
 
                 await _unitOfWork.GetRepository<Stables>().UpdateAsync(fromStable);
+
                 await _unitOfWork.GetRepository<Stables>().UpdateAsync(toStable);
 
                 pig.UpdatedTime = DateTimeOffset.UtcNow;
+
+                pig.StableId = toStable.Id;
                 await _unitOfWork.GetRepository<Pigs>().UpdateAsync(pig);
             }
             await _unitOfWork.SaveAsync();

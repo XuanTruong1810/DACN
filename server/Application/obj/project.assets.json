@@ -122,6 +122,22 @@
           }
         }
       },
+      "Dropbox.Api/7.0.0": {
+        "type": "package",
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.2"
+        },
+        "compile": {
+          "lib/netstandard2.0/Dropbox.Api.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/Dropbox.Api.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "MailKit/4.8.0": {
         "type": "package",
         "dependencies": {
@@ -1143,6 +1159,22 @@
         },
         "runtime": {
           "lib/net6.0/Newtonsoft.Json.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "Quartz/3.13.1": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "2.1.1"
+        },
+        "compile": {
+          "lib/net6.0/Quartz.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/Quartz.dll": {
             "related": ".xml"
           }
         }
@@ -2547,6 +2579,19 @@
         "lib/netstandard2.0/CloudinaryDotNet.xml"
       ]
     },
+    "Dropbox.Api/7.0.0": {
+      "sha512": "Ie48rFTFL7rC8YGZ2KMRckhN8QbF56VzCns9+PymrjwcVfnGfKEc2EtHLUau2hrlwvaUtDf6wvTQJXHWAwhhug==",
+      "type": "package",
+      "path": "dropbox.api/7.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "dropbox.api.7.0.0.nupkg.sha512",
+        "dropbox.api.nuspec",
+        "lib/netstandard2.0/Dropbox.Api.dll",
+        "lib/netstandard2.0/Dropbox.Api.xml"
+      ]
+    },
     "MailKit/4.8.0": {
       "sha512": "zZ1UoM4FUnSFUJ9fTl5CEEaejR0DNP6+FDt1OfXnjg4igZntcir1tg/8Ufd6WY5vrpmvToAjluYqjVM24A+5lA==",
       "type": "package",
@@ -3901,6 +3946,27 @@
         "newtonsoft.json.13.0.3.nupkg.sha512",
         "newtonsoft.json.nuspec",
         "packageIcon.png"
+      ]
+    },
+    "Quartz/3.13.1": {
+      "sha512": "0S4/gYb/FRQfek65OPAmszbdEmtc4Fq/jSeA5XFnvMIjYL9Zr8g9jWoKneEFzAFJGlESjFULtaUFzValHvqu4A==",
+      "type": "package",
+      "path": "quartz/3.13.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/net462/Quartz.dll",
+        "lib/net462/Quartz.xml",
+        "lib/net472/Quartz.dll",
+        "lib/net472/Quartz.xml",
+        "lib/net6.0/Quartz.dll",
+        "lib/net6.0/Quartz.xml",
+        "lib/netstandard2.0/Quartz.dll",
+        "lib/netstandard2.0/Quartz.xml",
+        "quartz-logo-small.png",
+        "quartz.3.13.1.nupkg.sha512",
+        "quartz.nuspec",
+        "quick-start.md"
       ]
     },
     "runtime.debian.8-x64.runtime.native.System.Security.Cryptography.OpenSsl/4.3.2": {
@@ -6813,8 +6879,10 @@
       "AutoMapper.Extensions.Microsoft.DependencyInjection >= 12.0.1",
       "Automapper >= 12.0.1",
       "CloudinaryDotNet >= 1.26.2",
+      "Dropbox.Api >= 7.0.0",
       "Infrastructure >= 1.0.0",
-      "MailKit >= 4.8.0"
+      "MailKit >= 4.8.0",
+      "Quartz >= 3.13.1"
     ]
   },
   "packageFolders": {
@@ -6878,9 +6946,17 @@
             "target": "Package",
             "version": "[1.26.2, )"
           },
+          "Dropbox.Api": {
+            "target": "Package",
+            "version": "[7.0.0, )"
+          },
           "MailKit": {
             "target": "Package",
             "version": "[4.8.0, )"
+          },
+          "Quartz": {
+            "target": "Package",
+            "version": "[3.13.1, )"
           }
         },
         "imports": [

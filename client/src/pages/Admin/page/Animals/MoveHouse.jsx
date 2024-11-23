@@ -157,12 +157,12 @@ const MoveHouse = () => {
     },
     {
       title: "Số lượng",
-      dataIndex: "quantity",
-      key: "quantity",
+      dataIndex: "totalPigs",
+      key: "totalPigs",
       width: 100,
-      render: (quantity) => (
+      render: (totalPigs) => (
         <Badge
-          count={quantity}
+          count={totalPigs}
           showZero
           style={{
             backgroundColor: "#52c41a",
@@ -305,7 +305,7 @@ const MoveHouse = () => {
         const isVaccinated = record.vaccinationStatus === "Đã tiêm";
         const isWeightQualified = checkWeightQualified(
           record.weight,
-          record.areaName
+          record.areaId
         );
 
         return (
@@ -334,9 +334,10 @@ const MoveHouse = () => {
 
     const isVaccinated = pig.vaccinationStatus === "Đã tiêm";
     const weight = pig.weight;
+    console.log("Weight:", weight);
 
     switch (targetArea) {
-      case "AREA002": // Khu B
+      case "AREA0002": // Khu B
         if (!isVaccinated) {
           pig.ineligibleReason = "Chưa tiêm đủ vaccine";
           return false;
@@ -345,9 +346,10 @@ const MoveHouse = () => {
           pig.ineligibleReason = "Cân nặng không phù hợp (yêu cầu: 30-80kg)";
           return false;
         }
+
         return true;
 
-      case "AREA003": // Khu C
+      case "AREA0003": // Khu C
         if (!isVaccinated) {
           pig.ineligibleReason = "Chưa tiêm đủ vaccine";
           return false;
@@ -358,7 +360,7 @@ const MoveHouse = () => {
         }
         return true;
 
-      case "AREA004": // Khu D
+      case "AREA0004": // Khu D
         if (!isVaccinated) {
           pig.ineligibleReason = "Chưa tiêm đủ vaccine";
           return false;
@@ -369,7 +371,7 @@ const MoveHouse = () => {
         }
         return true;
 
-      case "AREA005": // Khu F (Cách ly)
+      case "AREA0005": // Khu F (Cách ly)
         return true;
 
       default:
@@ -377,19 +379,23 @@ const MoveHouse = () => {
     }
   };
 
-  const checkWeightQualified = (weight, areaName) => {
-    switch (areaName) {
-      case "Khu A":
-        return weight >= 20 && weight <= 30;
-      case "Khu B":
-        return weight >= 30 && weight <= 80;
-      case "Khu C":
-        return weight >= 80 && weight <= 105;
-      case "Khu D":
-        return weight >= 105;
-      default:
-        return true;
+  const checkWeightQualified = (weight, areaId) => {
+    // Log để debug
+    console.log("Checking weight:", weight, "for area:", areaId);
+
+    if (areaId === "AREA0005") {
+      return true;
     }
+    if (areaId === "AREA0001") {
+      return weight >= 30 && weight <= 80;
+    }
+    if (areaId === "AREA0002") {
+      return weight >= 80 && weight <= 105;
+    }
+    if (areaId === "AREA0003") {
+      return weight >= 105;
+    }
+    return false;
   };
 
   const handleViewDetail = async (recordId) => {
@@ -455,22 +461,17 @@ const MoveHouse = () => {
           },
         }
       );
-
-      if (response.data.data) {
+      console.log("Response:", response);
+      if (response.status === 200) {
         message.success("Tạo phiếu chuyển chuồng thành công!");
         setIsModalVisible(false);
         form.resetFields();
         setSelectedPigs([]);
         setSelectedRowKeys([]);
-        // Refresh lại danh sách phiếu
         fetchMoveRecords();
       }
     } catch (error) {
       console.error("Error creating move record:", error);
-      message.error(
-        "Không thể tạo phiếu chuyển chuồng: " + error.response?.data?.message ||
-          error.message
-      );
     } finally {
       setLoading(false);
     }
@@ -534,8 +535,16 @@ const MoveHouse = () => {
         }
       );
 
-      console.log("Pigs by area:", pigsResponse.data.data);
-      setFilteredPigs(pigsResponse.data.data);
+      // Lọc chỉ hiển thị những heo đạt chuẩn
+      const allPigs = pigsResponse.data.data;
+      const qualifiedPigs = allPigs.filter((pig) => {
+        const isVaccinated = pig.vaccinationStatus === "Đã tiêm";
+        const isWeightQualified = checkWeightQualified(pig.weight, areaId);
+        return isVaccinated && isWeightQualified;
+      });
+
+      console.log("Qualified Pigs:", qualifiedPigs);
+      setFilteredPigs(qualifiedPigs);
       setSelectedPigs([]);
 
       // Fetch houses cho khu vực
@@ -579,8 +588,19 @@ const MoveHouse = () => {
         }
       );
 
-      console.log("Pigs by house:", response.data.data);
-      setFilteredPigs(response.data.data.items);
+      // Lọc chỉ hiển thị những heo đạt chuẩn
+      const allPigs = response.data.data.items;
+      const qualifiedPigs = allPigs.filter((pig) => {
+        const isVaccinated = pig.vaccinationStatus === "Đã tiêm";
+        const isWeightQualified = checkWeightQualified(
+          pig.weight,
+          selectedSourceArea
+        );
+        return isVaccinated && isWeightQualified;
+      });
+
+      console.log("Qualified Pigs:", qualifiedPigs);
+      setFilteredPigs(qualifiedPigs);
       setSelectedPigs([]);
     } catch (error) {
       console.error("Error:", error);

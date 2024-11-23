@@ -893,6 +893,89 @@ namespace Infrastructure.Migrations
                     b.ToTable("MovePig", (string)null);
                 });
 
+            modelBuilder.Entity("Core.Entities.PigExamination", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ExaminationDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PigExamination", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExaminationDetail", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeleteTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Diagnosis")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HealthNote")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsHealthy")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PigExaminationId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("PigId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("TreatmentMethod")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("UpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PigExaminationId");
+
+                    b.HasIndex("PigId");
+
+                    b.ToTable("PigExaminationDetail", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExamninationMedicine", b =>
+                {
+                    b.Property<string>("PigExaminationDetailId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("MedicineId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<double>("Quantity")
+                        .HasColumnType("float");
+
+                    b.HasKey("PigExaminationDetailId", "MedicineId");
+
+                    b.HasIndex("MedicineId");
+
+                    b.ToTable("PigExamninationMedicine", (string)null);
+                });
+
             modelBuilder.Entity("Core.Entities.PigExport", b =>
                 {
                     b.Property<string>("Id")
@@ -1308,9 +1391,6 @@ namespace Infrastructure.Migrations
 
                     b.Property<DateTime?>("ActualDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<bool>("CanVaccinate")
-                        .HasColumnType("bit");
 
                     b.Property<DateTimeOffset?>("DeleteTime")
                         .HasColumnType("datetimeoffset");
@@ -1765,6 +1845,44 @@ namespace Infrastructure.Migrations
                     b.Navigation("Pig");
                 });
 
+            modelBuilder.Entity("Core.Entities.PigExaminationDetail", b =>
+                {
+                    b.HasOne("Core.Entities.PigExamination", "PigExamination")
+                        .WithMany("PigExaminationDetails")
+                        .HasForeignKey("PigExaminationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.Pigs", "Pig")
+                        .WithMany("PigExaminationDetails")
+                        .HasForeignKey("PigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pig");
+
+                    b.Navigation("PigExamination");
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExamninationMedicine", b =>
+                {
+                    b.HasOne("Core.Entities.Medicines", "Medicine")
+                        .WithMany("PigExamninationMedicines")
+                        .HasForeignKey("MedicineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.PigExaminationDetail", "PigExaminationDetail")
+                        .WithMany("PigExamninationMedicines")
+                        .HasForeignKey("PigExaminationDetailId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Medicine");
+
+                    b.Navigation("PigExaminationDetail");
+                });
+
             modelBuilder.Entity("Core.Entities.PigExport", b =>
                 {
                     b.HasOne("Core.Entities.Customers", "Customers")
@@ -2015,12 +2133,24 @@ namespace Infrastructure.Migrations
                 {
                     b.Navigation("MedicineSuppliers");
 
+                    b.Navigation("PigExamninationMedicines");
+
                     b.Navigation("VaccinationPlans");
                 });
 
             modelBuilder.Entity("Core.Entities.MovePigs", b =>
                 {
                     b.Navigation("MovePigDetails");
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExamination", b =>
+                {
+                    b.Navigation("PigExaminationDetails");
+                });
+
+            modelBuilder.Entity("Core.Entities.PigExaminationDetail", b =>
+                {
+                    b.Navigation("PigExamninationMedicines");
                 });
 
             modelBuilder.Entity("Core.Entities.PigExport", b =>
@@ -2036,6 +2166,8 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Entities.Pigs", b =>
                 {
                     b.Navigation("MovePigDetails");
+
+                    b.Navigation("PigExaminationDetails");
 
                     b.Navigation("VaccinationPlans");
 

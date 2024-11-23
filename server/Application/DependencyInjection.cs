@@ -48,6 +48,9 @@ public static class DependencyInjection
 
         services.AddScoped<IMedicineRequestService, MedicineRequestService>();
         services.AddScoped<IMedicineImportService, MedicineImportService>();
+        services.AddScoped<IVaccinationPlanService, VaccinationPlanService>();
+        services.AddScoped<IDropboxService, DropboxService>();
+        services.AddScoped<IRestoreService, RestoreService>();
     }
     public static void AddMapping(this IServiceCollection services)
     {
