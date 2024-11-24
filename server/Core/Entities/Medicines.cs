@@ -27,6 +27,10 @@ namespace Core.Entities
         public virtual ICollection<VaccinationPlan> VaccinationPlans { get; set; }
 
         [InverseProperty("Medicine")]
-        public virtual ICollection<PigExamninationMedicine> PigExamninationMedicines { get; set; }
+        public virtual ICollection<PigExaminationMedicine> PigExaminationMedicines { get; set; }
+
+
+        [InverseProperty("Medicine")]
+        public virtual ICollection<PigExamination> PigExaminations { get; set; }
     }
 }

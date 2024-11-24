@@ -60,7 +60,7 @@ namespace Infrastructure.Context
 
         public DbSet<PigExamination> PigExaminations { get; set; }
         public DbSet<PigExaminationDetail> PigExaminationDetails { get; set; }
-        public DbSet<PigExamninationMedicine> PigExamninationMedicines { get; set; }
+        public DbSet<PigExaminationMedicine> PigExaminationMedicines { get; set; }
 
 
 
@@ -126,7 +126,7 @@ namespace Infrastructure.Context
                 .HasKey(d => new { d.MovePigId, d.PigId });
 
 
-            builder.Entity<PigExamninationMedicine>()
+            builder.Entity<PigExaminationMedicine>()
                 .HasKey(d => new { d.PigExaminationDetailId, d.MedicineId });
 
 
@@ -188,7 +188,7 @@ namespace Infrastructure.Context
 
             builder.Entity<PigExamination>().ToTable("PigExamination");
             builder.Entity<PigExaminationDetail>().ToTable("PigExaminationDetail");
-            builder.Entity<PigExamninationMedicine>().ToTable("PigExamninationMedicine");
+            builder.Entity<PigExaminationMedicine>().ToTable("PigExaminationMedicine");
 
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

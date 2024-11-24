@@ -23,7 +23,7 @@ namespace Core.Entities
         public virtual PigExamination PigExamination { get; set; }
 
         [InverseProperty("PigExaminationDetail")]
-        public virtual List<PigExamninationMedicine> PigExamninationMedicines { get; set; }
+        public virtual List<PigExaminationMedicine>? PigExaminationMedicines { get; set; }
 
 
 

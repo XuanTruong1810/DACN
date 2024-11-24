@@ -41,6 +41,7 @@ import MedicinePage from "./pages/Admin/Medicine/MedicinePage";
 import MedicineRequestPage from "./pages/Admin/Medicine/MedicineRequestPage";
 import MedicineRequestApproval from "./pages/Admin/Medicine/MedicineRequestApproval ";
 import MedicineImportList from "./pages/Admin/Medicine/MedicineImportList";
+import MedicineSchedule from "./pages/Admin/MedicineSchedule/MedicineSchedule";
 
 function App() {
   return (
@@ -77,6 +78,10 @@ function App() {
               element={<ExportRequestList />}
             />
             <Route path="weighing-schedule" element={<WeighingSchedule />} />
+            <Route
+              path="health/medicine-schedule"
+              element={<MedicineSchedule />}
+            />
             <Route path="inventory/medicines" element={<MedicinePage />} />
             <Route path="exports/animals/list" element={<ExportList />} />
             {/* <Route path="exports/pigs" element={<ExportList />} /> */}

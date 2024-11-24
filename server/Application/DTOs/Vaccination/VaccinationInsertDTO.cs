@@ -7,6 +7,14 @@ namespace Application.DTOs.Vaccination
         [Required]
         public DateTimeOffset ExaminationDate { get; set; } // ngày khám
 
+        public string? ExaminationNote { get; set; } // ghi chú khám
+
+
+        public string? ExaminationType { get; set; } = "Regular"; // loại khám
+
+
+        public string? MedicineId { get; set; } // id thuốc
+
         public List<VaccinationInsertDetailDTO> VaccinationInsertDetails { get; set; }
     }
 

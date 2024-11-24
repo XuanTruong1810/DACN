@@ -23,7 +23,7 @@ namespace Application.Services
                     // Lấy file backup mới nhất từ Dropbox
                     List<BackupFileInfo>? backupFiles = await _dropboxService.GetBackupFilesAsync();
                     BackupFileInfo? latestBackup = backupFiles.OrderByDescending(f => f.CreatedAt).FirstOrDefault()
-                        ?? throw new Exception("Không tìm thấy file backup nào");
+                        ?? throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError, "Không tìm thấy file backup nào");
                     backupPath = latestBackup.Path;
                 }
                 else
@@ -32,7 +32,8 @@ namespace Application.Services
                 }
 
                 // Tải file backup về local
-                string localBackupPath = await _dropboxService.DownloadFileAsync(backupPath);
+                string localBackupPath = await _dropboxService.DownloadFileAsync(backupPath)
+                    ?? throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError, "Không tải file backup về");
 
                 // Thực hiện restore database
                 using SqlConnection? connection = new SqlConnection(Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING"));

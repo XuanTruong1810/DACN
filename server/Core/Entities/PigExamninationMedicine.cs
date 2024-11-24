@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Entities
 {
-    public class PigExamninationMedicine
+    public class PigExaminationMedicine
     {
         [ForeignKey("PigExaminationDetail")]
         public string PigExaminationDetailId { get; set; }

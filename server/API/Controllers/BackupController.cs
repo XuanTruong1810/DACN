@@ -15,7 +15,7 @@ public class BackupController(IRestoreService restoreService, IDropboxService dr
     public async Task<IActionResult> RestoreDatabaseAsync(string? filePath)
     {
         await _restoreService.RestoreDatabaseAsync(filePath);
-        return Ok(BaseResponse<object>.OkResponse("Khôi phục database thành công"));
+        return Ok(BaseResponse<object>.OkResponse("Khôi phục dữ liệu thành công"));
     }
     [HttpGet]
     public async Task<IActionResult> GetBackupListAsync()

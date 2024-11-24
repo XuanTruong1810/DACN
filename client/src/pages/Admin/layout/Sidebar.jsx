@@ -107,6 +107,15 @@ const Sidebar = () => {
               icon: <BarsOutlined />,
               label: <Link to="/admin/health/history">Lịch sử khám</Link>,
             },
+            {
+              key: "medicineHistory",
+              icon: <BarsOutlined />,
+              label: (
+                <Link to="/admin/health/medicine-schedule">
+                  Lịch tiêm chủng định kì
+                </Link>
+              ),
+            },
           ],
         },
       ],
