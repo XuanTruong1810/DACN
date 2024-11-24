@@ -31,10 +31,12 @@ import dayjs from "dayjs";
 import locale from "dayjs/locale/vi";
 import "dayjs/locale/vi";
 import "./MedicineSchedule.css";
+import { useNavigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
 
 const MedicineSchedule = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [scheduleData, setScheduleData] = useState([]);
   const [selectedDate, setSelectedDate] = useState(dayjs());
@@ -67,6 +69,7 @@ const MedicineSchedule = () => {
   // Hiển thị trên calendar
   const dateCellRender = (value) => {
     const date = value.format("YYYY-MM-DD");
+    const today = dayjs().format("YYYY-MM-DD");
     const listData = scheduleData.filter(
       (item) => dayjs(item.examinationDate).format("YYYY-MM-DD") === date
     );
@@ -75,6 +78,11 @@ const MedicineSchedule = () => {
       return null;
     }
 
+    // Kiểm tra xem ngày đã tới chưa
+    const isDateReached = date <= today; // TODO: Uncomment this when backend is ready
+
+    // const isDateReached = true; // TODO: Uncomment this when backend is ready
+
     // Gom nhóm các vaccine giống nhau
     const groupedVaccines = listData.reduce((acc, item) => {
       if (!acc[item.medicineName]) {
@@ -82,6 +90,7 @@ const MedicineSchedule = () => {
           medicineName: item.medicineName,
           totalQuantity: 0,
           count: 0,
+          vaccineId: item.vaccineId,
         };
       }
       acc[item.medicineName].totalQuantity += item.vaccinationQuantity;
@@ -94,9 +103,13 @@ const MedicineSchedule = () => {
         {Object.values(groupedVaccines).map((item) => (
           <li key={item.medicineName}>
             <Tooltip
-              title={`${item.count > 1 ? `${item.count} đợt tiêm - ` : ""}${
-                item.totalQuantity
-              } con cần tiêm`}
+              title={
+                !isDateReached
+                  ? "Chưa tới ngày tiêm"
+                  : `${item.count > 1 ? `${item.count} đợt tiêm - ` : ""}${
+                      item.totalQuantity
+                    } con cần tiêm`
+              }
             >
               <div className="vaccine-info">
                 <MedicineBoxOutlined /> Tiêm {item.medicineName}
@@ -104,6 +117,25 @@ const MedicineSchedule = () => {
                   {item.count > 1 ? `(${item.count} đợt - ` : "("}
                   {item.totalQuantity} con)
                 </div>
+                <Button
+                  type="link"
+                  size="small"
+                  disabled={!isDateReached}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(
+                      `/admin/health/vaccination/create?vaccineId=${item.vaccineId}&date=${date}`
+                    );
+                  }}
+                  style={{
+                    padding: "4px 8px",
+                    marginTop: "4px",
+                    opacity: isDateReached ? 1 : 0.5,
+                    cursor: isDateReached ? "pointer" : "not-allowed",
+                  }}
+                >
+                  Tạo phiếu tiêm
+                </Button>
               </div>
             </Tooltip>
           </li>
@@ -118,8 +150,7 @@ const MedicineSchedule = () => {
 
     const date = selectedDate.format("YYYY-MM-DD");
     const today = dayjs().format("YYYY-MM-DD");
-    // const isToday = date === today;
-    const isToday = true;
+    const isToday = date === today;
 
     const daySchedule = scheduleData.filter(
       (item) => dayjs(item.examinationDate).format("YYYY-MM-DD") === date

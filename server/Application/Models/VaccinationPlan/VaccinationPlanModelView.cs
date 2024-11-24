@@ -6,6 +6,7 @@ namespace Application.Models.VaccinationPlan
         public int VaccinationQuantity { get; set; }
 
         public string MedicineName { get; set; }
+        public string VaccineId { get; set; }
 
         public List<PigSchedule> Pigs { get; set; }
 

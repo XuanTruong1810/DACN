@@ -98,3 +98,14 @@
     font-weight: bold !important;
   }
 }
+
+.events .ant-btn-link[disabled] {
+  color: rgba(0, 0, 0, 0.25);
+  background: transparent;
+  cursor: not-allowed;
+}
+
+.events .ant-btn-link[disabled]:hover {
+  color: rgba(0, 0, 0, 0.25);
+  background: transparent;
+}

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
+
 namespace Application.Services
 {
     public class VaccinationPlanService : IVaccinationPlanService
@@ -24,21 +25,27 @@ namespace Application.Services
         public async Task<List<VaccinationPlanModelView>> GetVaccinationPlanAsync()
         {
             List<VaccinationPlanModelView>? vaccinationPlans = await _unitOfWork.GetRepository<VaccinationPlan>().GetEntities
-                .Where(vp => vp.DeleteTime == null && vp.IsActive)
+                .Where(vp => vp.DeleteTime == null && vp.IsActive && vp.Status == "pending")
                 .Include(vp => vp.Pigs)
                 .Include(vp => vp.Medicine)
-                .GroupBy(vp => new { vp.ScheduledDate, vp.MedicineId, vp.LastModifiedTime })
+                .GroupBy(vp => new
+                {
+                    Date = vp.LastModifiedTime.HasValue ? vp.LastModifiedTime.Value : vp.ScheduledDate,
+                    vp.MedicineId
+                })
                 .Select(g => new VaccinationPlanModelView
                 {
-                    ExaminationDate = g.Key.LastModifiedTime.HasValue ? g.Key.LastModifiedTime.Value.DateTime : g.Key.ScheduledDate,
+                    ExaminationDate = g.Key.Date,
                     VaccinationQuantity = g.Count(),
                     MedicineName = g.First().Medicine.MedicineName,
+                    VaccineId = g.First().MedicineId,
                     Pigs = g.Select(vp => new PigSchedule
                     {
                         PigId = vp.PigId,
                         StableName = vp.Pigs.Stables.Name
                     }).ToList()
                 })
+                .OrderByDescending(vp => vp.ExaminationDate)
                 .ToListAsync();
             return vaccinationPlans;
         }
@@ -50,7 +57,119 @@ namespace Application.Services
             try
             {
                 string examinationId = await GenerateExaminationId();
-                string userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                string userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Không tìm thấy user");
+
+                List<PigExaminationDetail> examinationDetails = new();
+
+                foreach (VaccinationInsertDetailDTO detail in vaccinationInsertDTO.VaccinationInsertDetails)
+                {
+                    if (vaccinationInsertDTO.ExaminationType == "vaccination")
+                    {
+                        // Lấy lịch tiêm hiện tại
+                        VaccinationPlan? vaccinationPlan = await _unitOfWork.GetRepository<VaccinationPlan>()
+                            .GetEntities
+                            .Where(vp => vp.PigId == detail.PigId
+                                   && vp.MedicineId == vaccinationInsertDTO.MedicineId
+                                   && vp.Status == "pending"
+                                   && vp.IsActive
+                                   && vp.DeleteTime == null)
+                            .FirstOrDefaultAsync();
+
+                        if (vaccinationPlan != null)
+                        {
+                            if (!detail.IsHealthy)
+                            {
+                                // Cập nhật thời gian hoãn cho lịch hiện tại
+                                vaccinationPlan.LastModifiedTime = detail.LastModifiedTime;
+
+                                // Cập nhật tất cả các lịch tiêm trong tương lai của heo
+                                List<VaccinationPlan>? futurePlans = await _unitOfWork.GetRepository<VaccinationPlan>()
+                                    .GetEntities
+                                    .Where(vp => vp.PigId == detail.PigId
+                                           && vp.ScheduledDate > vaccinationPlan.ScheduledDate
+                                           && vp.Status == "pending"
+                                           && vp.IsActive
+                                           && vp.DeleteTime == null)
+                                    .ToListAsync();
+
+                                foreach (VaccinationPlan plan in futurePlans)
+                                {
+                                    // Tính khoảng thời gian giữa lịch hoãn và lịch gốc
+                                    TimeSpan delay = detail.LastModifiedTime.DateTime - vaccinationPlan.ScheduledDate;
+                                    plan.ScheduledDate = plan.ScheduledDate.Add(delay);
+                                    await _unitOfWork.GetRepository<VaccinationPlan>().UpdateAsync(plan);
+                                }
+                            }
+                            else
+                            {
+                                vaccinationPlan.ActualDate = vaccinationInsertDTO.ExaminationDate.DateTime;
+                                vaccinationPlan.Status = "completed";
+
+                                // Trừ số lượng vaccine trong kho
+                                Medicines? vaccine = await _unitOfWork.GetRepository<Medicines>()
+                                    .GetEntities
+                                    .FirstOrDefaultAsync(m => m.Id == vaccinationInsertDTO.MedicineId);
+
+                                if (vaccine != null)
+                                {
+                                    vaccine.QuantityInStock -= 1;
+                                    await _unitOfWork.GetRepository<Medicines>().UpdateAsync(vaccine);
+                                }
+                            }
+                            await _unitOfWork.GetRepository<VaccinationPlan>().UpdateAsync(vaccinationPlan);
+                        }
+                    }
+
+                    if (detail.VaccinationInsertMedicationDetails != null)
+                    {
+                        foreach (VaccinationInsertMedicationDetailDTO med in detail.VaccinationInsertMedicationDetails)
+                        {
+                            Medicines? medicine = await _unitOfWork.GetRepository<Medicines>()
+                                .GetEntities
+                                .FirstOrDefaultAsync(m => m.Id == med.MedicineId);
+
+                            if (medicine != null && med.Quantity.HasValue)
+                            {
+                                medicine.QuantityInStock -= med.Quantity.Value;
+                                await _unitOfWork.GetRepository<Medicines>().UpdateAsync(medicine);
+                            }
+                        }
+                    }
+
+                    Pigs? pig = await _unitOfWork.GetRepository<Pigs>()
+                        .GetEntities
+                        .FirstOrDefaultAsync(p => p.Id == detail.PigId);
+
+                    if (pig != null)
+                    {
+                        pig.HealthStatus = detail.IsHealthy ? "good" : "sick";
+                        pig.UpdatedTime = DateTimeOffset.Now;
+                        await _unitOfWork.GetRepository<Pigs>().UpdateAsync(pig);
+                    }
+                    string detailId = await GenerateExaminationDetailId(examinationId, detail.PigId);
+                    PigExaminationDetail? examinationDetail = new PigExaminationDetail
+                    {
+                        Id = detailId,
+                        PigId = detail.PigId,
+                        IsHealthy = detail.IsHealthy,
+                        Diagnosis = detail.Diagnosis,
+                        HealthNote = detail.IsHealthy ? "Tiêm chủng" : "Dời ngày tiêm",
+                        TreatmentMethod = detail.TreatmentMethod,
+                        PigExaminationId = examinationId,
+                        PigExaminationMedicines = detail.VaccinationInsertMedicationDetails?.Select(med =>
+                            new PigExaminationMedicine
+                            {
+                                PigExaminationDetailId = detailId,
+                                MedicineId = med.MedicineId,
+                                Quantity = med.Quantity.Value,
+                            }).ToList()
+                    };
+
+
+                    examinationDetails.Add(examinationDetail);
+
+                }
 
                 PigExamination pigExamination = new()
                 {
@@ -60,64 +179,7 @@ namespace Application.Services
                     ExaminationNote = vaccinationInsertDTO.ExaminationNote,
                     ExaminationType = vaccinationInsertDTO.ExaminationType,
                     CreatedBy = userId,
-                    PigExaminationDetails = vaccinationInsertDTO.VaccinationInsertDetails.Select(async detail =>
-                    {
-                        string detailId = await GenerateExaminationDetailId();
-
-                        if (vaccinationInsertDTO.ExaminationType == "vaccination")
-                        {
-                            VaccinationPlan? vaccinationPlan = await _unitOfWork.GetRepository<VaccinationPlan>()
-                                .GetEntities
-                                .Where(vp => vp.PigId == detail.PigId
-                                       && vp.MedicineId == vaccinationInsertDTO.MedicineId
-                                       && vp.Status == "pending"
-                                       && vp.IsActive
-                                       && vp.DeleteTime == null)
-                                .FirstOrDefaultAsync();
-
-                            if (vaccinationPlan != null)
-                            {
-                                if (!detail.IsHealthy)
-                                {
-                                    vaccinationPlan.LastModifiedTime = detail.LastModifiedTime;
-                                }
-                                else if (detail.IsHealthy)
-                                {
-                                    vaccinationPlan.ActualDate = vaccinationInsertDTO.ExaminationDate.DateTime;
-                                }
-                                await _unitOfWork.GetRepository<VaccinationPlan>().UpdateAsync(vaccinationPlan);
-                            }
-                        }
-
-                        Pigs? pig = await _unitOfWork.GetRepository<Pigs>()
-                            .GetEntities
-                            .FirstOrDefaultAsync(p => p.Id == detail.PigId);
-
-                        if (pig != null)
-                        {
-                            pig.HealthStatus = detail.IsHealthy ? "good" : "sick";
-                            pig.UpdatedTime = DateTimeOffset.Now;
-                            await _unitOfWork.GetRepository<Pigs>().UpdateAsync(pig);
-                        }
-
-                        return new PigExaminationDetail
-                        {
-                            Id = detailId,
-                            PigId = detail.PigId,
-                            IsHealthy = detail.IsHealthy,
-                            Diagnosis = detail.Diagnosis,
-                            HealthNote = detail.HealthNote,
-                            TreatmentMethod = detail.TreatmentMethod,
-                            PigExaminationId = examinationId,
-                            PigExaminationMedicines = detail.VaccinationInsertMedicationDetails?.Select(med =>
-                                new PigExaminationMedicine
-                                {
-                                    PigExaminationDetailId = detailId,
-                                    MedicineId = med.MedicineId,
-                                    Quantity = med.Quantity,
-                                }).ToList()
-                        };
-                    }).Select(t => t.Result).ToList()
+                    PigExaminationDetails = examinationDetails
                 };
 
                 await _unitOfWork.GetRepository<PigExamination>().InsertAsync(pigExamination);
@@ -125,10 +187,10 @@ namespace Application.Services
                 await transaction.CommitAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Thêm kế hoạch tiêm chủng thất bại");
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, ex.Message);
             }
         }
 
@@ -156,28 +218,32 @@ namespace Application.Services
             return $"{prefix}{sequence:D3}";
         }
 
-        private async Task<string> GenerateExaminationDetailId()
+        private async Task<string> GenerateExaminationDetailId(string examinationId, string pigId)
         {
-            string today = DateTime.Now.ToString("yyyyMMdd");
-            string prefix = $"EXMD_{today}_";
+            return $"EXMD_{examinationId}_{pigId}";
+        }
 
-            var lastDetail = await _unitOfWork.GetRepository<PigExaminationDetail>()
+        public async Task<List<PigSchedule>> GetPigScheduleByVaccineIdAsync(string vaccineId, DateTimeOffset date)
+        {
+            // Lấy ngày đầu và cuối của ngày cần so sánh
+            var startDate = date.Date;
+            var endDate = startDate.AddDays(1);
+
+            List<VaccinationPlan>? vaccinationPlans = await _unitOfWork.GetRepository<VaccinationPlan>()
                 .GetEntities
-                .Where(x => x.Id.StartsWith(prefix))
-                .OrderByDescending(x => x.Id)
-                .FirstOrDefaultAsync();
+                .Where(vp => vp.MedicineId == vaccineId &&
+                    (vp.LastModifiedTime.HasValue
+                        ? vp.LastModifiedTime.Value >= startDate && vp.LastModifiedTime.Value < endDate
+                        : vp.ScheduledDate >= startDate && vp.ScheduledDate < endDate))
+                .Include(vp => vp.Pigs)
+                    .ThenInclude(p => p.Stables)
+                .ToListAsync();
 
-            int sequence = 1;
-            if (lastDetail != null)
+            return vaccinationPlans.Select(vp => new PigSchedule
             {
-                string lastSequence = lastDetail.Id.Split('_').Last();
-                if (int.TryParse(lastSequence, out int lastNumber))
-                {
-                    sequence = lastNumber + 1;
-                }
-            }
-
-            return $"{prefix}{sequence:D3}";
+                PigId = vp.PigId,
+                StableName = vp.Pigs.Stables.Name
+            }).ToList();
         }
     }
 }

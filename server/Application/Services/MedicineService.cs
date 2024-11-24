@@ -55,13 +55,14 @@ namespace Application.Services
             }
         }
 
-        public async Task<List<MedicineModelView>> GetAllMedicines()
+        public async Task<List<MedicineModelView>> GetAllMedicines(bool? isVaccine)
         {
             List<Medicines> medicines = await _unitOfWork.GetRepository<Medicines>().GetEntities
-                .Where(x => x.IsActive && x.DeleteTime == null)
+                .Where(x => x.IsActive && x.DeleteTime == null && (!isVaccine.HasValue || x.IsVaccine == isVaccine))
                 .ToListAsync();
             return _mapper.Map<List<MedicineModelView>>(medicines);
         }
+
 
         public async Task<MedicineModelView> GetMedicineById(string id)
         {

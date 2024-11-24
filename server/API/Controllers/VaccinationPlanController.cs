@@ -26,5 +26,11 @@ namespace API.Controllers
             bool result = await _vaccinationPlanService.InsertVaccinationPlanAsync(vaccinationInsertDTO);
             return Ok(BaseResponse<object>.OkResponse("Tạo phiếu tiêm chủng thành công!"));
         }
+        [HttpGet("pigs")]
+        public async Task<IActionResult> GetPigScheduleByVaccineIdAsync(string vaccineId, DateTimeOffset date)
+        {
+            List<PigSchedule> result = await _vaccinationPlanService.GetPigScheduleByVaccineIdAsync(vaccineId, date);
+            return Ok(BaseResponse<List<PigSchedule>>.OkResponse(result));
+        }
     }
 }

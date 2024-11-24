@@ -11,9 +11,9 @@ namespace API.Controllers
     {
         private readonly IMedicineService _medicineService = medicineService;
         [HttpGet]
-        public async Task<IActionResult> GetAllMedicines()
+        public async Task<IActionResult> GetAllMedicines([FromQuery] bool? isVaccine)
         {
-            List<MedicineModelView>? medicines = await _medicineService.GetAllMedicines();
+            List<MedicineModelView>? medicines = await _medicineService.GetAllMedicines(isVaccine);
             return Ok(BaseResponse<IEnumerable<MedicineModelView>>.OkResponse(medicines));
         }
 

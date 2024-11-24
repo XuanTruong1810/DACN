@@ -42,6 +42,7 @@ import MedicineRequestPage from "./pages/Admin/Medicine/MedicineRequestPage";
 import MedicineRequestApproval from "./pages/Admin/Medicine/MedicineRequestApproval ";
 import MedicineImportList from "./pages/Admin/Medicine/MedicineImportList";
 import MedicineSchedule from "./pages/Admin/MedicineSchedule/MedicineSchedule";
+import VaccinationForm from "./pages/Admin/Health/VaccinationForm";
 
 function App() {
   return (
@@ -86,6 +87,10 @@ function App() {
             <Route path="exports/animals/list" element={<ExportList />} />
             {/* <Route path="exports/pigs" element={<ExportList />} /> */}
             <Route path="exports/daily-food" element={<DailyFoodExport />} />
+            <Route
+              path="health/vaccination/create"
+              element={<VaccinationForm />}
+            />
             <Route path="DeadPigs" element={<DeadPigsPage />} />
             <Route path="customers" element={<CustomerManagement />} />
             <Route path="inventory">

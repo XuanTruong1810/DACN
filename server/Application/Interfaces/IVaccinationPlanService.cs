@@ -8,5 +8,8 @@ namespace Application.Interfaces
         Task<List<VaccinationPlanModelView>> GetVaccinationPlanAsync();
 
         Task<bool> InsertVaccinationPlanAsync(VaccinationInsertDTO vaccinationInsertDTO);
+
+
+        Task<List<PigSchedule>> GetPigScheduleByVaccineIdAsync(string vaccineId, DateTimeOffset date);
     }
 }

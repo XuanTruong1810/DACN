@@ -14,6 +14,6 @@ namespace Core.Entities
 
         public virtual Medicines Medicine { get; set; }
 
-        public double Quantity { get; set; } // số lượng dùng
+        public decimal Quantity { get; set; } // số lượng dùng
     }
 }
