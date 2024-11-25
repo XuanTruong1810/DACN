@@ -55,7 +55,25 @@ namespace Application.Services
                 throw new BaseException(StatusCodeHelper.Conflict, ErrorCode.Conflict, "Area with the same name already exists");
             }
 
+            // Get latest area to generate new ID
+            Areas? latestArea = await unitOfWork.GetRepository<Areas>()
+                .GetEntities
+                .OrderByDescending(x => x.Id)
+                .FirstOrDefaultAsync();
+
+            string newId;
+            if (latestArea == null)
+            {
+                newId = "AREA0001";
+            }
+            else
+            {
+                int currentNumber = int.Parse(latestArea.Id[4..]);
+                newId = $"AREA{(currentNumber + 1):D4}";
+            }
+
             Areas? areaToCreate = mapper.Map<Areas>(area);
+            areaToCreate.Id = newId;
             await unitOfWork.GetRepository<Areas>().InsertAsync(areaToCreate);
             await unitOfWork.SaveAsync();
 

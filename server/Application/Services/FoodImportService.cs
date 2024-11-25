@@ -85,7 +85,6 @@ namespace Application.Services
                     FoodImports? import = new FoodImports
                     {
                         Id = importId,
-                        FoodImportRequestId = requestId,
                         SupplierId = dto.SupplierId,
                         CreatedById = userId,
                         Status = "pending",

@@ -18,11 +18,12 @@ namespace Application.Services
 {
 
     public class AuthService(UserManager<ApplicationUser> userManager,
-     SignInManager<ApplicationUser> signInManager, IMemoryCache memoryCache,
-      IEmailService emailService, IHttpContextAccessor httpContextAccessor) : IAuthService
+     SignInManager<ApplicationUser> signInManager, RoleManager<IdentityRole> roleManager,
+      IMemoryCache memoryCache, IEmailService emailService, IHttpContextAccessor httpContextAccessor) : IAuthService
     {
         private readonly UserManager<ApplicationUser> userManager = userManager;
         private readonly SignInManager<ApplicationUser> signInManager = signInManager;
+        private readonly RoleManager<IdentityRole> roleManager = roleManager;
         private readonly IMemoryCache memoryCache = memoryCache;
         private readonly IEmailService emailService = emailService;
         private readonly IHttpContextAccessor httpContextAccessor = httpContextAccessor;
@@ -44,29 +45,44 @@ namespace Application.Services
             throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Token không hợp lệ");
         }
 
-        private (string token, IEnumerable<string> roles) GenerateJwtToken(ApplicationUser user)
+        private async Task<string> GenerateJwtToken(ApplicationUser user, List<string> roles)
         {
-            byte[] key = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new Exception("JWT_KEY is not set"));
-            List<Claim> claims = new List<Claim> {
-            new(ClaimTypes.NameIdentifier,user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email)
-        };
-            IEnumerable<string> roles = userManager.GetRolesAsync(user: user).Result;
+            List<Claim>? claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim("userId", user.Id),
+                new Claim(ClaimTypes.Email, user.Email)
+            };
+
+            // Add role claims
             foreach (string role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
+
+                // Get permissions for each role
+                IdentityRole? roleObj = await roleManager.FindByNameAsync(role);
+                if (roleObj != null)
+                {
+                    IList<Claim>? roleClaims = await roleManager.GetClaimsAsync(roleObj);
+                    foreach (Claim claim in roleClaims)
+                    {
+                        claims.Add(claim);
+                    }
+                }
             }
-            SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddHours(1),
-                Issuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? throw new Exception("JWT_ISSUER is not set"),
-                Audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? throw new Exception("JWT_AUDIENCE is not set"),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
-            return (tokenHandler.WriteToken(token), roles);
+
+            SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_KEY")));
+            SigningCredentials creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            JwtSecurityToken? token = new JwtSecurityToken(
+                issuer: Environment.GetEnvironmentVariable("JWT_ISSUER"),
+                audience: Environment.GetEnvironmentVariable("JWT_AUDIENCE"),
+                claims: claims,
+                expires: DateTime.Now.AddHours(24),
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
         private async Task<string> GenerateRefreshToken(ApplicationUser user)
         {
@@ -100,7 +116,8 @@ namespace Application.Services
             {
                 throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Mật khẩu không đúng");
             }
-            (string token, IEnumerable<string> roles) = GenerateJwtToken(user);
+            IList<string> roles = await userManager.GetRolesAsync(user);
+            string token = await GenerateJwtToken(user, roles.ToList());
             string refreshToken = await GenerateRefreshToken(user);
             return new AuthModelViews
             {
@@ -120,7 +137,8 @@ namespace Application.Services
         public async Task<AuthModelViews> RefreshToken(RefreshTokenDTO refreshTokenModel)
         {
             ApplicationUser? user = await CheckRefreshToken(refreshTokenModel.RefreshToken);
-            (string token, IEnumerable<string> roles) = GenerateJwtToken(user);
+            IList<string> roles = await userManager.GetRolesAsync(user);
+            string token = await GenerateJwtToken(user, roles.ToList());
             string refreshToken = await GenerateRefreshToken(user);
             return new AuthModelViews
             {

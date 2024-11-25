@@ -7,9 +7,6 @@ namespace Core.Entities
 {
     public class MedicineImport : BaseEntity
     {
-        [Required]
-        [ForeignKey("RequestMedicine")]
-        public string RequestMedicineId { get; set; }  // Bắt buộc phải có phiếu đề xuất
 
         [Required]
         [ForeignKey("Suppliers")]
@@ -33,7 +30,6 @@ namespace Core.Entities
 
 
         // Navigation properties
-        public virtual RequestMedicine RequestMedicine { get; set; }
         public virtual Suppliers Suppliers { get; set; }
         [InverseProperty("MedicineImport")]
         public virtual ICollection<MedicineImportDetail> MedicineImportDetails { get; set; } = new List<MedicineImportDetail>();

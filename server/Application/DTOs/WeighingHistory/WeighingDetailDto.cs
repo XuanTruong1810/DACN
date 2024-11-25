@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace Application.DTOs.WeighingHistory;
 public class WeighingDetailDto
 {
     [Required]

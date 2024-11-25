@@ -15,10 +15,6 @@ namespace Infrastructure.Context
         public DbSet<PigIntakes> PigIntakes { get; set; }
 
         public DbSet<Pigs> Pigs { get; set; }
-        public DbSet<Feeds> Feeds { get; set; }
-        public DbSet<FeedTypes> FeedTypes { get; set; }
-        public DbSet<FeedInTakes> FeedInTakes { get; set; }
-        public DbSet<FeedInTakeDetails> FeedInTakeDetails { get; set; }
 
         public DbSet<MedicineSupplier> MedicineSuppliers { get; set; }
         public DbSet<RequestMedicine> RequestMedicines { get; set; }
@@ -79,8 +75,6 @@ namespace Infrastructure.Context
             /// 
 
 
-            builder.Entity<FeedInTakeDetails>()
-                .HasKey(d => new { d.FeedInTakeId, d.FeedId });
 
             builder.Entity<RequestMedicineDetail>()
                 .HasKey(d => new { d.RequestMedicineId, d.MedicineId });
@@ -145,10 +139,6 @@ namespace Infrastructure.Context
             builder.Entity<Suppliers>().ToTable("Suppliers");
             builder.Entity<PigIntakes>().ToTable("PigIntakes");
             builder.Entity<Pigs>().ToTable("Pigs");
-            builder.Entity<Feeds>().ToTable("Feeds");
-            builder.Entity<FeedTypes>().ToTable("FeedTypes");
-            builder.Entity<FeedInTakes>().ToTable("FeedInTakes");
-            builder.Entity<FeedInTakeDetails>().ToTable("FeedInTakeDetails");
 
             builder.Entity<RequestMedicine>().ToTable("RequestMedicine");
             builder.Entity<RequestMedicineDetail>().ToTable("RequestMedicineDetail");

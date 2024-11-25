@@ -32,6 +32,7 @@ import {
   InfoCircleOutlined,
   EyeOutlined,
   DollarOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import axios from "axios";
@@ -150,6 +151,15 @@ const ImportRequestManagement = () => {
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [detailData, setDetailData] = useState(null);
 
+  // Thêm state để lưu và hiển thị kết quả phân bổ
+  const [allocationResult, setAllocationResult] = useState(null);
+  const [isAllocationModalVisible, setIsAllocationModalVisible] =
+    useState(false);
+
+  // Thêm state để lưu danh sách heo được phân bổ
+  const [allocatedPigs, setAllocatedPigs] = useState(null);
+  const [isAllocatedListVisible, setIsAllocatedListVisible] = useState(false);
+
   // Thêm useEffect để fetch khu vực A khi component mount
   useEffect(() => {
     fetchAreaA();
@@ -256,11 +266,11 @@ const ImportRequestManagement = () => {
         detailInfo: response.data.data,
       });
 
-      // Reset form và set initial values
+      // Reset form và set initial values với ngày hiện tại
       checkForm.setFieldsValue({
         receivedQuantity: request.quantity || 0,
         acceptedQuantity: request.quantity || 0,
-        deliveryDate: null,
+        deliveryDate: dayjs(), // Set ngày giao hàng mặc định là ngày hiện tại
       });
 
       setIsCheckModalVisible(true);
@@ -282,7 +292,7 @@ const ImportRequestManagement = () => {
       }
 
       try {
-        await axios.post(
+        const response = await axios.post(
           `${import.meta.env.VITE_API_URL}/api/v1/PigIntakes/Allocate`,
           null,
           {
@@ -295,6 +305,10 @@ const ImportRequestManagement = () => {
             },
           }
         );
+
+        // Lưu danh sách heo được phân bổ và hiển thị modal
+        setAllocatedPigs(response.data.data);
+        setIsAllocatedListVisible(true);
 
         message.success("Phân bổ heo vào khu vực A thành công!");
         setIsImportModalVisible(false);
@@ -326,6 +340,47 @@ const ImportRequestManagement = () => {
         dataIndex: "id",
         key: "id",
         width: 120,
+        filterDropdown: ({
+          setSelectedKeys,
+          selectedKeys,
+          confirm,
+          clearFilters,
+        }) => (
+          <div style={{ padding: 8 }}>
+            <Input
+              placeholder="Tìm mã phiếu"
+              value={selectedKeys[0]}
+              onChange={(e) =>
+                setSelectedKeys(e.target.value ? [e.target.value] : [])
+              }
+              onPressEnter={() => confirm()}
+              style={{ width: 188, marginBottom: 8, display: "block" }}
+            />
+            <Space>
+              <Button
+                type="primary"
+                onClick={() => confirm()}
+                icon={<SearchOutlined />}
+                size="small"
+                style={{ width: 90 }}
+              >
+                Tìm
+              </Button>
+              <Button
+                onClick={() => clearFilters()}
+                size="small"
+                style={{ width: 90 }}
+              >
+                Đặt lại
+              </Button>
+            </Space>
+          </div>
+        ),
+        filterIcon: (filtered) => (
+          <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+        ),
+        onFilter: (value, record) =>
+          record.id.toLowerCase().includes(value.toLowerCase()),
       },
       {
         title: "Ngày yêu cầu",
@@ -367,7 +422,41 @@ const ImportRequestManagement = () => {
         title: "Trạng thái",
         key: "status",
         width: 150,
-        render: (_, record) => getStatusTag(record),
+        filters: [
+          { text: "Chờ duyệt", value: "pending" },
+          { text: "Đã xác nhận", value: "approved" },
+          { text: "Đã giao", value: "delivered" },
+        ],
+        onFilter: (value, record) => {
+          switch (value) {
+            case "pending":
+              return (
+                !record.approvedTime &&
+                !record.deliveryDate &&
+                !record.stokeDate
+              );
+            case "approved":
+              return record.approvedTime && !record.deliveryDate;
+            case "delivered":
+              return record.deliveryDate && !record.stokeDate;
+            case "imported":
+              return record.stokeDate;
+            default:
+              return true;
+          }
+        },
+        render: (_, record) => {
+          if (record.stokeDate) {
+            return <Tag color="success">Đã nhập kho</Tag>;
+          }
+          if (record.deliveryDate) {
+            return <Tag color="processing">Đã giao</Tag>;
+          }
+          if (record.approvedTime) {
+            return <Tag color="warning">Đã xác nhận</Tag>;
+          }
+          return <Tag color="default">Chờ duyệt</Tag>;
+        },
       },
       {
         title: "Thao tác",
@@ -409,6 +498,60 @@ const ImportRequestManagement = () => {
     [handleCheck, handleImport]
   );
 
+  // Sửa lại hàm xử lý khi submit form kiểm tra
+  const handleCheckSubmit = async (values) => {
+    try {
+      setLoading(true);
+
+      // 1. Gọi API Patch để ghi nhận giao hàng
+      await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/v1/PigIntakes`,
+        {
+          deliveryDate: values.deliveryDate.toISOString(),
+          receivedQuantity: values.receivedQuantity,
+          acceptedQuantity: values.acceptedQuantity,
+        },
+        {
+          params: { id: selectedRequest.id },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      // 2. Gọi API Allocate và lưu kết quả
+      const allocateResponse = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/v1/PigIntakes/Allocate`,
+        null,
+        {
+          params: {
+            AreasId: areaA?.id,
+            pigIntakeId: selectedRequest.id,
+          },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      // Lưu danh sách heo được phân bổ
+      setAllocatedPigs(allocateResponse.data.data);
+      setIsAllocatedListVisible(true);
+
+      message.success("Kiểm tra giao hàng và nhập kho thành công!");
+      setIsCheckModalVisible(false);
+      checkForm.resetFields();
+      fetchData(tableParams);
+    } catch (error) {
+      console.error("Error:", error);
+      message.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi xử lý yêu cầu!"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Sửa lại hàm handleFinalCheckSubmit
   const handleFinalCheckSubmit = useCallback(async () => {
     try {
@@ -442,7 +585,7 @@ const ImportRequestManagement = () => {
   const handlePaymentConfirm = async () => {
     try {
       await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/v1/PigIntakes?id=${
+        `${import.meta.env.VITE_API_URL}/api/v1/PigIntakes/${
           selectedRequest.id
         }`,
         {
@@ -456,6 +599,18 @@ const ImportRequestManagement = () => {
           },
         }
       );
+
+      const response = await axios.get(
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/v1/PigIntakes/Allocate?pigIntakeId=${selectedRequest.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log(response);
 
       message.success("Kiểm tra và xác nhận thanh toán thành công!");
       setIsPaymentModalVisible(false);
@@ -576,7 +731,7 @@ const ImportRequestManagement = () => {
         requestCode: request.code || "",
         requestDate: request.createdTime || null,
         quantity: request.expectedQuantity || 0,
-        // Đảm bảo các trường thời gian luôn có giá trị (null nếu không có)
+        // Đảm bảo các trờng thời gian luôn có giá trị (null nếu không có)
         approvedTime: request.approvedTime || null,
         deliveryDate: request.deliveryDate || null,
         stokeDate: request.stokeDate || null,
@@ -715,7 +870,7 @@ const ImportRequestManagement = () => {
           )}
 
           <Descriptions.Item label="Người tạo">
-            {detailData.createdBy || "N/A"}
+            {detailData.createByName || "N/A"}
           </Descriptions.Item>
 
           <Descriptions.Item label="Thời gian tạo">
@@ -736,30 +891,263 @@ const ImportRequestManagement = () => {
     </Modal>
   );
 
-  // Render Methods
-  const renderCheckModal = () => (
+  // Thêm component hiển thị kết quả phân bổ
+  const renderAllocationResultModal = () => (
     <Modal
       title={
         <Space>
-          <CheckCircleOutlined style={{ color: "#1890ff" }} />
-          <Text strong>Kiểm tra heo nhập</Text>
+          <CheckCircleOutlined style={{ color: "#52c41a" }} />
+          <Text strong>Kết quả phân bổ heo vào chuồng</Text>
         </Space>
       }
+      open={isAllocationModalVisible}
+      onCancel={() => setIsAllocationModalVisible(false)}
+      footer={[
+        <Button
+          key="close"
+          type="primary"
+          onClick={() => setIsAllocationModalVisible(false)}
+        >
+          Đóng
+        </Button>,
+      ]}
+      width={800}
+    >
+      {allocationResult && (
+        <div>
+          <Alert
+            message="Phân bổ heo thành công"
+            description={`Đã phân bổ ${selectedRequest?.acceptedQuantity} con heo vào các chuồng sau:`}
+            type="success"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+
+          <Table
+            dataSource={allocationResult}
+            rowKey="id"
+            pagination={false}
+            columns={[
+              {
+                title: "Mã chuồng",
+                dataIndex: "code",
+                key: "code",
+              },
+              {
+                title: "Tên chuồng",
+                dataIndex: "name",
+                key: "name",
+              },
+              {
+                title: "Số lượng heo",
+                dataIndex: "totalPig",
+                key: "totalPig",
+              },
+            ]}
+          />
+        </div>
+      )}
+    </Modal>
+  );
+
+  // Sửa lại phần in danh sách
+  const handlePrintList = useCallback(() => {
+    // Tạo tên file với format: DS_Heo_[Mã phiếu]_[Ngày]
+    const fileName = `DS_Heo_${
+      selectedRequest?.id || "Unknown"
+    }_${dayjs().format("DDMMYYYY")}`;
+
+    // Tạo và thêm iframe tạm thời
+    const iframe = document.createElement("iframe");
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+
+    // Ghi nội dung vào iframe
+    const content = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${fileName}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif;
+              padding: 20px;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-top: 20px;
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 8px; 
+              text-align: left;
+            }
+            th { 
+              background-color: #f5f5f5;
+              font-weight: bold;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 20px;
+            }
+            .info { 
+              margin-bottom: 20px;
+              line-height: 1.5;
+            }
+            @media print {
+              @page {
+                size: auto;
+                margin: 20mm;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>DANH SÁCH HEO ĐƯỢC PHÂN BỔ</h2>
+            <p>Ngày: ${dayjs().format("DD/MM/YYYY HH:mm:ss")}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Mã heo</th>
+                <th>Chuồng</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${allocatedPigs
+                ?.map(
+                  (pig, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${pig.id}</td>
+                  <td>${pig.stableName}</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+          <script>
+            document.title = "${fileName}";
+          </script>
+        </body>
+      </html>
+    `;
+
+    // Ghi nội dung vào iframe
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(content);
+    doc.close();
+
+    // Đợi iframe load xong
+    iframe.onload = () => {
+      // Đảm bảo title được set
+      iframe.contentWindow.document.title = fileName;
+
+      // In với tên file được đặt
+      iframe.contentWindow.print();
+
+      // Xóa iframe sau khi in xong
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 100);
+    };
+  }, [allocatedPigs, selectedRequest]);
+
+  // Sửa lại modal hiển thị danh sách
+  const renderAllocatedPigsModal = () => (
+    <Modal
+      title={
+        <Space>
+          <CheckCircleOutlined style={{ color: "#52c41a" }} />
+          <Text strong>Danh sách heo được phân bổ</Text>
+        </Space>
+      }
+      open={isAllocatedListVisible}
+      onCancel={() => setIsAllocatedListVisible(false)}
+      width={800}
+      footer={[
+        <Button
+          key="print"
+          type="primary"
+          icon={<FilePdfOutlined />}
+          onClick={handlePrintList}
+        >
+          In danh sách
+        </Button>,
+        <Button key="close" onClick={() => setIsAllocatedListVisible(false)}>
+          Đóng
+        </Button>,
+      ]}
+    >
+      <Alert
+        message="Phân bổ heo thành công"
+        description={`Đã phân bổ ${
+          allocatedPigs?.length || 0
+        } con heo vào khu vực A`}
+        type="success"
+        showIcon
+        style={{ marginBottom: 16 }}
+      />
+      <Table
+        dataSource={allocatedPigs}
+        rowKey="id"
+        pagination={false}
+        columns={[
+          {
+            title: "STT",
+            key: "index",
+            width: 60,
+            render: (_, __, index) => index + 1,
+          },
+          {
+            title: "Mã heo",
+            dataIndex: "id",
+            key: "id",
+          },
+          {
+            title: "Chuồng",
+            dataIndex: "stableName",
+            key: "stableName",
+          },
+        ]}
+      />
+    </Modal>
+  );
+
+  // Render Methods
+  const renderCheckModal = () => (
+    <Modal
+      title="Kiểm tra giao hàng"
       open={isCheckModalVisible}
+      onOk={checkForm.submit}
       onCancel={() => {
         setIsCheckModalVisible(false);
-        setIsShowPayment(false);
         checkForm.resetFields();
       }}
-      onOk={handleFinalCheckSubmit}
-      width={700}
+      confirmLoading={loading}
+      okText="Xác nhận giao hàng và nhập kho"
+      cancelText="Hủy"
     >
+      <Alert
+        message="Lưu ý"
+        description="Khi xác nhận, hệ thống sẽ tự động ghi nhận giao hàng và nhập kho."
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+      />
       <Form
         form={checkForm}
         layout="vertical"
+        onFinish={handleCheckSubmit}
         initialValues={{
-          receivedQuantity: selectedRequest?.quantity || 0,
-          acceptedQuantity: selectedRequest?.quantity || 0,
+          deliveryDate: dayjs(),
         }}
       >
         <Row gutter={16}>
@@ -930,9 +1318,70 @@ const ImportRequestManagement = () => {
         {renderPaymentModal()}
         {renderViewModal()}
         {renderImportModal()}
+        {renderAllocationResultModal()}
+        {renderAllocatedPigsModal()}
       </Card>
     </motion.div>
   );
 };
+
+// Thêm styles
+const style = document.createElement("style");
+style.textContent = `
+  .main-card {
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+
+  .card-header {
+    margin-bottom: 24px;
+  }
+
+  .custom-table {
+    .ant-table-thead > tr > th {
+      background: #fafafa;
+      font-weight: 500;
+    }
+    
+    .ant-table-filter-trigger {
+      color: #8c8c8c;
+      
+      &:hover {
+        color: #1890ff;
+      }
+      
+      &.active {
+        color: #1890ff;
+      }
+    }
+  }
+
+  .ant-tag {
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 13px;
+    border: none;
+    
+    &.ant-tag-success {
+      background: #f6ffed;
+      color: #52c41a;
+    }
+    
+    &.ant-tag-processing {
+      background: #e6f7ff;
+      color: #1890ff;
+    }
+    
+    &.ant-tag-warning {
+      background: #fffbe6;
+      color: #faad14;
+    }
+    
+    &.ant-tag-default {
+      background: #f5f5f5;
+      color: #8c8c8c;
+    }
+  }
+`;
 
 export default React.memo(ImportRequestManagement);

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitDB : Migration
+    public partial class InitProject : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -21,6 +21,7 @@ namespace Infrastructure.Migrations
                     TotalHouses = table.Column<int>(type: "int", nullable: false),
                     OccupiedHouses = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    WeighingFrequency = table.Column<int>(type: "int", nullable: false),
                     CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     UpdatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     DeleteTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true)
@@ -48,24 +49,6 @@ namespace Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Customers", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "FeedTypes",
-                columns: table => new
-                {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    FeedTypeName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    TotalProducts = table.Column<int>(type: "int", nullable: false),
-                    CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    UpdatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    DeleteTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_FeedTypes", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -164,21 +147,6 @@ namespace Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MovePig", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PigExamination",
-                columns: table => new
-                {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ExaminationDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    UpdatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    DeleteTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PigExamination", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -357,37 +325,6 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Feeds",
-                columns: table => new
-                {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    FeedName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FeedTypeId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    FeedQuantity = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    AreasId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    FeedPerPig = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    UpdatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    DeleteTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Feeds", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Feeds_Areas_AreasId",
-                        column: x => x.AreasId,
-                        principalTable: "Areas",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Feeds_FeedTypes_FeedTypeId",
-                        column: x => x.FeedTypeId,
-                        principalTable: "FeedTypes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Foods",
                 columns: table => new
                 {
@@ -419,6 +356,30 @@ namespace Infrastructure.Migrations
                         principalTable: "FoodTypes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PigExamination",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ExaminationDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    MedicineId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    ExaminationType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ExaminationNote = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    UpdatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    DeleteTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PigExamination", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PigExamination_Medicines_MedicineId",
+                        column: x => x.MedicineId,
+                        principalTable: "Medicines",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -470,33 +431,6 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "FeedInTakes",
-                columns: table => new
-                {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    SuppliersId = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    Deposit = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    TotalPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    RemainingAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    ApprovedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    DeliveryDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    IsInStock = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    CreateBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    UpdatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    DeleteTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_FeedInTakes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_FeedInTakes_Suppliers_SuppliersId",
-                        column: x => x.SuppliersId,
-                        principalTable: "Suppliers",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "FoodImports",
                 columns: table => new
                 {
@@ -510,7 +444,6 @@ namespace Infrastructure.Migrations
                     DeliveredTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FoodImportRequestId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     SupplierId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     UpdatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
@@ -519,12 +452,6 @@ namespace Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_FoodImports", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_FoodImports_FoodImportRequests_FoodImportRequestId",
-                        column: x => x.FoodImportRequestId,
-                        principalTable: "FoodImportRequests",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_FoodImports_Suppliers_SupplierId",
                         column: x => x.SupplierId,
@@ -538,7 +465,6 @@ namespace Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    RequestMedicineId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     SupplierId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
@@ -556,12 +482,6 @@ namespace Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MedicineImport", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_MedicineImport_RequestMedicine_RequestMedicineId",
-                        column: x => x.RequestMedicineId,
-                        principalTable: "RequestMedicine",
-                        principalColumn: "ID",
-                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_MedicineImport_Suppliers_SupplierId",
                         column: x => x.SupplierId,
@@ -729,6 +649,8 @@ namespace Infrastructure.Migrations
                     HandlingNotes = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     SoldDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     Weight = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    LastWeighingDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    NextWeighingDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     HealthStatus = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
@@ -820,35 +742,6 @@ namespace Infrastructure.Migrations
                         name: "FK_FoodSuppliers_Suppliers_SuppliersId",
                         column: x => x.SuppliersId,
                         principalTable: "Suppliers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "FeedInTakeDetails",
-                columns: table => new
-                {
-                    FeedInTakeId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    FeedId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    ExpectedQuantity = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    ReceivedQuantity = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    AcceptedQuantity = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    RejectedQuantity = table.Column<decimal>(type: "decimal(18,2)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_FeedInTakeDetails", x => new { x.FeedInTakeId, x.FeedId });
-                    table.ForeignKey(
-                        name: "FK_FeedInTakeDetails_FeedInTakes_FeedInTakeId",
-                        column: x => x.FeedInTakeId,
-                        principalTable: "FeedInTakes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_FeedInTakeDetails_Feeds_FeedId",
-                        column: x => x.FeedId,
-                        principalTable: "Feeds",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -1088,49 +981,29 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PigExamninationMedicine",
+                name: "PigExaminationMedicine",
                 columns: table => new
                 {
                     PigExaminationDetailId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     MedicineId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Quantity = table.Column<double>(type: "float", nullable: false)
+                    Quantity = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PigExamninationMedicine", x => new { x.PigExaminationDetailId, x.MedicineId });
+                    table.PrimaryKey("PK_PigExaminationMedicine", x => new { x.PigExaminationDetailId, x.MedicineId });
                     table.ForeignKey(
-                        name: "FK_PigExamninationMedicine_Medicines_MedicineId",
+                        name: "FK_PigExaminationMedicine_Medicines_MedicineId",
                         column: x => x.MedicineId,
                         principalTable: "Medicines",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_PigExamninationMedicine_PigExaminationDetail_PigExaminationDetailId",
+                        name: "FK_PigExaminationMedicine_PigExaminationDetail_PigExaminationDetailId",
                         column: x => x.PigExaminationDetailId,
                         principalTable: "PigExaminationDetail",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FeedInTakeDetails_FeedId",
-                table: "FeedInTakeDetails",
-                column: "FeedId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FeedInTakes_SuppliersId",
-                table: "FeedInTakes",
-                column: "SuppliersId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Feeds_AreasId",
-                table: "Feeds",
-                column: "AreasId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Feeds_FeedTypeId",
-                table: "Feeds",
-                column: "FeedTypeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_FoodExportDetail_FoodId",
@@ -1146,11 +1019,6 @@ namespace Infrastructure.Migrations
                 name: "IX_FoodImportRequestDetails_FoodId",
                 table: "FoodImportRequestDetails",
                 column: "FoodId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FoodImports_FoodImportRequestId",
-                table: "FoodImports",
-                column: "FoodImportRequestId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_FoodImports_SupplierId",
@@ -1173,11 +1041,6 @@ namespace Infrastructure.Migrations
                 column: "SuppliersId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MedicineImport_RequestMedicineId",
-                table: "MedicineImport",
-                column: "RequestMedicineId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_MedicineImport_SupplierId",
                 table: "MedicineImport",
                 column: "SupplierId");
@@ -1198,6 +1061,11 @@ namespace Infrastructure.Migrations
                 column: "PigId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PigExamination_MedicineId",
+                table: "PigExamination",
+                column: "MedicineId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PigExaminationDetail_PigExaminationId",
                 table: "PigExaminationDetail",
                 column: "PigExaminationId");
@@ -1208,8 +1076,8 @@ namespace Infrastructure.Migrations
                 column: "PigId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PigExamninationMedicine_MedicineId",
-                table: "PigExamninationMedicine",
+                name: "IX_PigExaminationMedicine_MedicineId",
+                table: "PigExaminationMedicine",
                 column: "MedicineId");
 
             migrationBuilder.CreateIndex(
@@ -1301,9 +1169,6 @@ namespace Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "FeedInTakeDetails");
-
-            migrationBuilder.DropTable(
                 name: "FoodExportDetail");
 
             migrationBuilder.DropTable(
@@ -1325,7 +1190,7 @@ namespace Infrastructure.Migrations
                 name: "MovePigDetails");
 
             migrationBuilder.DropTable(
-                name: "PigExamninationMedicine");
+                name: "PigExaminationMedicine");
 
             migrationBuilder.DropTable(
                 name: "PigExportDetail");
@@ -1361,16 +1226,13 @@ namespace Infrastructure.Migrations
                 name: "WeighingDetail");
 
             migrationBuilder.DropTable(
-                name: "FeedInTakes");
-
-            migrationBuilder.DropTable(
-                name: "Feeds");
-
-            migrationBuilder.DropTable(
                 name: "FoodExport");
 
             migrationBuilder.DropTable(
                 name: "FoodImports");
+
+            migrationBuilder.DropTable(
+                name: "FoodImportRequests");
 
             migrationBuilder.DropTable(
                 name: "Foods");
@@ -1391,28 +1253,19 @@ namespace Infrastructure.Migrations
                 name: "PigExportRequest");
 
             migrationBuilder.DropTable(
+                name: "RequestMedicine");
+
+            migrationBuilder.DropTable(
                 name: "Role");
 
             migrationBuilder.DropTable(
                 name: "User");
 
             migrationBuilder.DropTable(
-                name: "Medicines");
-
-            migrationBuilder.DropTable(
                 name: "WeighingHistory");
 
             migrationBuilder.DropTable(
-                name: "FeedTypes");
-
-            migrationBuilder.DropTable(
-                name: "FoodImportRequests");
-
-            migrationBuilder.DropTable(
                 name: "FoodTypes");
-
-            migrationBuilder.DropTable(
-                name: "RequestMedicine");
 
             migrationBuilder.DropTable(
                 name: "Suppliers");
@@ -1425,6 +1278,9 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Customers");
+
+            migrationBuilder.DropTable(
+                name: "Medicines");
 
             migrationBuilder.DropTable(
                 name: "Stables");

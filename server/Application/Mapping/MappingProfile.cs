@@ -43,19 +43,6 @@ namespace Application.Mapping
 
             CreateMap<PigIntakeAcceptDTO, PigIntakes>().ReverseMap();
 
-            CreateMap<FeedInTakeDetails, FeedIntakeInsertDTO>().ReverseMap();
-
-            CreateMap<FeedIntakeResponseModel, FeedInTakes>().ReverseMap();
-
-            CreateMap<FeedIntakeAcceptDTO, FeedInTakes>().ReverseMap();
-
-            CreateMap<FeedInsertDTO, Feeds>().ReverseMap();
-            CreateMap<FeedUpdateDTO, Feeds>().ReverseMap();
-            CreateMap<FeedGetModel, Feeds>().ReverseMap();
-
-            CreateMap<FeedTypeNonQueryDTO, FeedTypes>().ReverseMap();
-            CreateMap<FeedTypeGetModel, FeedTypes>().ReverseMap();
-
             CreateMap<PigDTO, Pigs>().ReverseMap();
             CreateMap<PigModelView, Pigs>().ReverseMap();
 

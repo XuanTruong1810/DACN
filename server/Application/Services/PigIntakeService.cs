@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Application.DTOs;
 using Application.Interfaces;
 using Application.Models;
+using Application.Models.PigStable;
 using AutoMapper;
 using Core.Base;
 using Core.Entities;
@@ -51,7 +52,10 @@ namespace Application.Services
             PigIntakes? pigIntake = await unitOfWork.GetRepository<PigIntakes>().GetByIdAsync(id)
             ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Not found");
             PigInTakeModelView result = mapper.Map<PigInTakeModelView>(pigIntake);
-
+            ApplicationUser? user = await unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(result.CreateBy)
+            ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy người tạo");
+            result.CreateByName = user.FullName;
+            result.SuppliersId = pigIntake.SuppliersId;
             return result;
 
         }
@@ -207,7 +211,7 @@ namespace Application.Services
         }
 
 
-        public async Task<PigInTakeModelView> AllocatePigsToStableAsync(string AreasId, string pigIntakeId)
+        public async Task<List<GetPigStableModelView>> AllocatePigsToStableAsync(string AreasId, string pigIntakeId)
         {
             PigIntakes? PigIntake = await unitOfWork.GetRepository<PigIntakes>().GetByIdAsync(pigIntakeId)
                 ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy id của hóa đơn");
@@ -265,12 +269,14 @@ namespace Application.Services
                     currentStable = availableStables[stableIndex];
                 }
 
-                string pigCode = $"{PigIntake.DeliveryDate:yyyyMMdd}_{totalExistingPigsCount + i}";
+                string pigCode = $"HEO_{PigIntake.DeliveryDate:yyyyMMdd}_{totalExistingPigsCount + i}";
 
                 Pigs newPig = new()
                 {
                     Id = pigCode,
                     StableId = currentStable.Id,
+                    Status = "alive",
+                    NextWeighingDate = PigIntake.DeliveryDate
                 };
                 pigsList.Add(newPig);
 
@@ -306,7 +312,12 @@ namespace Application.Services
 
                 await unitOfWork.SaveAsync();
 
-                return mapper.Map<PigInTakeModelView>(PigIntake);
+                return pigsList.Select(p => new GetPigStableModelView
+                {
+                    Id = p.Id,
+                    StableName = p.Stables.Name,
+                    StableId = p.StableId
+                }).ToList();
             }
             catch (Exception ex)
             {

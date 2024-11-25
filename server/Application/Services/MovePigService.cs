@@ -102,6 +102,7 @@ public class MovePigService : IMovePigService
                 pig.UpdatedTime = DateTimeOffset.UtcNow;
 
                 pig.StableId = toStable.Id;
+                pig.NextWeighingDate = createMovePigDTO.MoveDate.AddDays(toArea.WeighingFrequency);
                 await _unitOfWork.GetRepository<Pigs>().UpdateAsync(pig);
             }
             await _unitOfWork.SaveAsync();

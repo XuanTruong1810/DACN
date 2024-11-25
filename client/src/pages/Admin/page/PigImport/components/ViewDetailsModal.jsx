@@ -44,6 +44,7 @@ const ViewDetailsModal = ({ visible, record, onClose }) => {
           },
         }
       );
+      console.log("response data pig intake", response.data.data);
       setDetailData(response.data.data);
     } catch (error) {
       console.error("Error fetching details:", error);
@@ -64,6 +65,7 @@ const ViewDetailsModal = ({ visible, record, onClose }) => {
           },
         }
       );
+      console.log("response data", response.data.data);
       setSupplierDetail(response.data.data);
     } catch (error) {
       console.error("Error fetching supplier details:", error);
@@ -93,64 +95,24 @@ const ViewDetailsModal = ({ visible, record, onClose }) => {
     <Card title="Thông tin nhà cung cấp" style={{ marginBottom: 16 }}>
       <Descriptions bordered column={1}>
         <Descriptions.Item label="Mã nhà cung cấp">
-          {detailData?.suppliersId || "N/A"}
+          {detailData?.suppliersId || "Chưa chọn"}
         </Descriptions.Item>
 
         <Descriptions.Item label="Tên nhà cung cấp">
-          {detailData?.suppliersName || "Chưa chọn"}
+          {supplierDetail?.name || "Chưa chọn"}
         </Descriptions.Item>
 
         <Descriptions.Item label="Địa chỉ">
-          {supplierDetail ? (
-            supplierDetail.address || "Không có"
-          ) : (
-            <Text type="secondary">
-              <Spin size="small" style={{ marginRight: 8 }} />
-              Đang tải...
-            </Text>
-          )}
+          {supplierDetail?.address || "Chưa chọn"}
         </Descriptions.Item>
 
         <Descriptions.Item label="Số điện thoại">
-          {supplierDetail ? (
-            supplierDetail.phone || "Không có"
-          ) : (
-            <Text type="secondary">
-              <Spin size="small" style={{ marginRight: 8 }} />
-              Đang tải...
-            </Text>
-          )}
+          {supplierDetail?.phone || "Chưa chọn"}
         </Descriptions.Item>
 
-        {supplierDetail?.email && (
-          <Descriptions.Item label="Email">
-            {supplierDetail.email}
-          </Descriptions.Item>
-        )}
-
-        {supplierDetail?.taxCode && (
-          <Descriptions.Item label="Mã số thuế">
-            {supplierDetail.taxCode}
-          </Descriptions.Item>
-        )}
-
-        {supplierDetail?.description && (
-          <Descriptions.Item label="Mô tả">
-            {supplierDetail.description}
-          </Descriptions.Item>
-        )}
-
-        {supplierDetail?.status && (
-          <Descriptions.Item label="Trạng thái">
-            <Tag
-              color={supplierDetail.status === "Active" ? "success" : "error"}
-            >
-              {supplierDetail.status === "Active"
-                ? "Đang hoạt động"
-                : "Ngừng hoạt động"}
-            </Tag>
-          </Descriptions.Item>
-        )}
+        <Descriptions.Item label="Email">
+          {supplierDetail?.email || "Chưa chọn"}
+        </Descriptions.Item>
       </Descriptions>
     </Card>
   );
@@ -188,7 +150,7 @@ const ViewDetailsModal = ({ visible, record, onClose }) => {
               </Descriptions.Item>
 
               <Descriptions.Item label="Người tạo">
-                {detailData.createdBy}
+                {detailData.createByName}
               </Descriptions.Item>
 
               <Descriptions.Item label="Ngày tạo">
@@ -199,7 +161,7 @@ const ViewDetailsModal = ({ visible, record, onClose }) => {
 
           {renderSupplierCard()}
 
-          <Card title="Chi tiết đơn hàng" style={{ marginBottom: 16 }}>
+          <Card title="Chi tiết nhập heo" style={{ marginBottom: 16 }}>
             <Descriptions bordered column={2}>
               <Descriptions.Item label="Số lượng dự kiến">
                 <Text strong>{detailData.expectedQuantity}</Text> con

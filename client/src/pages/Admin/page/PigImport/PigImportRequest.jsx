@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+
+import axiosConfig from "../../../../utils/axiosConfig";
 import {
   Form,
   Input,
@@ -10,18 +12,62 @@ import {
   Table,
   Space,
   Tag,
-  Select,
-  DatePicker,
-  TimePicker,
-  Upload,
+  Row,
+  Col,
   Alert,
+  Statistic,
+  Divider,
 } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
+import {
+  SaveOutlined,
+  ReloadOutlined,
+  InboxOutlined,
+  WarningOutlined,
+  DashboardOutlined,
+  BarChartOutlined,
+  HomeOutlined,
+  ThunderboltOutlined,
+  CloudOutlined,
+} from "@ant-design/icons";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
+
+// Thêm custom styles
+const styles = {
+  pageContainer: {
+    padding: "24px",
+    background: "#f0f2f5",
+    minHeight: "100vh",
+  },
+  headerCard: {
+    borderRadius: "8px",
+    marginBottom: "24px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+  },
+  mainCard: {
+    borderRadius: "8px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+  },
+  innerCard: {
+    borderRadius: "8px",
+    border: "1px solid #f0f0f0",
+  },
+  statsCard: {
+    background: "#fff",
+    borderRadius: "8px",
+    padding: "24px",
+    height: "100%",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+  },
+  table: {
+    ".ant-table": {
+      borderRadius: "8px",
+    },
+  },
+};
 
 const PigImportRequest = () => {
   const [form] = Form.useForm();
@@ -30,6 +76,7 @@ const PigImportRequest = () => {
   const [selectedQuantity, setSelectedQuantity] = useState(0);
   const [totalAvailableSpace, setTotalAvailableSpace] = useState(0);
   const [areaIdA, setAreaIdA] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -145,14 +192,20 @@ const PigImportRequest = () => {
       ),
     },
     {
-      title: "Nhiệt độ",
-      dataIndex: "temperature",
-      key: "temperature",
-    },
-    {
-      title: "Độ ẩm",
-      dataIndex: "humidity",
-      key: "humidity",
+      title: "Môi trường",
+      key: "environment",
+      render: (_, record) => (
+        <Space direction="vertical" size="small">
+          <Space>
+            <ThunderboltOutlined style={{ color: "#faad14" }} />
+            <span>Nhiệt độ: {record.temperature}°C</span>
+          </Space>
+          <Space>
+            <CloudOutlined style={{ color: "#1890ff" }} />
+            <span>Độ ẩm: {record.humidity}%</span>
+          </Space>
+        </Space>
+      ),
     },
     {
       title: "Trạng thái",
@@ -206,6 +259,7 @@ const PigImportRequest = () => {
       );
 
       message.success("Đã tạo yêu cầu nhập heo thành công!");
+      navigate("/admin/inventory/request-list");
       form.resetFields();
       setSelectedQuantity(0);
     } catch (error) {
@@ -224,125 +278,131 @@ const PigImportRequest = () => {
     { value: "quarantine", label: "Cần kiểm dịch" },
   ];
 
+  // Thêm style cho cột môi trường
+  const additionalStyle = `
+    .environment-column {
+      min-width: 150px;
+    }
+    .environment-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .environment-value {
+      font-weight: 500;
+    }
+    .ant-table-cell .anticon {
+      font-size: 16px;
+    }
+  `;
+
+  // Cập nhật style
+  const style = document.createElement("style");
+  style.textContent = `
+    .custom-table .ant-table {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .custom-table .ant-table-thead > tr > th {
+      background: #fafafa;
+    }
+    .ant-card {
+      border-radius: 8px;
+    }
+    .ant-input, .ant-input-number {
+      border-radius: 6px;
+    }
+    .ant-btn {
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+    }
+    .ant-alert {
+      border-radius: 6px;
+    }
+    .ant-statistic-title {
+      margin-bottom: 8px;
+    }
+    ${additionalStyle}
+  `;
+  document.head.appendChild(style);
+
   return (
-    <div style={{ padding: "24px" }}>
-      <Card>
-        <Title level={3}>Tạo yêu cầu nhập heo</Title>
+    <div style={styles.pageContainer}>
+      {/* Header Card */}
+      <Card style={styles.headerCard}>
+        <Row align="middle" justify="space-between">
+          <Col>
+            <Title level={3} style={{ margin: 0 }}>
+              <HomeOutlined /> Tạo yêu cầu nhập heo
+            </Title>
+          </Col>
+        </Row>
+      </Card>
 
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-          initialValues={{
-            pigType: "boar", // Mặc định là heo đực
-            quantity: 1,
-            averageWeight: 0,
-            age: 1,
-            healthStatus: "healthy", // Mặc định là khỏe mạnh
-          }}
-        >
-          <Card title="Thông tin heo" type="inner">
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "16px",
-              }}
-            >
-              <Form.Item
-                name="quantity"
-                label="Số lượng (con)"
-                rules={[
-                  { required: true, message: "Vui lòng nhập số lượng" },
-                  {
-                    validator: (_, value) => {
-                      if (value > totalAvailableSpace) {
-                        return Promise.reject(
-                          `Số lượng không được vượt quá ${totalAvailableSpace} con`
-                        );
-                      }
-                      return Promise.resolve();
-                    },
-                  },
-                ]}
-              >
-                <InputNumber
-                  min={1}
-                  style={{ width: "100%" }}
-                  onChange={handleQuantityChange}
-                />
-              </Form.Item>
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        initialValues={{
+          quantity: 1,
+        }}
+      >
+        {/* Statistics Cards */}
+        <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
+          <Col xs={24} sm={8}>
+            <Card style={styles.statsCard}>
+              <Statistic
+                title={<Text strong>Tổng số chỗ trống</Text>}
+                value={totalAvailableSpace}
+                suffix="con"
+                prefix={<InboxOutlined style={{ color: "#1890ff" }} />}
+                valueStyle={{ color: "#1890ff" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card style={styles.statsCard}>
+              <Statistic
+                title={<Text strong>Số lượng cần nhập</Text>}
+                value={selectedQuantity}
+                suffix="con"
+                prefix={<DashboardOutlined style={{ color: "#52c41a" }} />}
+                valueStyle={{ color: "#52c41a" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card style={styles.statsCard}>
+              <Statistic
+                title={<Text strong>Còn lại sau khi nhập</Text>}
+                value={totalAvailableSpace - selectedQuantity}
+                suffix="con"
+                prefix={<BarChartOutlined style={{ color: "#faad14" }} />}
+                valueStyle={{ color: "#faad14" }}
+              />
+            </Card>
+          </Col>
+        </Row>
 
-              <Form.Item
-                name="averageWeight"
-                label="Trọng lượng trung bình (kg)"
-                rules={[
-                  { required: true, message: "Vui lòng nhập trọng lượng" },
-                ]}
-              >
-                <InputNumber min={0} style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Form.Item
-                name="age"
-                label="Độ tuổi (tuần)"
-                rules={[{ required: true, message: "Vui lòng nhập độ tuổi" }]}
-              >
-                <InputNumber min={0} style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Form.Item
-                name="healthStatus"
-                label="Tình trạng sức khỏe"
-                rules={[
-                  {
-                    required: true,
-                    message: "Vui lòng chọn tình trạng sức khỏe",
-                  },
-                ]}
-              >
-                <Select
-                  placeholder="Chọn tình trạng sức khỏe"
-                  options={healthStatusOptions}
-                />
-              </Form.Item>
-            </div>
-          </Card>
-
-          <Card
-            title="Thông tin chuồng trại"
-            type="inner"
-            style={{ marginTop: "16px" }}
-          >
+        {/* Main Content */}
+        <Card style={styles.mainCard}>
+          {/* Thông tin chuồng trại */}
+          <div style={{ marginBottom: "24px" }}>
+            <Title level={4}>
+              <HomeOutlined /> Thông tin chuồng trại
+            </Title>
             <Alert
-              message="Thông tin số lượng"
-              description={
-                <Space direction="vertical">
-                  <div>
-                    Tổng số chỗ trống có sẵn:{" "}
-                    <Tag color="blue">{totalAvailableSpace} con</Tag>
-                  </div>
-                  {selectedQuantity > 0 && (
-                    <>
-                      <div>
-                        Số lượng cần nhập:{" "}
-                        <Tag color="green">{selectedQuantity} con</Tag>
-                      </div>
-                      <div>
-                        Còn lại sau khi nhập:{" "}
-                        <Tag color="orange">
-                          {totalAvailableSpace - selectedQuantity} con
-                        </Tag>
-                      </div>
-                    </>
-                  )}
-                </Space>
+              message={
+                <Text strong>
+                  <WarningOutlined /> Thông tin chuồng trại hiện có
+                </Text>
               }
+              description="Dưới đây là danh sách các chuồng còn trống và đang hoạt động"
               type="info"
               showIcon
-              style={{ marginBottom: 16 }}
+              style={{ marginBottom: "16px" }}
             />
-
             <Table
               columns={columns}
               dataSource={availableHouses}
@@ -350,30 +410,96 @@ const PigImportRequest = () => {
               loading={loading}
               pagination={false}
               scroll={{ x: 1000 }}
+              style={styles.table}
+              className="custom-table"
             />
-          </Card>
+          </div>
 
-          <Form.Item name="notes" label="Ghi chú" style={{ marginTop: "16px" }}>
-            <TextArea rows={4} />
-          </Form.Item>
+          <Divider />
 
-          <Form.Item style={{ marginTop: "16px" }}>
+          {/* Thông tin heo */}
+          <div>
+            <Title level={4}>
+              <InboxOutlined /> Thông tin heo
+            </Title>
+            <Alert
+              message={
+                <Text strong>
+                  <WarningOutlined /> Lưu ý quan trọng
+                </Text>
+              }
+              description="Heo cần đạt chuẩn từ 7 tuần tuổi trở lên và có cân nặng từ 10 đến 20 kg"
+              type="warning"
+              showIcon
+              style={{ marginBottom: "24px" }}
+            />
+
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="quantity"
+                  label={<Text strong>Số lượng heo cần nhập (con)</Text>}
+                  rules={[
+                    { required: true, message: "Vui lòng nhập số lượng" },
+                    {
+                      validator: (_, value) => {
+                        if (value > totalAvailableSpace) {
+                          return Promise.reject(
+                            `Số lượng không được vượt quá ${totalAvailableSpace} con`
+                          );
+                        }
+                        return Promise.resolve();
+                      },
+                    },
+                  ]}
+                >
+                  <InputNumber
+                    min={1}
+                    style={{ width: "100%" }}
+                    onChange={handleQuantityChange}
+                    placeholder="Nhập số lượng heo"
+                    size="large"
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24}>
+                <Form.Item name="notes" label={<Text strong>Ghi chú</Text>}>
+                  <TextArea
+                    rows={4}
+                    placeholder="Nhập ghi chú nếu có"
+                    style={{ borderRadius: "6px" }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
+
+          {/* Action Buttons */}
+          <Row justify="end" style={{ marginTop: "24px" }}>
             <Space>
-              <Button type="primary" htmlType="submit" loading={loading}>
-                Tạo yêu cầu
-              </Button>
               <Button
+                icon={<ReloadOutlined />}
                 onClick={() => {
                   form.resetFields();
                   setSelectedQuantity(0);
                 }}
+                size="large"
               >
                 Làm mới
               </Button>
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                htmlType="submit"
+                loading={loading}
+                size="large"
+              >
+                Tạo yêu cầu
+              </Button>
             </Space>
-          </Form.Item>
-        </Form>
-      </Card>
+          </Row>
+        </Card>
+      </Form>
     </div>
   );
 };

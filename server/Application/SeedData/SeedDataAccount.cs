@@ -13,11 +13,13 @@ namespace Application.SeedData
 
             if (!await roleManager.RoleExistsAsync("Admin"))
             {
-                await roleManager.CreateAsync(new IdentityRole { Name = "Admin" });
+                IdentityRole? adminRole = new IdentityRole { Name = "Admin" };
+                await roleManager.CreateAsync(adminRole);
+                await roleManager.AddClaimAsync(adminRole, new System.Security.Claims.Claim("Permission", "FullAccess"));
             }
-            string emailAdmin = "Admin@gmail.com";
-            string passwordAdmin = "Admin123.";
-            string nameAdmin = "Admin";
+            string emailAdmin = "truongtamcobra@gmail.com";
+            string passwordAdmin = "XuanTruong123.";
+            string nameAdmin = "Nguyễn Xuân Trường";
 
 
             ApplicationUser? adminAccount = await userManager.FindByEmailAsync(emailAdmin);
@@ -25,10 +27,13 @@ namespace Application.SeedData
             {
                 ApplicationUser? newAccount = new ApplicationUser
                 {
+                    Id = "US00001",
                     UserName = emailAdmin,
+                    PhoneNumber = "0971758902",
                     Email = emailAdmin,
                     EmailConfirmed = true,
-                    FullName = nameAdmin
+                    FullName = nameAdmin,
+                    DateOfBirth = new DateTime(2003, 10, 18),
                 };
                 await userManager.CreateAsync(newAccount, passwordAdmin);
                 await userManager.AddToRoleAsync(newAccount, "Admin");
@@ -36,22 +41,27 @@ namespace Application.SeedData
 
             if (!await roleManager.RoleExistsAsync("Dispatch"))
             {
-                await roleManager.CreateAsync(new IdentityRole { Name = "Dispatch" });
+                IdentityRole? dispatchRole = new IdentityRole { Name = "Dispatch" };
+                await roleManager.CreateAsync(dispatchRole);
+                await roleManager.AddClaimAsync(dispatchRole, new System.Security.Claims.Claim("Permission", "ProposePigImport"));
+                await roleManager.AddClaimAsync(dispatchRole, new System.Security.Claims.Claim("Permission", "AssignPigToPen"));
             }
-            string emailMember = "Dispatch@gmail.com";
-            string passwordMember = "Dispatch123*";
-            string nameMem = "Dispatch 1";
+            string emailMember = "nghianham125@gmail.com";
+            string passwordMember = "TrungNghia123.";
+            string nameMem = "Nhâm Trung Nghĩa";
 
             ApplicationUser? memberAccount = await userManager.FindByEmailAsync(emailMember);
             if (memberAccount is null)
             {
                 ApplicationUser? newAccount = new ApplicationUser
                 {
+                    Id = "US00002",
                     UserName = emailMember,
-
+                    PhoneNumber = "0903376314",
                     Email = emailMember,
                     EmailConfirmed = true,
                     FullName = nameMem,
+                    DateOfBirth = new DateTime(2003, 04, 18),
                 };
                 await userManager.CreateAsync(newAccount, passwordMember);
                 await userManager.AddToRoleAsync(newAccount, "Dispatch");
@@ -61,21 +71,28 @@ namespace Application.SeedData
 
             if (!await roleManager.RoleExistsAsync("FeedManager"))
             {
-                await roleManager.CreateAsync(new IdentityRole { Name = "FeedManager" });
+                var feedManagerRole = new IdentityRole { Name = "FeedManager" };
+                await roleManager.CreateAsync(feedManagerRole);
+                await roleManager.AddClaimAsync(feedManagerRole, new System.Security.Claims.Claim("Permission", "ProposeFeedImport"));
+                await roleManager.AddClaimAsync(feedManagerRole, new System.Security.Claims.Claim("Permission", "ImportFeed"));
+                await roleManager.AddClaimAsync(feedManagerRole, new System.Security.Claims.Claim("Permission", "ExportFeed"));
             }
-            string emailFeedManager = "FeedManage@gmail.com";
-            string passwordFeedManager = "FeedManage123*";
-            string NameFeedManager = "FeedManage 1";
+            string emailFeedManager = "xuantruong18103@gmail.com";
+            string passwordFeedManager = "XuanTruong123.";
+            string NameFeedManager = "Nguyễn Xuân Trường";
 
             ApplicationUser? FeedManager = await userManager.FindByEmailAsync(emailFeedManager);
             if (FeedManager is null)
             {
                 ApplicationUser? newAccount = new ApplicationUser
                 {
+                    Id = "US00003",
                     UserName = emailFeedManager,
                     Email = emailFeedManager,
+                    PhoneNumber = "0971758902",
                     EmailConfirmed = true,
                     FullName = NameFeedManager,
+                    DateOfBirth = new DateTime(2003, 10, 18),
                 };
                 await userManager.CreateAsync(newAccount, passwordFeedManager);
                 await userManager.AddToRoleAsync(newAccount, "FeedManager");
@@ -84,21 +101,31 @@ namespace Application.SeedData
 
             if (!await roleManager.RoleExistsAsync("Veterinarian"))
             {
-                await roleManager.CreateAsync(new IdentityRole { Name = "Veterinarian" });
+                IdentityRole? veterinarianRole = new IdentityRole { Name = "Veterinarian" };
+                await roleManager.CreateAsync(veterinarianRole);
+                await roleManager.AddClaimAsync(veterinarianRole, new System.Security.Claims.Claim("Permission", "MedicalExamination"));
+                await roleManager.AddClaimAsync(veterinarianRole, new System.Security.Claims.Claim("Permission", "PeriodicInjection"));
+                await roleManager.AddClaimAsync(veterinarianRole, new System.Security.Claims.Claim("Permission", "ProposeMedicineImport"));
+                await roleManager.AddClaimAsync(veterinarianRole, new System.Security.Claims.Claim("Permission", "WeighPig"));
+                await roleManager.AddClaimAsync(veterinarianRole, new System.Security.Claims.Claim("Permission", "TransferPig"));
+                await roleManager.AddClaimAsync(veterinarianRole, new System.Security.Claims.Claim("Permission", "ProposePigExport"));
             }
-            string emailVeterinarian = "Veterinarian@gmail.com";
-            string passwordVeterinarian = "Veterinarian123.";
-            string NameVeterinarian = "Veterinarian 1";
+            string emailVeterinarian = "tnan280103@gmail.com";
+            string passwordVeterinarian = "Anhnhi123.";
+            string NameVeterinarian = "Trần Nguyễn Ánh Nhi";
 
             ApplicationUser? Veterinarian = await userManager.FindByEmailAsync(emailVeterinarian);
             if (Veterinarian is null)
             {
                 ApplicationUser? newAccount = new ApplicationUser
                 {
+                    Id = "US00004",
                     UserName = emailVeterinarian,
                     Email = emailVeterinarian,
+                    PhoneNumber = "0396979034",
                     EmailConfirmed = true,
                     FullName = NameVeterinarian,
+                    DateOfBirth = new DateTime(2003, 01, 28),
                 };
                 await userManager.CreateAsync(newAccount, passwordVeterinarian);
                 await userManager.AddToRoleAsync(newAccount, "Veterinarian");

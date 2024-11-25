@@ -22,7 +22,4 @@ public class FoodImportRequests : BaseEntity
 
     [InverseProperty("FoodImportRequests")]
     public virtual ICollection<FoodImportRequestDetails> FoodImportRequestDetails { get; set; } = new List<FoodImportRequestDetails>();
-
-    [InverseProperty("FoodImportRequests")]
-    public virtual ICollection<FoodImports> FoodImports { get; set; } = new List<FoodImports>();
 }

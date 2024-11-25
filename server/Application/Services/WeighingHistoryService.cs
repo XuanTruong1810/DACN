@@ -33,13 +33,13 @@ public class WeighingHistoryService : IWeighingHistoryService
 
             // Get latest weighing history to generate new ID
             string today = DateTime.Now.ToString("yyyyMMdd");
-            var weighingHistories = await _unitOfWork
+            List<WeighingHistory>? weighingHistories = await _unitOfWork
                 .GetRepository<WeighingHistory>()
                 .GetEntities
                 .ToListAsync(); // Lấy tất cả về client
 
             // Lọc và tạo ID mới ở phía client
-            var todayWeighings = weighingHistories
+            List<WeighingHistory>? todayWeighings = weighingHistories
                 .Where(x => x.Id.StartsWith("WH" + today))
                 .ToList();
 
@@ -78,6 +78,8 @@ public class WeighingHistoryService : IWeighingHistoryService
                     Note = weighingDetail.Note
                 });
                 pig.Weight = weighingDetail.Weight;
+                pig.LastWeighingDate = dto.WeighingDate;
+                pig.NextWeighingDate = dto.WeighingDate.AddDays(area.WeighingFrequency);
                 pig.UpdatedTime = dto.WeighingDate;
             }
             await _unitOfWork.SaveAsync();

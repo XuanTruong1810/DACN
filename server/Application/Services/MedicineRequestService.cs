@@ -300,7 +300,6 @@ namespace server.Application.Services
                         CreatedBy = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                             ?? throw new BaseException(StatusCodeHelper.Unauthorized, ErrorCode.Unauthorized,
                                 "Người dùng chưa đăng nhập"),
-                        RequestMedicineId = request.ID,
                         Receiver = request.RequestBy,
                         MedicineImportDetails = accept.Details.Select(d => new MedicineImportDetail
                         {

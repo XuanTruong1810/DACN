@@ -23,8 +23,6 @@ namespace Core.Entities
         // Navigation properties
         [InverseProperty("RequestMedicine")]
         public virtual ICollection<RequestMedicineDetail> Details { get; set; } = new List<RequestMedicineDetail>();
-        [InverseProperty("RequestMedicine")]
-        public virtual ICollection<MedicineImport> MedicineImports { get; set; } = new List<MedicineImport>();
     }
     public class RequestMedicineDetail
     {

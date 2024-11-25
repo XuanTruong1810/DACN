@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DataBaseContext))]
-    [Migration("20241121195626_InitDB")]
-    partial class InitDB
+    [Migration("20241125190947_InitProject2")]
+    partial class InitProject2
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -144,6 +144,9 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("UpdatedTime")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<int>("WeighingFrequency")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.ToTable("Areas", (string)null);
@@ -189,159 +192,6 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Customers", (string)null);
-                });
-
-            modelBuilder.Entity("Core.Entities.FeedInTakeDetails", b =>
-                {
-                    b.Property<string>("FeedInTakeId")
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnOrder(0);
-
-                    b.Property<string>("FeedId")
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnOrder(1);
-
-                    b.Property<decimal?>("AcceptedQuantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("ExpectedQuantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("ReceivedQuantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("RejectedQuantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("FeedInTakeId", "FeedId");
-
-                    b.HasIndex("FeedId");
-
-                    b.ToTable("FeedInTakeDetails", (string)null);
-                });
-
-            modelBuilder.Entity("Core.Entities.FeedInTakes", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTimeOffset?>("ApprovedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("CreateBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset?>("CreatedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("DeleteTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("DeliveryDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<decimal?>("Deposit")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTimeOffset?>("IsInStock")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<decimal?>("RemainingAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("SuppliersId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<decimal?>("TotalPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTimeOffset?>("UpdatedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SuppliersId");
-
-                    b.ToTable("FeedInTakes", (string)null);
-                });
-
-            modelBuilder.Entity("Core.Entities.FeedTypes", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTimeOffset?>("CreatedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("DeleteTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FeedTypeName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TotalProducts")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset?>("UpdatedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("FeedTypes", (string)null);
-                });
-
-            modelBuilder.Entity("Core.Entities.Feeds", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("AreasId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTimeOffset?>("CreatedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("DeleteTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("FeedName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("FeedPerPig")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("FeedQuantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("FeedTypeId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTimeOffset?>("UpdatedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AreasId");
-
-                    b.HasIndex("FeedTypeId");
-
-                    b.ToTable("Feeds", (string)null);
                 });
 
             modelBuilder.Entity("Core.Entities.FoodExport", b =>
@@ -511,10 +361,6 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset>("ExpectedDeliveryTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("FoodImportRequestId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
 
@@ -539,8 +385,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("FoodImportRequestId");
 
                     b.HasIndex("SupplierId");
 
@@ -692,10 +536,6 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RequestMedicineId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -713,8 +553,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("RequestMedicineId");
 
                     b.HasIndex("SupplierId");
 
@@ -901,6 +739,10 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTimeOffset?>("CreatedTime")
                         .HasColumnType("datetimeoffset");
 
@@ -910,10 +752,21 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset>("ExaminationDate")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("ExaminationNote")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExaminationType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MedicineId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTimeOffset?>("UpdatedTime")
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MedicineId");
 
                     b.ToTable("PigExamination", (string)null);
                 });
@@ -961,7 +814,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("PigExaminationDetail", (string)null);
                 });
 
-            modelBuilder.Entity("Core.Entities.PigExamninationMedicine", b =>
+            modelBuilder.Entity("Core.Entities.PigExaminationMedicine", b =>
                 {
                     b.Property<string>("PigExaminationDetailId")
                         .HasColumnType("nvarchar(450)");
@@ -969,14 +822,14 @@ namespace Infrastructure.Migrations
                     b.Property<string>("MedicineId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<double>("Quantity")
-                        .HasColumnType("float");
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("PigExaminationDetailId", "MedicineId");
 
                     b.HasIndex("MedicineId");
 
-                    b.ToTable("PigExamninationMedicine", (string)null);
+                    b.ToTable("PigExaminationMedicine", (string)null);
                 });
 
             modelBuilder.Entity("Core.Entities.PigExport", b =>
@@ -1157,6 +1010,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("ExpectedQuantity")
                         .HasColumnType("int");
 
+                    b.Property<DateTimeOffset?>("ExpectedReceiveDate")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<int?>("ReceivedQuantity")
                         .HasColumnType("int");
 
@@ -1217,6 +1073,12 @@ namespace Infrastructure.Migrations
                     b.Property<string>("HealthStatus")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("LastWeighingDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("NextWeighingDate")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
@@ -1611,53 +1473,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("UserToken", (string)null);
                 });
 
-            modelBuilder.Entity("Core.Entities.FeedInTakeDetails", b =>
-                {
-                    b.HasOne("Core.Entities.Feeds", "Feeds")
-                        .WithMany()
-                        .HasForeignKey("FeedId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Core.Entities.FeedInTakes", "FeedInTakes")
-                        .WithMany("FeedInTakeDetails")
-                        .HasForeignKey("FeedInTakeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FeedInTakes");
-
-                    b.Navigation("Feeds");
-                });
-
-            modelBuilder.Entity("Core.Entities.FeedInTakes", b =>
-                {
-                    b.HasOne("Core.Entities.Suppliers", "Suppliers")
-                        .WithMany()
-                        .HasForeignKey("SuppliersId");
-
-                    b.Navigation("Suppliers");
-                });
-
-            modelBuilder.Entity("Core.Entities.Feeds", b =>
-                {
-                    b.HasOne("Core.Entities.Areas", "Areas")
-                        .WithMany("Feeds")
-                        .HasForeignKey("AreasId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Core.Entities.FeedTypes", "FeedTypes")
-                        .WithMany("Feeds")
-                        .HasForeignKey("FeedTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Areas");
-
-                    b.Navigation("FeedTypes");
-                });
-
             modelBuilder.Entity("Core.Entities.FoodExportDetail", b =>
                 {
                     b.HasOne("Core.Entities.FoodExport", "FoodExport")
@@ -1717,19 +1532,11 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.FoodImports", b =>
                 {
-                    b.HasOne("Core.Entities.FoodImportRequests", "FoodImportRequests")
-                        .WithMany("FoodImports")
-                        .HasForeignKey("FoodImportRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Core.Entities.Suppliers", "Supplier")
                         .WithMany()
                         .HasForeignKey("SupplierId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("FoodImportRequests");
 
                     b.Navigation("Supplier");
                 });
@@ -1774,19 +1581,11 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.MedicineImport", b =>
                 {
-                    b.HasOne("Core.Entities.RequestMedicine", "RequestMedicine")
-                        .WithMany("MedicineImports")
-                        .HasForeignKey("RequestMedicineId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Core.Entities.Suppliers", "Suppliers")
                         .WithMany("MedicineImports")
                         .HasForeignKey("SupplierId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("RequestMedicine");
 
                     b.Navigation("Suppliers");
                 });
@@ -1848,6 +1647,15 @@ namespace Infrastructure.Migrations
                     b.Navigation("Pig");
                 });
 
+            modelBuilder.Entity("Core.Entities.PigExamination", b =>
+                {
+                    b.HasOne("Core.Entities.Medicines", "Medicine")
+                        .WithMany("PigExaminations")
+                        .HasForeignKey("MedicineId");
+
+                    b.Navigation("Medicine");
+                });
+
             modelBuilder.Entity("Core.Entities.PigExaminationDetail", b =>
                 {
                     b.HasOne("Core.Entities.PigExamination", "PigExamination")
@@ -1867,16 +1675,16 @@ namespace Infrastructure.Migrations
                     b.Navigation("PigExamination");
                 });
 
-            modelBuilder.Entity("Core.Entities.PigExamninationMedicine", b =>
+            modelBuilder.Entity("Core.Entities.PigExaminationMedicine", b =>
                 {
                     b.HasOne("Core.Entities.Medicines", "Medicine")
-                        .WithMany("PigExamninationMedicines")
+                        .WithMany("PigExaminationMedicines")
                         .HasForeignKey("MedicineId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Core.Entities.PigExaminationDetail", "PigExaminationDetail")
-                        .WithMany("PigExamninationMedicines")
+                        .WithMany("PigExaminationMedicines")
                         .HasForeignKey("PigExaminationDetailId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -2076,8 +1884,6 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.Areas", b =>
                 {
-                    b.Navigation("Feeds");
-
                     b.Navigation("Foods");
 
                     b.Navigation("Stables");
@@ -2088,16 +1894,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("PigExports");
                 });
 
-            modelBuilder.Entity("Core.Entities.FeedInTakes", b =>
-                {
-                    b.Navigation("FeedInTakeDetails");
-                });
-
-            modelBuilder.Entity("Core.Entities.FeedTypes", b =>
-                {
-                    b.Navigation("Feeds");
-                });
-
             modelBuilder.Entity("Core.Entities.FoodExport", b =>
                 {
                     b.Navigation("FoodExportDetails");
@@ -2106,8 +1902,6 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Entities.FoodImportRequests", b =>
                 {
                     b.Navigation("FoodImportRequestDetails");
-
-                    b.Navigation("FoodImports");
                 });
 
             modelBuilder.Entity("Core.Entities.FoodImports", b =>
@@ -2136,7 +1930,9 @@ namespace Infrastructure.Migrations
                 {
                     b.Navigation("MedicineSuppliers");
 
-                    b.Navigation("PigExamninationMedicines");
+                    b.Navigation("PigExaminationMedicines");
+
+                    b.Navigation("PigExaminations");
 
                     b.Navigation("VaccinationPlans");
                 });
@@ -2153,7 +1949,7 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.PigExaminationDetail", b =>
                 {
-                    b.Navigation("PigExamninationMedicines");
+                    b.Navigation("PigExaminationMedicines");
                 });
 
             modelBuilder.Entity("Core.Entities.PigExport", b =>
@@ -2180,8 +1976,6 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Entities.RequestMedicine", b =>
                 {
                     b.Navigation("Details");
-
-                    b.Navigation("MedicineImports");
                 });
 
             modelBuilder.Entity("Core.Entities.Stables", b =>

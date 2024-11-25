@@ -112,6 +112,40 @@ public static class Startup
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new Exception("JWT_KEY is not set")))
             };
         });
+
+        services.AddAuthorization(options =>
+        {
+            // Admin
+            options.AddPolicy("FullAccess", policy => policy.RequireClaim("Permission", new[] { "FullAccess" }));
+
+            // Dispatch
+            // đề xuất nhập heo
+            options.AddPolicy("ProposePigImport", policy => policy.RequireClaim("Permission", new[] { "ProposePigImport", "FullAccess" }));
+            // thêm heo vào chuồng
+            options.AddPolicy("AssignPigToPen", policy => policy.RequireClaim("Permission", new[] { "AssignPigToPen", "FullAccess" }));
+
+            // FeedManager
+            // đề xuất nhập thức ăn
+            options.AddPolicy("ProposeFeedImport", policy => policy.RequireClaim("Permission", new[] { "ProposeFeedImport", "FullAccess" }));
+            // nhập thức ăn
+            options.AddPolicy("ImportFeed", policy => policy.RequireClaim("Permission", new[] { "ImportFeed", "FullAccess" }));
+            // xuất thức ăn
+            options.AddPolicy("ExportFeed", policy => policy.RequireClaim("Permission", new[] { "ExportFeed", "FullAccess" }));
+
+            // Veterinarian
+            // khám bệnh
+            options.AddPolicy("MedicalExamination", policy => policy.RequireClaim("Permission", "MedicalExamination,FullAccess"));
+            // tiêm theo kế hoạch
+            options.AddPolicy("PeriodicInjection", policy => policy.RequireClaim("Permission", new[] { "PeriodicInjection", "FullAccess" }));
+            // đề xuất nhập thuốc
+            options.AddPolicy("ProposeMedicineImport", policy => policy.RequireClaim("Permission", new[] { "ProposeMedicineImport", "FullAccess" }));
+            // cân heo
+            options.AddPolicy("WeighPig", policy => policy.RequireClaim("Permission", new[] { "WeighPig", "FullAccess" }));
+            // chuyển heo
+            options.AddPolicy("TransferPig", policy => policy.RequireClaim("Permission", new[] { "TransferPig", "FullAccess" }));
+            // đề xuất xuất heo
+            options.AddPolicy("ProposePigExport", policy => policy.RequireClaim("Permission", new[] { "ProposePigExport", "FullAccess" }));
+        });
     }
     public static void AddDBContext(this IServiceCollection services)
     {

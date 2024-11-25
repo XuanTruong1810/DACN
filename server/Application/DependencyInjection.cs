@@ -13,22 +13,12 @@ public static class DependencyInjection
     }
     public static void AddServiceBusiness(this IServiceCollection services)
     {
-        // services.AddHttpContextAccessor();
         services.AddScoped<IAreaService, AreaService>();
         services.AddScoped<ISupplierService, SupplierService>();
         services.AddScoped<IPigIntakeService, PigIntakeService>();
         services.AddScoped<IStableService, StableService>();
         services.AddScoped<IPigService, PigService>();
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<IFeedIntakeService, FeedIntakeService>();
-
-        services.AddScoped<IFeedService, FeedService>();
-        services.AddScoped<IFeedTypeService, FeedTypeService>();
-
-        // services.AddScoped<IMedicationAndVaccine Service, MedicationAndVaccineService>();
-        // services.AddScoped<IMedicationAndVaccineIntakeService, MedicationAndVaccineIntakeService>();
-
-        // services.AddScoped<IHealthRecordService, HealthRecordService>();
 
         services.AddScoped<IFoodTypeService, FoodTypeService>();
         services.AddScoped<IFoodService, FoodService>();
@@ -51,6 +41,8 @@ public static class DependencyInjection
         services.AddScoped<IVaccinationPlanService, VaccinationPlanService>();
         services.AddScoped<IDropboxService, DropboxService>();
         services.AddScoped<IRestoreService, RestoreService>();
+        services.AddScoped<IRoleService, RoleService>();
+        services.AddScoped<ICalenderWeighingService, CalenderWeighingService>();
     }
     public static void AddMapping(this IServiceCollection services)
     {

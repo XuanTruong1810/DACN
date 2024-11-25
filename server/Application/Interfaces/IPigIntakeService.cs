@@ -1,6 +1,8 @@
 using Application.DTOs;
 using Application.Models;
+using Application.Models.PigStable;
 using Core.Base;
+using Core.Entities;
 
 namespace Application.Interfaces
 {
@@ -10,7 +12,7 @@ namespace Application.Interfaces
         Task<PigInTakeModelView> GetPigIntakeByIdAsync(string id);
         Task<PigInTakeModelView> InsertIntakeAsync(PigIntakeInsertDTO dTO);
         Task<PigDeliveryModel> UpdateIntakeAsync(string id, PigIntakeUpdateDTO model);
-        Task<PigInTakeModelView> AllocatePigsToStableAsync(string AreasId, string pigIntakeId);
+        Task<List<GetPigStableModelView>> AllocatePigsToStableAsync(string AreasId, string pigIntakeId);
         Task<PigInTakeModelView> AcceptIntakeAsync(string id, PigIntakeAcceptDTO model);
         Task DeleteAsync(string id);
     }

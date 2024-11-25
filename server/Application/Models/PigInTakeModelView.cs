@@ -5,10 +5,15 @@ namespace Application.Models
     public class PigInTakeModelView
     {
         public string Id { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+
+        public string SuppliersId { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 
         public string SuppliersName { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+
 
         public decimal UnitPrice { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -44,6 +49,11 @@ namespace Application.Models
         public DateTimeOffset StokeDate { get; set; }
 
         public DateTimeOffset CreatedTime { get; set; }
+
+
+        public string? CreateBy { get; set; }
+
+        public string? CreateByName { get; set; }
 
     }
 }

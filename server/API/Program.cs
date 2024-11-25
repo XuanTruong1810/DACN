@@ -1,6 +1,7 @@
 using Application.SeedData;
 using Core.Settings;
 using dotenv.net;
+using Microsoft.EntityFrameworkCore;
 
 WebApplicationBuilder? builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +42,13 @@ using (IServiceScope scope = app.Services.CreateScope())
 {
     IServiceProvider? services = scope.ServiceProvider;
     SeedDataAccount.SeedAsync(services).Wait();
+    SeedDataAreas.SeedAreas(services).Wait();
+    SeedDataStables.SeedStables(services).Wait();
+    SeedDataSupplier.SeedAsync(services).Wait();
+    SeedDataCustomer.SeedAsync(services).Wait();
+    SeedDataFoodType.SeedAsync(services).Wait();
+    SeedDataFood.SeedAsync(services).Wait();
+    SeedDataMedicine.SeedAsync(services).Wait();
 }
 app.Run();
 

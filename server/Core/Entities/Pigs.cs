@@ -25,6 +25,13 @@ namespace Core.Entities
 
         public decimal? Weight { get; set; }
 
+
+        public DateTimeOffset? LastWeighingDate { get; set; } // ngày cân lần cuối
+
+
+        public DateTimeOffset? NextWeighingDate { get; set; } // ngày cân tiếp theo
+
+
         public string HealthStatus { get; set; } = "good";
         public string? Note { get; set; }
 

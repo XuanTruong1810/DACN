@@ -100,12 +100,53 @@ namespace Application.Services
             {
                 throw new BaseException(StatusCodeHelper.Conflict, ErrorCode.Conflict, "Nhà cung cấp này đã tồn tại");
             }
+
+            // Get latest supplier to generate new ID
+            Suppliers? latestSupplier = await unitOfWork.GetRepository<Suppliers>()
+                .GetEntities
+                .OrderByDescending(x => x.Id)
+                .FirstOrDefaultAsync();
+
+            string newId;
+            if (latestSupplier == null)
+            {
+                newId = "SUP0001";
+            }
+            else
+            {
+                int currentNumber = int.Parse(latestSupplier.Id[3..]);
+                newId = $"SUP{(currentNumber + 1):D4}";
+            }
+
             Suppliers? supplier = mapper.Map<Suppliers>(supplierModel);
+            supplier.Id = newId;
             await unitOfWork.GetRepository<Suppliers>().InsertAsync(supplier);
+
+            // Check supplier type and add to corresponding table
+            if (supplierModel.TypeSuppier.ToLower() == "food")
+            {
+                List<FoodSuppliers>? foodSuppliers = supplierModel.Permissions.Select(p => new FoodSuppliers
+                {
+                    SuppliersId = newId,
+                    FoodsId = p,
+                    Status = "active"
+                }).ToList();
+                await unitOfWork.GetRepository<FoodSuppliers>().InsertRangeAsync(foodSuppliers);
+            }
+            else if (supplierModel.TypeSuppier.ToLower() == "medicine")
+            {
+                List<MedicineSupplier>? medicineSuppliers = supplierModel.Permissions.Select(p => new MedicineSupplier
+                {
+                    SupplierId = newId,
+                    MedicineId = p,
+                    Status = true
+                }).ToList();
+                await unitOfWork.GetRepository<MedicineSupplier>().InsertRangeAsync(medicineSuppliers);
+            }
+
             await unitOfWork.SaveAsync();
 
             return mapper.Map<SupplierModelView>(supplier);
-
         }
 
         public async Task<SupplierModelView> UpdateSupplierAsync(string id, SupplierDTO supplierModel)

@@ -297,36 +297,38 @@ namespace Application.Services
 
         public async Task DeleteRequestAsync(string id)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
-            try
-            {
-                var request = await _unitOfWork.GetRepository<FoodImportRequests>()
-                    .GetEntities
-                    .Include(x => x.FoodImportRequestDetails)
-                    .Include(x => x.FoodImports)
-                    .FirstOrDefaultAsync(x => x.Id == id)
-                    ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
-                        "Không tìm thấy phiếu đề xuất");
+            // using var transaction = await _unitOfWork.BeginTransactionAsync();
+            // try
+            // {
+            //     var request = await _unitOfWork.GetRepository<FoodImportRequests>()
+            //         .GetEntities
+            //         .Include(x => x.FoodImportRequestDetails)
+            //         .Include(x => x.FoodImports)
+            //         .FirstOrDefaultAsync(x => x.Id == id)
+            //         ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
+            //             "Không tìm thấy phiếu đề xuất");
 
-                if (request.Status != "pending")
-                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
-                        "Chỉ có thể xóa phiếu đề xuất ở trạng thái chờ duyệt");
+            //     if (request.Status != "pending")
+            //         throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+            //             "Chỉ có thể xóa phiếu đề xuất ở trạng thái chờ duyệt");
 
-                if (request.FoodImports.Any())
-                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
-                        "Không thể xóa phiếu đề xuất đã có phiếu nhập");
+            //     if (request.FoodImports.Any())
+            //         throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+            //             "Không thể xóa phiếu đề xuất đã có phiếu nhập");
 
-                request.DeleteTime = DateTimeOffset.UtcNow;
-                await _unitOfWork.SaveAsync();
+            //     request.DeleteTime = DateTimeOffset.UtcNow;
+            //     await _unitOfWork.SaveAsync();
 
-                await transaction.CommitAsync();
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
-                    "Lỗi khi xóa phiếu đề xuất: " + ex.Message);
-            }
+            //     await transaction.CommitAsync();
+            // }
+            // catch (Exception ex)
+            // {
+            //     await transaction.RollbackAsync();
+            //     throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+            //         "Lỗi khi xóa phiếu đề xuất: " + ex.Message);
+            // }
+            throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
+                "Không thể xóa phiếu đề xuất");
         }
     }
 }

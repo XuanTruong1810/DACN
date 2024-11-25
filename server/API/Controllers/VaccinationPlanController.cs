@@ -18,7 +18,6 @@ namespace API.Controllers
             List<VaccinationPlanModelView>? result = await _vaccinationPlanService.GetVaccinationPlanAsync();
             return Ok(BaseResponse<List<VaccinationPlanModelView>>.OkResponse(result));
         }
-
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> InsertVaccinationPlanAsync(VaccinationInsertDTO vaccinationInsertDTO)

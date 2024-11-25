@@ -64,8 +64,26 @@ public class StableService(IUnitOfWork unitOfWork, IMapper mapper) : IStableServ
         Areas? area = await unitOfWork.GetRepository<Areas>().GetByIdAsync(stableModel.AreasId)
             ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Khu vực không tồn tại");
 
+        // Get latest stable to generate new ID
+        Stables? latestStable = await unitOfWork.GetRepository<Stables>()
+            .GetEntities
+            .OrderByDescending(x => x.Id)
+            .FirstOrDefaultAsync();
+
+        string newId;
+        if (latestStable == null)
+        {
+            newId = "STB0001";
+        }
+        else
+        {
+            int currentNumber = int.Parse(latestStable.Id[3..]);
+            newId = $"STB{(currentNumber + 1):D4}";
+        }
+
         // Map và thêm mới
         Stables? stable = mapper.Map<Stables>(stableModel);
+        stable.Id = newId;
         await unitOfWork.GetRepository<Stables>().InsertAsync(stable);
         await unitOfWork.SaveAsync();
 

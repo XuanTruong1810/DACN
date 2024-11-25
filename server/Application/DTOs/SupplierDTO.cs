@@ -19,5 +19,8 @@ namespace Application.DTOs
         public string Email { get; set; }
         [Required(ErrorMessage = "Trạng thái là bắt buộc")]
         public string Status { get; set; }
+
+        public List<string> Permissions { get; set; }
+
     }
 }

@@ -32,11 +32,9 @@ namespace Core.Entities
         // Trạng thái xác nhận của quản lý  
         public DateTimeOffset? ApprovedTime { get; set; }
         public DateTimeOffset? DeliveryDate { get; set; }
-
-
         public DateTimeOffset? StokeDate { get; set; }
 
-
+        public DateTimeOffset? ExpectedReceiveDate { get; set; } // ngày nhận dự kiến
 
         [Required]
         public string CreateBy { get; set; }

@@ -10,18 +10,16 @@ namespace Core.Entities
         [Required]
         public string Description { get; set; }
         [Required]
-        public int TotalHouses { get; set; }
-        public int OccupiedHouses { get; set; } = 0;
+        public int TotalHouses { get; set; } = 0; // số nhà tối đa
+        public int OccupiedHouses { get; set; } = 0; // số nhà đang sử dụng
         [Required]
         public string Status { get; set; }
 
+        public int WeighingFrequency { get; set; } // đơn vị ngày
+
+
         [InverseProperty("Areas")]
         public virtual ICollection<Stables> Stables { get; set; } = new List<Stables>();
-
-
-        [InverseProperty("Areas")]
-        public virtual ICollection<Feeds> Feeds { get; set; } = new List<Feeds>();
-
 
         [InverseProperty("Areas")]
         public virtual ICollection<Foods> Foods { get; set; } = new List<Foods>();
