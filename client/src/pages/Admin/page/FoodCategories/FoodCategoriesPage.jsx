@@ -106,32 +106,20 @@ const FoodCategoriesPage = () => {
   const fetchCategories = async (params = {}) => {
     try {
       setLoading(true);
-      const queryParams = new URLSearchParams();
-      queryParams.append("pageIndex", params.current || pagination.current);
-      queryParams.append("pageSize", params.pageSize || pagination.pageSize);
-
-      if (searchTerm) {
-        queryParams.append("searchTerm", searchTerm);
-      }
-
-      if (statusFilter !== "all") {
-        queryParams.append("status", statusFilter);
-      }
-
       const response = await axios({
-        url: `${import.meta.env.VITE_API_URL}/api/v1/feedtypes?${queryParams}`,
+        url: `${import.meta.env.VITE_API_URL}/api/FoodType`,
         method: "GET",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
       console.log(response.data);
-      const { items, totalCount, currentPage, pageSize } = response.data.data;
-      setCategories(items);
+
+      setCategories(response.data.data);
       setPagination({
-        current: currentPage,
-        pageSize: pageSize,
-        total: totalCount,
+        current: 1,
+        pageSize: 10,
+        total: response.data.data.length,
       });
     } catch (error) {
       console.error("Failed to fetch categories:", error);
@@ -149,7 +137,7 @@ const FoodCategoriesPage = () => {
   const handleAdd = async (values) => {
     try {
       const response = await axios({
-        url: `${import.meta.env.VITE_API_URL}/api/v1/feedtypes`,
+        url: `${import.meta.env.VITE_API_URL}/api/FoodType`,
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -177,7 +165,7 @@ const FoodCategoriesPage = () => {
   const handleUpdate = async (values) => {
     try {
       const response = await axios({
-        url: `${import.meta.env.VITE_API_URL}/api/v1/feedtypes`,
+        url: `${import.meta.env.VITE_API_URL}/api/FoodType`,
         method: "PATCH",
         params: { id: editingCategory.id },
         headers: {
@@ -212,7 +200,7 @@ const FoodCategoriesPage = () => {
   const handleDelete = async (id) => {
     try {
       await axios({
-        url: `${import.meta.env.VITE_API_URL}/api/v1/feedtypes`,
+        url: `${import.meta.env.VITE_API_URL}/api/FoodType`,
         method: "DELETE",
         params: { id: id },
         headers: {
@@ -234,8 +222,8 @@ const FoodCategoriesPage = () => {
   const columns = [
     {
       title: "Tên loại",
-      dataIndex: "feedTypeName",
-      key: "feedTypeName",
+      dataIndex: "foodTypeName",
+      key: "foodTypeName",
       render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
     },
     {

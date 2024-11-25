@@ -36,13 +36,13 @@ import axios from "axios";
 // Định nghĩa constants cho supplier types
 
 const SUPPLIER_TYPE_LABELS = {
-  feed: "Thức ăn",
+  food: "Thức ăn",
   medicine: "Thuốc",
   pig: "Heo",
 };
 
 const SUPPLIER_TYPE_COLORS = {
-  feed: "#f50", // màu cam đậm
+  food: "#f50", // màu cam đậm
   medicine: "#108ee9", // màu xanh dương
   pig: "#87d068", // màu xanh lá
 };
@@ -195,8 +195,8 @@ const SuppliersPage = () => {
         return types.map((type, index) => {
           let color;
           switch (type) {
-            case "feed":
-              color = SUPPLIER_TYPE_COLORS.feed;
+            case "food":
+              color = SUPPLIER_TYPE_COLORS.food;
               break;
             case "medicine":
               color = SUPPLIER_TYPE_COLORS.medicine;
