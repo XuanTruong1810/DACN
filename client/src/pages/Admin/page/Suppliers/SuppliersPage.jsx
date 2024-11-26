@@ -15,6 +15,7 @@ import {
   Row,
   Col,
   Dropdown,
+  Typography,
 } from "antd";
 import {
   PlusOutlined,
@@ -71,6 +72,10 @@ const SuppliersPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editForm] = Form.useForm();
+  const [products, setProducts] = useState([]);
+  const [selectedType, setSelectedType] = useState(null);
+  const [editProducts, setEditProducts] = useState([]);
+  const [editSelectedType, setEditSelectedType] = useState(null);
 
   // Fetch suppliers data
   const fetchSuppliers = async (params = {}) => {
@@ -161,13 +166,23 @@ const SuppliersPage = () => {
     {
       title: "Liên hệ",
       key: "contact",
+      width: 200,
       render: (_, record) => (
-        <Space direction="vertical" size="small">
+        <Space direction="vertical" size="small" style={{ width: "100%" }}>
           <Space>
-            <PhoneOutlined /> {record.phone}
+            <PhoneOutlined />
+            <span style={{ fontWeight: 500 }}>{record.phone}</span>
           </Space>
           <Space>
-            <MailOutlined /> {record.email}
+            <MailOutlined />
+            <Typography.Text
+              ellipsis={{
+                tooltip: record.email,
+              }}
+              style={{ maxWidth: 160 }}
+            >
+              {record.email}
+            </Typography.Text>
           </Space>
         </Space>
       ),
@@ -189,39 +204,73 @@ const SuppliersPage = () => {
       title: "Loại",
       dataIndex: "typeSuppier",
       key: "typeSuppier",
+      width: 150,
       render: (typeSuppier) => {
         let types = Array.isArray(typeSuppier) ? typeSuppier : [typeSuppier];
 
-        return types.map((type, index) => {
-          let color;
-          switch (type) {
-            case "food":
-              color = SUPPLIER_TYPE_COLORS.food;
-              break;
-            case "medicine":
-              color = SUPPLIER_TYPE_COLORS.medicine;
-              break;
-            case "pig":
-              color = SUPPLIER_TYPE_COLORS.pig;
-              break;
-            default:
-              color = "#d9d9d9";
-          }
+        return (
+          <Space size={[0, 4]} wrap style={{ gap: "4px !important" }}>
+            {types.map((type, index) => {
+              let color;
+              let label;
+              switch (type) {
+                case "food":
+                  color = SUPPLIER_TYPE_COLORS.food;
+                  label = "Thức ăn";
+                  break;
+                case "medicine":
+                  color = SUPPLIER_TYPE_COLORS.medicine;
+                  label = "Thuốc";
+                  break;
+                case "pig":
+                  color = SUPPLIER_TYPE_COLORS.pig;
+                  label = "Heo";
+                  break;
+                default:
+                  color = "#d9d9d9";
+                  label = type;
+              }
 
-          return (
-            <Tag color={color} key={index}>
-              {SUPPLIER_TYPE_LABELS[type]}
-            </Tag>
-          );
-        });
+              return (
+                <Tag
+                  color={color}
+                  key={index}
+                  style={{
+                    minWidth: "80px",
+                    textAlign: "center",
+                    margin: "2px",
+                    padding: "0 10px",
+                    fontSize: "13px",
+                    lineHeight: "22px",
+                    borderRadius: "4px",
+                  }}
+                >
+                  {label}
+                </Tag>
+              );
+            })}
+          </Space>
+        );
       },
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
+      width: 120,
       render: (status) => (
-        <Tag color={status === "active" ? "success" : "error"}>
+        <Tag
+          color={status === "active" ? "success" : "error"}
+          style={{
+            minWidth: "90px",
+            textAlign: "center",
+            padding: "0 8px",
+            margin: "0",
+            fontSize: "12px",
+            lineHeight: "20px",
+            borderRadius: "4px",
+          }}
+        >
           {status === "active" ? "Đang hợp tác" : "Ngừng hợp tác"}
         </Tag>
       ),
@@ -229,7 +278,7 @@ const SuppliersPage = () => {
     {
       title: "Thao tác",
       key: "action",
-      width: 80,
+      width: 150,
       align: "center",
       fixed: "right",
       render: (_, record) => {
@@ -408,39 +457,41 @@ const SuppliersPage = () => {
 
   const handleAddSupplier = async (values) => {
     try {
-      const response = await axios({
-        url: `${import.meta.env.VITE_API_URL}/api/v1/suppliers`,
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        data: values,
-      });
+      const payload = {
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        address: values.address,
+        typeSuppier: values.typeSuppier,
+        status: values.status,
+        permissions: values.products, // Đây là mảng id của các sản phẩm đã chọn
+      };
 
-      // Kiểm tra status code 201 (Created)
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/v1/suppliers`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
       if (response.status === 201) {
-        console.log(response.data.data);
-        const newSupplier = response.data.data;
-
         message.success("Thêm nhà cung cấp thành công");
         setIsModalVisible(false);
         form.resetFields();
-
-        // Cập nhật state trực tiếp
-        setSuppliers((prev) => [newSupplier, ...prev]);
-
-        // Cập nhật tổng số lượng trong pagination
-        setPagination((prev) => ({
-          ...prev,
-          total: prev.total + 1,
-        }));
+        setProducts([]);
+        setSelectedType(null);
+        fetchSuppliers(); // Refresh lại danh sách
       }
     } catch (error) {
-      console.error("Error adding supplier:", error.response?.data);
-      message.error(
-        error.response?.data?.message || "Có lỗi xảy ra khi thêm nhà cung cấp"
-      );
+      console.error("Error adding supplier:", error);
+      if (error.response?.data?.message) {
+        message.error(error.response.data.message);
+      } else {
+        message.error("Có lỗi xảy ra khi thêm nhà cung cấp");
+      }
     }
   };
 
@@ -452,37 +503,117 @@ const SuppliersPage = () => {
 
   const handleUpdateSupplier = async (values) => {
     try {
-      const response = await axios({
-        url: `${import.meta.env.VITE_API_URL}/api/v1/suppliers`,
-        method: "PATCH",
-        params: { id: editingSupplier.id },
+      const payload = {
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        address: values.address,
+        typeSuppier: values.typeSuppier,
+        status: values.status,
+        permissions: values.products,
+      };
+
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/v1/suppliers/${
+          editingSupplier.id
+        }`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      message.success("Cập nhật nhà cung cấp thành công");
+      setIsEditModalVisible(false);
+      setEditingSupplier(null);
+      editForm.resetFields();
+      setEditProducts([]);
+      setEditSelectedType(null);
+      fetchSuppliers();
+    } catch (error) {
+      console.error("Error updating supplier:", error);
+      if (error.response?.data?.message) {
+        message.error(error.response.data.message);
+      } else {
+        message.error("Có lỗi xảy ra khi cập nhật nhà cung cấp");
+      }
+    }
+  };
+
+  const fetchProductsByType = async (type) => {
+    try {
+      let endpoint = "";
+      switch (type) {
+        case "medicine":
+          endpoint = `${import.meta.env.VITE_API_URL}/api/v1/Medicine`;
+          break;
+        case "food":
+          endpoint = `${import.meta.env.VITE_API_URL}/api/Food`;
+          break;
+        default:
+          setProducts([]);
+          return;
+      }
+
+      const response = await axios.get(endpoint, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
         },
-        data: values,
       });
-
-      if (response.status === 200) {
-        const updatedSupplier = response.data.data;
-
-        // Cập nhật state suppliers
-        setSuppliers((prevSuppliers) =>
-          prevSuppliers.map((supplier) =>
-            supplier.id === editingSupplier.id ? updatedSupplier : supplier
-          )
-        );
-
-        message.success("Cập nhật thông tin thành công");
-        setIsEditModalVisible(false);
-        setEditingSupplier(null);
-        editForm.resetFields();
+      console.log(response);
+      if (type === "food") {
+        setProducts(response.data.data.items);
+      } else {
+        setProducts(response.data.data);
       }
     } catch (error) {
-      console.error("Error updating supplier:", error.response?.data);
-      message.error(
-        error.response?.data?.message || "Có lỗi xảy ra khi cập nhật thông tin"
-      );
+      console.error("Error fetching products:", error);
+      message.error("Không thể tải danh sách sản phẩm");
+    }
+  };
+
+  const fetchEditProductsByType = async (type, supplierId) => {
+    try {
+      let endpoint = "";
+      switch (type) {
+        case "medicine":
+          endpoint = `${import.meta.env.VITE_API_URL}/api/Medicines`;
+          break;
+        case "food":
+          endpoint = `${import.meta.env.VITE_API_URL}/api/Foods`;
+          break;
+        default:
+          setEditProducts([]);
+          return;
+      }
+
+      const [productsResponse, supplierProductsResponse] = await Promise.all([
+        axios.get(endpoint, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }),
+        axios.get(
+          `${
+            import.meta.env.VITE_API_URL
+          }/api/v1/suppliers/${supplierId}/products`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        ),
+      ]);
+
+      setEditProducts(productsResponse.data.data);
+      editForm.setFieldsValue({
+        products: supplierProductsResponse.data.data.map((p) => p.id),
+      });
+    } catch (error) {
+      console.error("Error fetching edit products:", error);
+      message.error("Không thể tải danh sách sản phẩm");
     }
   };
 
@@ -718,44 +849,88 @@ const SuppliersPage = () => {
         onCancel={() => {
           setIsModalVisible(false);
           form.resetFields();
+          setProducts([]);
+          setSelectedType(null);
         }}
         footer={null}
+        width={700}
       >
-        <Form form={form} layout="vertical" onFinish={handleAddSupplier}>
-          <Form.Item
-            name="name"
-            label="Tên nhà cung cấp"
-            rules={[
-              { required: true, message: "Vui lòng nhập tên nhà cung cấp" },
-            ]}
-          >
-            <Input placeholder="Nhập tên nhà cung cấp" />
-          </Form.Item>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleAddSupplier}
+          initialValues={{
+            status: "active",
+          }}
+        >
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="name"
+                label="Tên nhà cung cấp"
+                rules={[
+                  { required: true, message: "Vui lòng nhập tên nhà cung cấp" },
+                ]}
+              >
+                <Input placeholder="Nhập tên nhà cung cấp" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="phone"
+                label="Số điện thoại"
+                rules={[
+                  { required: true, message: "Vui lòng nhập số điện thoại" },
+                  {
+                    pattern: /^[0-9]{10,11}$/,
+                    message: "Số điện thoại không hợp lệ",
+                  },
+                ]}
+              >
+                <Input placeholder="Nhập số điện thoại" />
+              </Form.Item>
+            </Col>
+          </Row>
 
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[
-              { required: true, message: "Vui lòng nhập email" },
-              { type: "email", message: "Email không hợp lệ" },
-            ]}
-          >
-            <Input placeholder="Nhập email" />
-          </Form.Item>
-
-          <Form.Item
-            name="phone"
-            label="Số điện thoại"
-            rules={[
-              { required: true, message: "Vui lòng nhập số điện thoại" },
-              {
-                pattern: /^[0-9]{10,11}$/,
-                message: "Số điện thoại không hợp lệ",
-              },
-            ]}
-          >
-            <Input placeholder="Nhập số điện thoại" />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                  { required: true, message: "Vui lòng nhập email" },
+                  { type: "email", message: "Email không hợp lệ" },
+                ]}
+              >
+                <Input placeholder="Nhập email" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="typeSuppier"
+                label="Loại nhà cung cấp"
+                rules={[
+                  {
+                    required: true,
+                    message: "Vui lòng chọn loại nhà cung cấp",
+                  },
+                ]}
+              >
+                <Select
+                  placeholder="Chọn loại nhà cung cấp"
+                  onChange={(value) => {
+                    setSelectedType(value);
+                    fetchProductsByType(value);
+                    form.setFieldsValue({ products: undefined }); // Reset selected products
+                  }}
+                >
+                  <Select.Option value="food">Thức ăn</Select.Option>
+                  <Select.Option value="medicine">Thuốc</Select.Option>
+                  <Select.Option value="pig">Heo</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
 
           <Form.Item
             name="address"
@@ -765,26 +940,45 @@ const SuppliersPage = () => {
             <Input.TextArea placeholder="Nhập địa chỉ" />
           </Form.Item>
 
-          <Form.Item
-            name="typeSuppier"
-            label="Loại nhà cung cấp"
-            rules={[
-              { required: true, message: "Vui lòng chọn loại nhà cung cấp" },
-            ]}
-          >
-            <Select placeholder="Chọn loại nhà cung cấp">
-              <Select.Option value="feed">Thức ăn</Select.Option>
-              <Select.Option value="medicine">Thuốc</Select.Option>
-              <Select.Option value="pig">Heo</Select.Option>
-            </Select>
-          </Form.Item>
+          {/* Chỉ hiển thị select sản phẩm khi không phải nhà cung cấp heo */}
+          {selectedType && selectedType !== "pig" && (
+            <Form.Item
+              name="products"
+              label={`Danh sách ${
+                selectedType === "medicine" ? "thuốc" : "thức ăn"
+              }`}
+              rules={[
+                {
+                  required: true,
+                  message: "Vui lòng chọn ít nhất một sản phẩm",
+                },
+              ]}
+            >
+              <Select
+                mode="multiple"
+                placeholder={`Chọn ${
+                  selectedType === "medicine" ? "thuốc" : "thức ăn"
+                }`}
+                style={{ width: "100%" }}
+                optionFilterProp="children"
+                showSearch
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().indexOf(input.toLowerCase()) >=
+                  0
+                }
+              >
+                {products.map((product) => (
+                  <Select.Option key={product.id} value={product.id}>
+                    {selectedType === "medicine"
+                      ? product.medicineName
+                      : product.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
 
-          <Form.Item
-            name="status"
-            label="Trạng thái"
-            initialValue="active"
-            rules={[{ required: true }]}
-          >
+          <Form.Item name="status" label="Trạng thái" initialValue="active">
             <Select>
               <Select.Option value="active">Đang hợp tác</Select.Option>
               <Select.Option value="inactive">Ngừng hợp tác</Select.Option>
@@ -797,6 +991,8 @@ const SuppliersPage = () => {
                 onClick={() => {
                   setIsModalVisible(false);
                   form.resetFields();
+                  setProducts([]);
+                  setSelectedType(null);
                 }}
               >
                 Hủy
@@ -816,83 +1012,99 @@ const SuppliersPage = () => {
           setIsEditModalVisible(false);
           setEditingSupplier(null);
           editForm.resetFields();
+          setEditProducts([]);
+          setEditSelectedType(null);
         }}
         footer={null}
+        width={700}
       >
-        <Form
-          form={editForm}
-          layout="vertical"
-          onFinish={handleUpdateSupplier}
-          initialValues={editingSupplier}
-        >
-          <Form.Item
-            name="name"
-            label="Tên nhà cung cấp"
-            rules={[
-              { required: true, message: "Vui lòng nhập tên nhà cung cấp" },
-            ]}
-          >
-            <Input placeholder="Nhập tên nhà cung cấp" />
-          </Form.Item>
+        <Form form={editForm} layout="vertical" onFinish={handleUpdateSupplier}>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="name"
+                label="Tên nhà cung cấp"
+                rules={[
+                  { required: true, message: "Vui lòng nhập tên nhà cung cấp" },
+                ]}
+              >
+                <Input placeholder="Nhập tên nhà cung cấp" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="phone"
+                label="Số điện thoại"
+                rules={[
+                  { required: true, message: "Vui lòng nhập số điện thoại" },
+                  {
+                    pattern: /^[0-9]{10,11}$/,
+                    message: "Số điện thoại không hợp lệ",
+                  },
+                ]}
+              >
+                <Input placeholder="Nhập số điện thoại" />
+              </Form.Item>
+            </Col>
+          </Row>
 
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[
-              { required: true, message: "Vui lòng nhập email" },
-              { type: "email", message: "Email không hợp lệ" },
-            ]}
-          >
-            <Input placeholder="Nhập email" />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                  { required: true, message: "Vui lòng nhập email" },
+                  { type: "email", message: "Email không hợp lệ" },
+                ]}
+              >
+                <Input placeholder="Nhập email" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="typeSuppier"
+                label="Loại nhà cung cấp"
+                rules={[
+                  {
+                    required: true,
+                    message: "Vui lòng chọn loại nhà cung cấp",
+                  },
+                ]}
+              >
+                <Select placeholder="Chọn loại nhà cung cấp">
+                  <Select.Option value="feed">Thức ăn</Select.Option>
+                  <Select.Option value="medicine">Thuốc</Select.Option>
+                  <Select.Option value="pig">Heo</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
 
-          <Form.Item
-            name="phone"
-            label="Số điện thoại"
-            rules={[
-              { required: true, message: "Vui lòng nhập số điện thoại" },
-              {
-                pattern: /^[0-9]{10,11}$/,
-                message: "Số điện thoại không hợp lệ",
-              },
-            ]}
-          >
-            <Input placeholder="Nhập số điện thoại" />
-          </Form.Item>
-
-          <Form.Item
-            name="address"
-            label="Địa chỉ"
-            rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}
-          >
-            <Input.TextArea placeholder="Nhập địa chỉ" />
-          </Form.Item>
-
-          <Form.Item
-            name="typeSuppier"
-            label="Loại nhà cung cấp"
-            rules={[
-              { required: true, message: "Vui lòng chọn loại nhà cung cấp" },
-            ]}
-          >
-            <Select placeholder="Chọn loại nhà cung cấp">
-              <Select.Option value="feed">Thức ăn</Select.Option>
-              <Select.Option value="medicine">Thuốc</Select.Option>
-              <Select.Option value="pig">Heo</Select.Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="status"
-            label="Trạng thái"
-            initialValue="active"
-            rules={[{ required: true }]}
-          >
-            <Select>
-              <Select.Option value="active">Đang hợp tác</Select.Option>
-              <Select.Option value="inactive">Ngừng hợp tác</Select.Option>
-            </Select>
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="address"
+                label="Địa chỉ"
+                rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}
+              >
+                <Input.TextArea placeholder="Nhập địa chỉ" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="status"
+                label="Trạng thái"
+                initialValue="active"
+                rules={[{ required: true }]}
+              >
+                <Select>
+                  <Select.Option value="active">Đang hợp tác</Select.Option>
+                  <Select.Option value="inactive">Ngừng hợp tác</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
 
           <Form.Item className="text-right">
             <Space>
@@ -901,6 +1113,8 @@ const SuppliersPage = () => {
                   setIsEditModalVisible(false);
                   setEditingSupplier(null);
                   editForm.resetFields();
+                  setEditProducts([]);
+                  setEditSelectedType(null);
                 }}
               >
                 Hủy

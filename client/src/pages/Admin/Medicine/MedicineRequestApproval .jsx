@@ -313,7 +313,7 @@ const MedicineRequestApproval = () => {
       ),
     },
     {
-      title: "Đơn giá",
+      title: "Đơn giá / đơn vị",
       key: "price",
       width: 200,
       render: (_, record) => (
@@ -514,7 +514,7 @@ const MedicineRequestApproval = () => {
                           </Text>
                         </Space>
                         <Space>
-                          <Text>Tiền cọc cho nhóm:</Text>
+                          <Text>Tiền cọc: </Text>
                           <Form.Item
                             style={{ marginBottom: 0 }}
                             validateStatus={

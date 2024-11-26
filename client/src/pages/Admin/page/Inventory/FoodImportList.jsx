@@ -33,10 +33,12 @@ import {
   FileDoneOutlined,
   ClockCircleOutlined,
   InboxOutlined,
+  PrinterOutlined,
 } from "@ant-design/icons";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import moment from "moment";
+import dayjs from "dayjs";
 
 const { Text } = Typography;
 
@@ -148,6 +150,12 @@ const FoodImportList = () => {
             onClick={() => handleViewDetail(record)}
           >
             Chi tiết
+          </Button>
+          <Button
+            icon={<PrinterOutlined />}
+            onClick={() => handlePrintImport(record)}
+          >
+            In phiếu
           </Button>
           {record.status === "pending" && (
             <Button
@@ -263,9 +271,10 @@ const FoodImportList = () => {
           receivedQuantity: detail.receivedQuantity,
           note: detail.note || null,
         })),
-        note: null, // Có thể thêm field note nếu cần
+        note: null,
       };
 
+      // Gọi API giao hàng
       await axios.put(
         `${API_URL}/api/FoodImport/${selectedDelivery.id}/delivery`,
         payload,
@@ -276,12 +285,31 @@ const FoodImportList = () => {
         }
       );
 
-      message.success("Giao hàng thành công");
+      // Đóng modal giao hàng và hiển thị thông tin thanh toán
       setShowDeliveryModal(false);
       setShowConfirmModal(true);
+
+      // Tự động gọi API nhập kho
+      try {
+        await axios.put(
+          `${API_URL}/api/FoodImport/${selectedDelivery.id}/stock`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        message.success("Đã giao hàng và nhập kho thành công");
+      } catch (error) {
+        console.error("Lỗi khi nhập kho:", error);
+        message.error("Giao hàng thành công nhưng không thể nhập kho tự động");
+      }
+
+      // Refresh danh sách
       getFoodImports();
     } catch (error) {
-      console.log(error);
+      console.error("Lỗi khi xác nhận giao hàng:", error);
       message.error("Lỗi khi xác nhận giao hàng");
     }
   };
@@ -306,10 +334,159 @@ const FoodImportList = () => {
       setShowStockConfirmModal(false);
       getFoodImports();
     } catch (error) {
-      console.log(error);
+      console.error("Lỗi khi nhập kho:", error);
       message.error("Lỗi khi nhập kho");
     }
   };
+
+  const handlePrintImport = useCallback((record) => {
+    const fileName = `Phieu_Nhap_${record.id}_${dayjs().format("DDMMYYYY")}`;
+
+    // Điều chỉnh phần chữ ký
+    const signatureSection = `
+      <div style="margin-top: 50px;">
+        <table style="width: 100%; border: none;">
+          <tr style="border: none;">
+            <td style="width: 33%; border: none; text-align: center;">
+              <p><strong>Người giao hàng</strong></p>
+              <p style="margin-top: 50px; margin-bottom: 0;"></p>
+              <p style="margin-top: 40px;">.........................</p>
+              <p style="margin-top: 5px;">(Ghi rõ họ tên)</p>
+            </td>
+            <td style="width: 33%; border: none; text-align: center;">
+              <p><strong>Người nhận hàng</strong></p>
+              <p style="margin-top: 50px; margin-bottom: 0;"></p>
+              <p style="margin-top: 40px;">.........................</p>
+              <p style="margin-top: 5px;">(Ghi rõ họ tên)</p>
+            </td>
+          </tr>
+        </table>
+      </div>
+    `;
+
+    // Thay thế phần chữ ký cũ bằng phần mới trong template
+    const printWindow = window.open("", fileName);
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${fileName}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif;
+              padding: 20px;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-top: 20px;
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 8px; 
+              text-align: left;
+            }
+            th { 
+              background-color: #f5f5f5;
+              font-weight: bold;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 20px;
+            }
+            .info { 
+              margin-bottom: 20px;
+              line-height: 1.5;
+            }
+            .total {
+              text-align: right;
+              margin-top: 20px;
+              font-weight: bold;
+            }
+            .dotted-line {
+              border-bottom: 1px dotted #000;
+              min-width: 150px;
+              display: inline-block;
+              margin-left: 10px;
+            }
+            .fill-area {
+              min-width: 150px;
+              border: 1px solid #ddd;
+              padding: 5px;
+              margin-left: 10px;
+              display: inline-block;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>PHIẾU NHẬP THỨC ĂN</h2>
+            <p>Ngày in: ${dayjs().format("DD/MM/YYYY HH:mm:ss")}</p>
+          </div>
+          
+          <div class="info">
+            <p><strong>Mã phiếu:</strong> ${record.id}</p>
+            <p><strong>Nhà cung cấp:</strong> ${record.supplierName}</p>
+            <p><strong>Người tạo:</strong> ${record.createByName}</p>
+            <p><strong>Ngày tạo:</strong> ${moment(record.createTime).format(
+              "DD/MM/YYYY HH:mm"
+            )}</p>
+            <p><strong>Trạng thái:</strong> ${
+              record.status === "pending"
+                ? "Chờ nhận hàng"
+                : record.status === "delivered"
+                ? "Đã nhận hàng"
+                : record.status === "stocked"
+                ? "Đã nhập kho"
+                : record.status
+            }</p>
+            <p><strong>Tiền đặt cọc:</strong> ${record.depositAmount?.toLocaleString()}đ</p>
+          </div>
+
+          <h3>Chi tiết sản phẩm:</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Tên thức ăn</th>
+                <th>Yêu cầu</th>
+                <th>Nhận</th>
+                <th>Chấp nhận</th>
+                <th>Đơn giá</th>
+                <th>Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${record.details
+                ?.map(
+                  (item, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${item.foodName}</td>
+                  <td>${item.expectedQuantity.toLocaleString()} kg</td>
+                  <td style="background-color: #fff;">............. kg</td>
+                  <td style="background-color: #fff;">............. kg</td>
+                  <td>${item.unitPrice.toLocaleString()}đ</td>
+                  <td style="background-color: #fff;">............. đ</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+
+          <div class="total">
+            <p>Tổng tiền:..........................đ</p>
+            <p>Tiền đặt cọc: ${record.depositAmount?.toLocaleString()}đ</p>
+            <p>Còn lại:..........................đ</p>
+          </div>
+
+          ${signatureSection}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  }, []);
 
   const renderDetailModal = () => (
     <Modal

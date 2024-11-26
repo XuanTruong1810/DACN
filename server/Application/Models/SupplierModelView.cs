@@ -10,5 +10,14 @@ namespace Application.Models
         public string TypeSuppier { get; set; }
         public string Status { get; set; }
         public string Email { get; set; }
+        public List<SupplierPermissions> Permissions { get; set; }
+    }
+
+    public class SupplierPermissions
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+
+        public string Status { get; set; }
     }
 }

@@ -25,7 +25,7 @@ const { Option } = Select;
 
 // Tạo axios instance
 const axiosClient = axios.create({
-  baseURL: "http://localhost:5197",
+  baseURL: `${import.meta.env.VITE_API_URL}`,
   headers: {
     "Content-Type": "application/json",
   },
@@ -112,12 +112,13 @@ const FoodImport = () => {
           status: "active",
         },
       });
+      console.log(response.data.data.items);
 
       // Transform data với số ngày hiện tại
       const formattedFoods = response.data.data.items.map((food) => ({
         id: food.id,
         name: food.name,
-        category: food.foodTypes?.name,
+        category: food.foodTypeName,
         currentStock: food.quantityInStock || 0,
         description: food.description,
         quantityPerMeal: food.quantityPerMeal || 0,
@@ -135,6 +136,7 @@ const FoodImport = () => {
         areaId: areaId,
         areaName: areas.find((a) => a.id === areaId)?.name || "",
       }));
+      console.log(formattedFoods);
 
       setFoods(formattedFoods);
     } catch (error) {

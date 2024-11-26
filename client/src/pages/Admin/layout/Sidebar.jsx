@@ -34,6 +34,8 @@ const Sidebar = () => {
   const userMenuItems = [
     { key: "profile", icon: <UserOutlined />, label: "Thông tin cá nhân" },
     { type: "divider" },
+    { key: "restore", icon: <ImportOutlined />, label: "Phục hồi dữ liệu" },
+    { type: "divider" },
     { key: "logout", icon: <LogoutOutlined />, label: "Đăng xuất" },
   ];
 
@@ -389,6 +391,7 @@ const Sidebar = () => {
 
   const handleUserMenuClick = ({ key }) => {
     if (key === "profile") navigate("/profile");
+    if (key === "restore") navigate("/admin/restore");
     if (key === "logout") {
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");

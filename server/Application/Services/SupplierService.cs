@@ -87,9 +87,45 @@ namespace Application.Services
             {
                 throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Invalid id");
             }
-            Suppliers? suppliers = await unitOfWork.GetRepository<Suppliers>().GetEntities.Where(s => s.DeleteTime == null).FirstOrDefaultAsync(s => s.Id == id)
-             ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không thể tìm thấy nhà cung cấp này");
-            return mapper.Map<SupplierModelView>(suppliers);
+
+            Suppliers? supplier = await unitOfWork.GetRepository<Suppliers>().GetEntities
+                .Where(s => s.DeleteTime == null && s.Id == id)
+                .Include(s => s.FoodSuppliers)
+                    .ThenInclude(fs => fs.Foods)
+                .Include(s => s.MedicineSuppliers)
+                    .ThenInclude(ms => ms.Medicines)
+                .FirstOrDefaultAsync()
+                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không thể tìm thấy nhà cung cấp này");
+
+            SupplierModelView result = mapper.Map<SupplierModelView>(supplier);
+
+            // Add permissions based on supplier type
+            if (supplier.TypeSuppier.ToLower() == "food")
+            {
+                result.Permissions = supplier.FoodSuppliers
+                    .Where(fs => fs.Status == "active")
+                    .Select(fs => new SupplierPermissions
+                    {
+                        Id = fs.FoodsId,
+                        Name = fs.Foods.Name,
+                        Status = fs.Status
+                    })
+                    .ToList();
+            }
+            else if (supplier.TypeSuppier.ToLower() == "medicine")
+            {
+                result.Permissions = supplier.MedicineSuppliers
+                    .Where(ms => ms.Status)
+                    .Select(ms => new SupplierPermissions
+                    {
+                        Id = ms.MedicineId,
+                        Name = ms.Medicines.MedicineName,
+                        Status = ms.Status.ToString()
+                    })
+                    .ToList();
+            }
+
+            return result;
         }
         public async Task<SupplierModelView> AddSupplierAsync(SupplierDTO supplierModel)
         {

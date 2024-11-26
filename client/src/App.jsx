@@ -43,6 +43,7 @@ import MedicineRequestApproval from "./pages/Admin/Medicine/MedicineRequestAppro
 import MedicineImportList from "./pages/Admin/Medicine/MedicineImportList";
 import MedicineSchedule from "./pages/Admin/MedicineSchedule/MedicineSchedule";
 import VaccinationForm from "./pages/Admin/Health/VaccinationForm";
+import Restore from "./pages/Admin/Restore/Restore";
 
 function App() {
   return (
@@ -65,6 +66,7 @@ function App() {
               path="inventory/food-categories"
               element={<FoodCategoriesPage />}
             />
+            <Route path="restore" element={<Restore />} />
             <Route path="Areas" element={<AreasPage />} />
             <Route path="Houses" element={<HousesPage />} />
             <Route path="inventory/foods" element={<FoodsPage />} />

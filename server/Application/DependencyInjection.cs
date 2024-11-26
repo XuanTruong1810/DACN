@@ -43,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<IRestoreService, RestoreService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<ICalenderWeighingService, CalenderWeighingService>();
+        services.AddScoped<IPerformanceStatisticsService, PerformanceStatisticsService>();
     }
     public static void AddMapping(this IServiceCollection services)
     {

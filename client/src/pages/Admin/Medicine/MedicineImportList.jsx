@@ -35,10 +35,12 @@ import {
   ClockCircleOutlined,
   MedicineBoxOutlined,
   InboxOutlined,
+  PrinterOutlined,
 } from "@ant-design/icons";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import moment from "moment";
+import dayjs from "dayjs";
 
 const { Text, Title } = Typography;
 
@@ -123,7 +125,7 @@ const MedicineImportList = () => {
     {
       title: "Thao tác",
       key: "action",
-      width: 200,
+      width: 250,
       render: (_, record) => (
         <Space>
           <Button
@@ -135,23 +137,28 @@ const MedicineImportList = () => {
           >
             Chi tiết
           </Button>
-          {record.status === "Pending" && (
-            <Button
-              type="primary"
-              icon={<ShoppingCartOutlined />}
-              onClick={() => handleDelivery(record)}
-            >
-              Giao hàng
-            </Button>
-          )}
-          {record.status === "Completed" && !record.isStocked && (
-            <Button
-              type="primary"
-              icon={<InboxOutlined />}
-              onClick={() => handleStock(record.id)}
-            >
-              Nhập kho
-            </Button>
+
+          {record.status === "Pending" && !record.isStocked && (
+            <>
+              <Button
+                type="default"
+                icon={<PrinterOutlined />}
+                onClick={() => {
+                  getImportDetails(record.id).then(() => {
+                    handlePrintDelivery(record, record.details);
+                  });
+                }}
+              >
+                In phiếu trống
+              </Button>
+              <Button
+                type="primary"
+                icon={<ShoppingCartOutlined />}
+                onClick={() => handleDelivery(record)}
+              >
+                Nhập số liệu
+              </Button>
+            </>
           )}
         </Space>
       ),
@@ -425,6 +432,7 @@ const MedicineImportList = () => {
 
   const handleDeliveryConfirm = async () => {
     try {
+      // 1. Gọi API xác nhận giao hàng
       await axios.post(
         `${API_URL}/api/MedicineImports/${selectedDelivery.id}/delivery`,
         {
@@ -441,13 +449,31 @@ const MedicineImportList = () => {
           },
         }
       );
-      message.success("Giao hàng thành công");
+
+      // 2. Gọi API nhập kho ngay sau khi giao hàng thành công
+      await axios.post(
+        `${API_URL}/api/MedicineImports/${selectedDelivery.id}/stock`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      // 3. Hiển thị thông báo thành công và cập nhật UI
+      message.success("Đã giao hàng và nhập kho thành công");
       setShowDeliveryModal(false);
       setShowConfirmModal(true);
       getMedicineImports();
     } catch (error) {
-      console.log(error);
-      message.error("Lỗi khi xác nhận giao hàng");
+      console.error("Lỗi:", error);
+      // Hiển thị thông báo lỗi chi tiết hơn
+      if (error.response?.data?.message) {
+        message.error(error.response.data.message);
+      } else {
+        message.error("Có lỗi xảy ra khi xử lý giao hàng và nhập kho");
+      }
     }
   };
 
@@ -468,6 +494,150 @@ const MedicineImportList = () => {
       message.error("Lỗi khi nhập kho");
     }
   };
+
+  const handlePrintDelivery = useCallback(
+    (record, details) => {
+      const fileName = `Phieu_Giao_${record.id}_${dayjs().format("DDMMYYYY")}`;
+      console.log(record);
+      const printWindow = window.open("", fileName);
+      printWindow.document.write(`
+      <html>
+        <head>
+          <title>${fileName}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif;
+              padding: 20px;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-top: 20px;
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 8px; 
+              text-align: left;
+            }
+            th { 
+              background-color: #f5f5f5;
+              font-weight: bold;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 20px;
+            }
+            .info { 
+              margin-bottom: 20px;
+              line-height: 1.5;
+            }
+            .total {
+              text-align: right;
+              margin-top: 20px;
+              font-weight: bold;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>PHIẾU GIAO THUỐC</h2>
+            <p>Ngày in: ${dayjs().format("DD/MM/YYYY HH:mm:ss")}</p>
+          </div>
+          
+          <div class="info">
+            <p><strong>Mã phiếu:</strong> ${record.id}</p>
+            <p><strong>Nhà cung cấp:</strong> ${record.supplierName}</p>
+            <p><strong>Ngày giao dự kiến:</strong> ${moment(
+              deliveryDate
+            ).format("DD/MM/YYYY HH:mm")}</p>
+            <p><strong>Ngày giao thực tế:</strong>........................</p>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Tên thuốc</th>
+                <th>Yêu cầu</th>
+                <th>Thực tế</th>
+                <th>Chấp nhận</th>
+                <th>Đơn giá</th>
+                <th>Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${details
+                .map(
+                  (item, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${item.medicineName}</td>
+                  <td>${
+                    item.expectedQuantity
+                      ? `${item.expectedQuantity} ${item.unit}`
+                      : "..........."
+                  }</td>
+                  <td>${
+                    item.actualQuantity
+                      ? `${item.actualQuantity} ${item.unit}`
+                      : "..........."
+                  }</td>
+                  <td>${
+                    item.receivedQuantity
+                      ? `${item.receivedQuantity} ${item.unit}`
+                      : "..........."
+                  }</td>
+                  <td>${item.unitPrice?.toLocaleString()}đ</td>
+                  <td>${(
+                    item.receivedQuantity * item.unitPrice
+                  )?.toLocaleString()}đ</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+
+          <div class="total">
+            <p>Tổng tiền hàng: ${
+              record.totalAmount
+                ? record.totalAmount.toLocaleString()
+                : "........................"
+            }đ</p>
+            <p>Đã đặt cọc: ${record.deposit?.toLocaleString()}đ</p>
+            <p>Còn phải thanh toán: ${
+              record.receivedAmount
+                ? record.receivedAmount.toLocaleString()
+                : "........................"
+            }đ</p>
+          </div>
+
+          <div style="margin-top: 50px;">
+            <table style="width: 100%; border: none;">
+              <tr style="border: none;">
+                <td style="width: 33%; border: none; text-align: center;">
+                  <p><strong>Người giao hàng</strong></p>
+                  <p style="margin-top: 50px; margin-bottom: 0;">Ký tên</p>
+                  <p style="margin-top: 40px;">.........................</p>
+                  <p style="margin-top: 5px;">(Ghi rõ họ tên)</p>
+                </td>
+                <td style="width: 33%; border: none; text-align: center;">
+                  <p><strong>Người nhận hàng</strong></p>
+                  <p style="margin-top: 50px; margin-bottom: 0;">Ký tên</p>
+                  <p style="margin-top: 40px;">.........................</p>
+                  <p style="margin-top: 5px;">(Ghi rõ họ tên)</p>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </body>
+      </html>
+    `);
+      printWindow.document.close();
+      printWindow.print();
+    },
+    [deliveryDate]
+  );
 
   return (
     <div className="medicine-import-page" style={{ padding: "24px" }}>
@@ -600,14 +770,31 @@ const MedicineImportList = () => {
       <Modal
         title={
           <Space>
-            <ShoppingCartOutlined />
+            <ShoppingCartOutlined style={{ color: "#52c41a" }} />
             <span>Xác nhận giao hàng</span>
           </Space>
         }
         open={showDeliveryModal}
         onOk={handleDeliveryConfirm}
         onCancel={() => setShowDeliveryModal(false)}
-        width={800}
+        width={1000}
+        footer={[
+          <Button
+            key="print"
+            icon={<PrinterOutlined />}
+            onClick={() =>
+              handlePrintDelivery(selectedDelivery, deliveryDetails)
+            }
+          >
+            In phiếu giao hàng
+          </Button>,
+          <Button key="cancel" onClick={() => setShowDeliveryModal(false)}>
+            Hủy
+          </Button>,
+          <Button key="submit" type="primary" onClick={handleDeliveryConfirm}>
+            Xác nhận
+          </Button>,
+        ]}
       >
         {selectedDelivery && (
           <>
