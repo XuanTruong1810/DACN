@@ -320,15 +320,6 @@ const Sidebar = () => {
               label: "Thuốc",
               children: [
                 {
-                  key: "medicine-categories",
-                  icon: <TagsOutlined />,
-                  label: (
-                    <Link to="/admin/inventory/medicine-categories">
-                      Loại thuốc
-                    </Link>
-                  ),
-                },
-                {
                   key: "medicine-list",
                   icon: <UnorderedListOutlined />,
                   label: (

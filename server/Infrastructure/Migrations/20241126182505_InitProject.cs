@@ -534,6 +534,7 @@ namespace Infrastructure.Migrations
                     ApprovedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     DeliveryDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     StokeDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    ExpectedReceiveDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     CreateBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SuppliersId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),

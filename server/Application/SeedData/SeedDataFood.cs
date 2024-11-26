@@ -25,7 +25,7 @@ namespace Application.SeedData
                 {
                     Id = "F0006",
                     Name = "CP Piglet 1",
-                    Description = "Thức ăn CP cho heo con 7-15kg",
+                    Description = "Thức ăn CP cho heo con",
                     FoodTypesId = "FT0001",
                     Status = "active",
                     QuantityInStock = 100,
@@ -37,7 +37,7 @@ namespace Application.SeedData
                 {
                     Id = "F0007",
                     Name = "CP Piglet 2",
-                    Description = "Thức ăn CP cho heo con 15-30kg",
+                    Description = "Thức ăn CP cho heo con",
                     FoodTypesId = "FT0001",
                     Status = "active",
                     QuantityInStock = 150,
@@ -51,7 +51,7 @@ namespace Application.SeedData
                 {
                     Id = "F0008",
                     Name = "JAPFA Grower 30",
-                    Description = "Thức ăn JAPFA cho heo thịt 30-50kg",
+                    Description = "Thức ăn JAPFA cho heo thịt",
                     FoodTypesId = "FT0002",
                     Status = "active",
                     QuantityInStock = 200,
@@ -63,7 +63,7 @@ namespace Application.SeedData
                 {
                     Id = "F0009",
                     Name = "JAPFA Grower 50",
-                    Description = "Thức ăn JAPFA cho heo thịt 50-80kg",
+                    Description = "Thức ăn JAPFA cho heo thịt",
                     FoodTypesId = "FT0002",
                     Status = "active",
                     QuantityInStock = 250,
@@ -77,7 +77,7 @@ namespace Application.SeedData
                 {
                     Id = "F0010",
                     Name = "GreenFeed Finisher",
-                    Description = "Thức ăn GreenFeed cho heo 80-105kg",
+                    Description = "Thức ăn GreenFeed cho heo",
                     FoodTypesId = "FT0003",
                     Status = "active",
                     QuantityInStock = 300,

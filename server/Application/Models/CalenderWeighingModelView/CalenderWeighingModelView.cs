@@ -5,6 +5,7 @@ public class CalenderWeighingModelView
     public DateTimeOffset WeighingDate { get; set; } // ngày cân
     public List<string> PigIds { get; set; } // id số heo cân
     public string AreaName { get; set; } // tên khu
+    public string AreaId { get; set; } // id khu
     public List<WeighingDetailModelView> WeighingDetails { get; set; } = new();
 
 }

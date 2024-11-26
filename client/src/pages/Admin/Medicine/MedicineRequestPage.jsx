@@ -38,7 +38,7 @@ const MedicineRequestPage = () => {
   const [selectedMedicine, setSelectedMedicine] = useState(null);
   const [showMedicineDetail, setShowMedicineDetail] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState([]);
-  const [showBill, setShowBill] = useState(false);
+  const [showBill, setShowBill] = useState(true);
   const [allSelectedMedicines, setAllSelectedMedicines] = useState([]);
   const [note, setNote] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -80,22 +80,27 @@ const MedicineRequestPage = () => {
         prev.filter((m) => m.id !== medicine.id)
       );
     } else {
-      let suggestedAmount = 0;
-      if (medicine.quantityInStock < 500) {
-        suggestedAmount = 1000 - medicine.quantityInStock;
-      }
-
       setAllSelectedMedicines((prev) => [
         ...prev,
         {
           ...medicine,
-          expectedAmount: suggestedAmount || 1,
+          expectedAmount: medicine.quantityRequired || 40,
         },
       ]);
     }
   };
 
   const createImportRequest = async () => {
+    const invalidMedicines = allSelectedMedicines.filter(
+      (med) =>
+        !med.expectedAmount || med.expectedAmount < (med.quantityRequired || 40)
+    );
+
+    if (invalidMedicines.length > 0) {
+      message.error("Vui lòng nhập số lượng hợp lệ cho tất cả thuốc");
+      return;
+    }
+
     try {
       const requestData = {
         note: note || "Yêu cầu nhập thuốc",
@@ -116,7 +121,6 @@ const MedicineRequestPage = () => {
       message.success("Tạo phiếu yêu cầu thành công");
       setAllSelectedMedicines([]);
       setNote("");
-      setShowBill(false);
     } catch (error) {
       console.error("Error creating request:", error);
       message.error("Lỗi khi tạo phiếu yêu cầu");
@@ -175,6 +179,19 @@ const MedicineRequestPage = () => {
     });
   };
 
+  const handleQuantityChange = (medicineId, value) => {
+    if (value === null || value < 40) {
+      message.warning("Số lượng tối thiểu phải là 40");
+      return;
+    }
+
+    setMedicines((prev) =>
+      prev.map((med) =>
+        med.id === medicineId ? { ...med, quantityRequired: value } : med
+      )
+    );
+  };
+
   const columns = [
     {
       title: "Tên thuốc",
@@ -206,32 +223,15 @@ const MedicineRequestPage = () => {
       },
     },
     {
-      title: "Số lượng nên nhập",
-      key: "suggestedAmount",
+      title: "Số lượng tối thiểu nên nhập",
+      dataIndex: "quantityRequired",
+      key: "quantityRequired",
       width: 200,
-      render: (_, record) => {
-        const status = checkQuantityStatus(record);
-        if (!status) return "-";
-
-        let suggestedAmount = 0;
-        if (record.isVaccine) {
-          // Nếu là vaccine và dưới 500 liều
-          if (record.quantityInStock < 500) {
-            suggestedAmount = 1000 - record.quantityInStock; // Nhập thêm cho đủ 1000
-          }
-        } else {
-          // Nếu là thuốc và dưới 500
-          if (record.quantityInStock < 500) {
-            suggestedAmount = 1000 - record.quantityInStock; // Nhập thêm cho đủ 1000
-          }
-        }
-
-        return (
-          <Text type="warning" strong>
-            {suggestedAmount} {record.unit}
-          </Text>
-        );
-      },
+      render: (quantityRequired, record) => (
+        <Text>
+          {quantityRequired || 0} {record.unit}
+        </Text>
+      ),
     },
     {
       title: "",
@@ -275,16 +275,11 @@ const MedicineRequestPage = () => {
       <Row gutter={[24, 24]}>
         <Col span={showBill ? 16 : 24}>
           <Card
-            title="Danh sách thuốc"
-            extra={
-              <Button
-                type="primary"
-                onClick={() => setShowBill(true)}
-                disabled={allSelectedMedicines.length === 0}
-                icon={<PlusOutlined />}
-              >
-                Xem phiếu ({allSelectedMedicines.length})
-              </Button>
+            title={
+              <Space>
+                <MedicineBoxOutlined />
+                <span>Danh sách thuốc</span>
+              </Space>
             }
           >
             <div style={{ marginBottom: 16 }}>
@@ -349,20 +344,6 @@ const MedicineRequestPage = () => {
                   <span>Phiếu yêu cầu nhập thuốc</span>
                 </Space>
               }
-              extra={
-                <Button
-                  type="text"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => {
-                    setAllSelectedMedicines([]);
-                    setShowBill(false);
-                    setNote("");
-                  }}
-                >
-                  Xóa tất cả
-                </Button>
-              }
               className="request-bill"
               style={{ position: "sticky", top: 24 }}
             >
@@ -421,13 +402,24 @@ const MedicineRequestPage = () => {
                       <div>
                         <Text type="secondary">Số lượng yêu cầu:</Text>
                         <InputNumber
-                          min={1}
+                          min={medicine.quantityRequired || 40}
                           defaultValue={medicine.expectedAmount}
                           onChange={(value) => {
+                            if (
+                              value === null ||
+                              value < (medicine.quantityRequired || 40)
+                            ) {
+                              message.warning(
+                                `Số lượng tối thiểu phải là ${
+                                  medicine.quantityRequired || 40
+                                } ${medicine.unit}`
+                              );
+                              return;
+                            }
                             setAllSelectedMedicines((prev) =>
                               prev.map((item) =>
                                 item.id === medicine.id
-                                  ? { ...item, expectedAmount: value || 1 }
+                                  ? { ...item, expectedAmount: value }
                                   : item
                               )
                             );

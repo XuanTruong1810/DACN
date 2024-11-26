@@ -117,8 +117,24 @@ namespace Application.Services
                 throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Mật khẩu không đúng");
             }
             IList<string> roles = await userManager.GetRolesAsync(user);
+
+            // Lấy permissions từ tất cả các roles
+            var permissions = new List<string>();
+            foreach (var role in roles)
+            {
+                var roleObj = await roleManager.FindByNameAsync(role);
+                if (roleObj != null)
+                {
+                    var roleClaims = await roleManager.GetClaimsAsync(roleObj);
+                    permissions.AddRange(roleClaims
+                        .Where(c => c.Type == "Permission")
+                        .Select(c => c.Value));
+                }
+            }
+
             string token = await GenerateJwtToken(user, roles.ToList());
             string refreshToken = await GenerateRefreshToken(user);
+
             return new AuthModelViews
             {
                 AccessToken = token,
@@ -129,7 +145,8 @@ namespace Application.Services
                 User = new UserInfo
                 {
                     Email = user.Email,
-                    Roles = roles.ToList()
+                    Roles = roles.ToList(),
+                    Permissions = permissions.Distinct().ToList()  // Loại bỏ các permission trùng lặp
                 }
             };
         }

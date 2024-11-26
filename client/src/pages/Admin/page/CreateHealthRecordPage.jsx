@@ -1,515 +1,335 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
+  Table,
+  Typography,
+  message,
+  Space,
+  Button,
+  Tag,
   Form,
   Input,
   Select,
-  Button,
-  Space,
+  Layout,
   Row,
   Col,
-  InputNumber,
-  Table,
-  Tag,
-  DatePicker,
   Statistic,
-  Alert,
-  Checkbox,
-  Typography,
-  Layout,
+  DatePicker,
+  Empty,
   Spin,
+  Checkbox,
+  InputNumber,
 } from "antd";
 import {
-  SearchOutlined,
   SaveOutlined,
-  HomeOutlined,
-  CalendarOutlined,
-  LoadingOutlined,
+  MedicineBoxOutlined,
+  ArrowLeftOutlined,
+  SearchOutlined,
+  PlusOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
-import moment from "moment";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import dayjs from "dayjs";
+import locale from "antd/es/date-picker/locale/vi_VN";
+
+const { Title, Text } = Typography;
 const { TextArea } = Input;
-// Fake Data
-const AREAS = [
-  {
-    id: 1,
-    name: "Khu A",
-    houses: [
-      { id: "A1", name: "Chuồng A1", type: "Chuồng heo thịt A1", capacity: 20 },
-      { id: "A2", name: "Chuồng A2", type: "Chuồng heo thịt A2", capacity: 30 },
-    ],
-  },
-  {
-    id: 2,
-    name: "Khu B",
-    houses: [
-      { id: "B1", name: "Chuồng B1", type: "Chuồng heo thịt B1", capacity: 25 },
-      { id: "B2", name: "Chuồng B2", type: "Chuồng heo thịt B2", capacity: 35 },
-    ],
-  },
-];
 
-const VACCINES = [
-  {
-    id: 1,
-    name: "Vaccine PRRS - MLV",
-    disease: "Hội chứng rối loạn hô hấp và sinh sản",
-    manufacturer: "MSD Animal Health",
-    dosage: "2ml/con",
-    price: 150000,
-    note: "Tiêm bắp, dùng cho heo từ 3 tuần tuổi",
+const pageStyles = {
+  layout: {
+    padding: "24px",
+    background: "#f0f2f5",
+    minHeight: "100vh",
   },
-  {
-    id: 2,
-    name: "Vaccine Dịch tả",
-    disease: "Dịch tả lợn cổ điển",
-    manufacturer: "Navetco",
-    dosage: "1ml/con",
-    price: 80000,
-    note: "Tiêm bắp, dùng cho heo từ 45 ngày tuổi",
+  mainCard: {
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
+    borderRadius: "8px",
   },
-  // thêm các vaccine khác...
-];
-
-// const DISEASES = [
-//   {
-//     id: 1,
-//     name: "Viêm phổi",
-//     symptoms: "Ho, sốt, thở nhanh, bỏ ăn",
-//     treatments: [1, 2], // ID của các thuốc điều trị phù hợp
-//     note: "Cách ly, điều trị kháng sinh",
-//   },
-//   {
-//     id: 2,
-//     name: "Tiêu chảy",
-//     symptoms: "Phân lỏng, mất nước, bỏ ăn",
-//     treatments: [3, 4],
-//     note: "Bổ sung nước và điện giải",
-//   },
-//   // thêm các bệnh khác...
-// ];
-
-const MEDICINES = [
-  {
-    id: 1,
-    name: "Amoxicillin 20%",
-    type: "Kháng sinh",
-    usage: "Điều trị nhiễm khuẩn đường hô hấp",
-    dosageGuide: "2ml/10kg thể trọng/ngày",
-    duration: "5-7 ngày",
-    note: "Tiêm bắp sâu",
+  headerIcon: {
+    fontSize: 24,
+    color: "#1890ff",
   },
-  {
-    id: 2,
-    name: "Tylosin 20%",
-    type: "Kháng sinh",
-    usage: "Điều trị viêm phổi, viêm khớp",
-    dosageGuide: "1ml/10kg thể trọng/ngày",
-    duration: "3-5 ngày",
-    note: "Tiêm bắp",
+  headerTitle: {
+    margin: 0,
   },
-  // thêm các thuốc khác...
-];
-
-// Generate fake pigs data
-const generatePigsForHouse = (houseId) => {
-  const pigs = [];
-  const house = AREAS.flatMap((a) => a.houses).find((h) => h.id === houseId);
-  const pigCount =
-    Math.floor(Math.random() * (house.capacity * 0.3)) + house.capacity * 0.7;
-
-  for (let i = 1; i <= pigCount; i++) {
-    pigs.push({
-      id: `${houseId}-${i.toString().padStart(3, "0")}`,
-      weight: parseFloat((Math.random() * (120 - 20) + 20).toFixed(1)),
-      age: Math.floor(Math.random() * 12) + 1,
-      gender: Math.random() > 0.5 ? "Đực" : "Cái",
-      breed: ["Duroc", "Landrace", "Yorkshire", "PiDu"][
-        Math.floor(Math.random() * 4)
-      ],
-      status: "active",
-      lastVaccine:
-        Math.random() > 0.7
-          ? {
-              date: moment().subtract(Math.floor(Math.random() * 30), "days"),
-              vaccineId:
-                VACCINES[Math.floor(Math.random() * VACCINES.length)].id,
-            }
-          : null,
-    });
-  }
-
-  return pigs;
+  searchCard: {
+    background: "#fafafa",
+    borderRadius: "6px",
+  },
+  statsCard: {
+    background: "#fafafa",
+    borderRadius: "6px",
+  },
+  table: {
+    background: "white",
+    borderRadius: "6px",
+  },
+  emptyState: {
+    padding: "48px 0",
+    textAlign: "center",
+  },
 };
 
-// Generate all pigs data
-const ALL_PIGS = {};
-AREAS.forEach((area) => {
-  area.houses.forEach((house) => {
-    ALL_PIGS[house.id] = generatePigsForHouse(house.id);
-  });
-});
-
-// Component Navigation
-
-const LoadingScreen = () => (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      background: "#fff9f0",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 9999,
-    }}
-  >
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "16px",
-      }}
-    >
-      <Spin
-        indicator={
-          <LoadingOutlined
-            style={{
-              fontSize: 40,
-              color: "#d35400",
-            }}
-            spin
-          />
-        }
-      />
-      <div
-        style={{
-          color: "#8b4513",
-          fontSize: "16px",
-          marginTop: "8px",
-        }}
-      >
-        Đang tải dữ liệu...
-      </div>
-    </div>
-  </div>
-);
-
 const CreateHealthRecordPage = () => {
-  const [searchForm] = Form.useForm();
+  const [form] = Form.useForm();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [areas, setAreas] = useState([]);
+  const [houses, setHouses] = useState([]);
+  const [pigData, setPigData] = useState([]);
+  const [medicines, setMedicines] = useState([]);
   const [selectedArea, setSelectedArea] = useState(null);
   const [selectedHouse, setSelectedHouse] = useState(null);
-  const [examDate, setExamDate] = useState(null);
-  const [selectedVaccine, setSelectedVaccine] = useState(null);
-  const [filteredPigs, setFilteredPigs] = useState([]);
-  const [selectedPigs, setSelectedPigs] = useState([]);
-  const [pigHealthData, setPigHealthData] = useState({});
-  const [filters, setFilters] = useState({
-    pigId: "",
-    weightRange: [],
-    ageRange: [],
-    gender: null,
-  });
-  const [loading, setLoading] = useState(true);
+  const [examDate, setExamDate] = useState(dayjs());
+  const [selectedPigs, setSelectedPigs] = useState(new Set());
 
-  useEffect(() => {
-    Promise.all([
-      document.fonts.ready,
-      new Promise((resolve) => setTimeout(resolve, 800)),
-    ]).then(() => {
-      setLoading(false);
-    });
-  }, []);
-
-  useEffect(() => {
-    const styleSheet = document.createElement("style");
-    styleSheet.innerText = `
-      .fade-in {
-        animation: fadeIn 0.5s ease-in;
-      }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
+  // Fetch danh sách khu
+  const fetchAreas = async () => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/Areas`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
-        to {
-          opacity: 1;
-        }
-      }
-    `;
-    document.head.appendChild(styleSheet);
-    return () => styleSheet.remove();
-  }, []);
-
-  if (loading) {
-    return <LoadingScreen />;
-  }
-
-  // Xử lý tìm kiếm và lọc
-  const handleSearch = () => {
-    if (!selectedHouse) return;
-
-    let pigs = ALL_PIGS[selectedHouse] || [];
-
-    // Lọc theo các điều kiện
-    pigs = pigs.filter((pig) => {
-      let match = true;
-
-      if (filters.pigId) {
-        match =
-          match && pig.id.toLowerCase().includes(filters.pigId.toLowerCase());
-      }
-
-      if (filters.weightRange.length === 2) {
-        match =
-          match &&
-          pig.weight >= filters.weightRange[0] &&
-          pig.weight <= filters.weightRange[1];
-      }
-
-      if (filters.ageRange.length === 2) {
-        match =
-          match &&
-          pig.age >= filters.ageRange[0] &&
-          pig.age <= filters.ageRange[1];
-      }
-
-      if (filters.gender) {
-        match = match && pig.gender === filters.gender;
-      }
-
-      return match;
-    });
-
-    setFilteredPigs(pigs);
-  };
-
-  // Reset form
-  const handleReset = () => {
-    searchForm.resetFields();
-    setFilters({
-      pigId: "",
-      weightRange: [],
-      ageRange: [],
-      gender: null,
-    });
-    if (selectedHouse) {
-      setFilteredPigs(ALL_PIGS[selectedHouse] || []);
+      );
+      setAreas(response.data.data.items);
+    } catch (error) {
+      message.error("Lỗi khi tải danh sách khu: " + error.message);
     }
   };
 
-  // Render form tìm kiếm
-  const renderSearchForm = () => (
-    <Card
-      type="inner"
-      title={
-        <Space>
-          <SearchOutlined />
-          Tìm kiếm và lọc
-        </Space>
-      }
-    >
-      <Form form={searchForm} layout="vertical">
-        <Row gutter={16}>
-          <Col span={6}>
-            <Form.Item label="Khu vực" required>
-              <Select
-                placeholder="Chọn khu vực"
-                value={selectedArea}
-                onChange={(value) => {
-                  setSelectedArea(value);
-                  setSelectedHouse(null);
-                  setFilteredPigs([]);
-                  setSelectedPigs([]);
-                }}
-                options={AREAS.map((area) => ({
-                  value: area.id,
-                  label: area.name,
-                }))}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item label="Chuồng" required>
-              <Select
-                placeholder={
-                  selectedArea ? "Chọn chuồng" : "Vui lòng chọn khu vực trước"
-                }
-                value={selectedHouse}
-                onChange={(value) => {
-                  setSelectedHouse(value);
-                  setFilteredPigs(ALL_PIGS[value] || []);
-                }}
-                disabled={!selectedArea}
-              >
-                {selectedArea &&
-                  AREAS.find((a) => a.id === selectedArea)?.houses.map(
-                    (house) => (
-                      <Select.Option key={house.id} value={house.id}>
-                        {house.name}
-                      </Select.Option>
-                    )
-                  )}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item label="Ngày khám" required>
-              <DatePicker
-                style={{ width: "100%" }}
-                value={examDate}
-                onChange={setExamDate}
-                format="DD/MM/YYYY"
-              />
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item label="Vaccine (nếu cần tiêm)">
-              <Select
-                placeholder="Chọn vaccine cần tiêm"
-                value={selectedVaccine}
-                onChange={setSelectedVaccine}
-                allowClear
-                style={{ width: "100%" }}
-              >
-                {VACCINES.map((vaccine) => (
-                  <Select.Option key={vaccine.id} value={vaccine.id}>
-                    {vaccine.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
+  // Fetch danh sách chuồng theo khu
+  const fetchHouses = async (areaId) => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/Stables`,
+        {
+          params: {
+            areaId: areaId,
+            pageIndex: 1,
+            pageSize: 100,
+          },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      setHouses(response.data.data.items);
+    } catch (error) {
+      message.error("Lỗi khi tải danh sách chuồng: " + error.message);
+    }
+  };
 
-        <div style={{ marginBottom: 16 }}>
-          <Typography.Text type="secondary">Bộ lọc thêm</Typography.Text>
-        </div>
+  // Fetch danh sách heo theo chuồng
+  const fetchPigsByHouse = async (houseId) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/Pigs/house/${houseId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
-        <Row gutter={16}>
-          <Col span={6}>
-            <Form.Item label="Mã heo">
-              <Input
-                placeholder="Nhập mã heo"
-                value={filters.pigId}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, pigId: e.target.value }))
-                }
-                allowClear
-              />
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item label="Cân nặng (kg)">
-              <Space>
-                <InputNumber
-                  placeholder="Từ"
-                  value={filters.weightRange[0]}
-                  onChange={(value) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      weightRange: [value, prev.weightRange[1]],
-                    }))
-                  }
-                />
-                <Input style={{ width: 30 }} placeholder="~" disabled />
-                <InputNumber
-                  placeholder="Đến"
-                  value={filters.weightRange[1]}
-                  onChange={(value) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      weightRange: [prev.weightRange[0], value],
-                    }))
-                  }
-                />
-              </Space>
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item label="Tuổi (tháng)">
-              <Space>
-                <InputNumber
-                  placeholder="Từ"
-                  value={filters.ageRange[0]}
-                  onChange={(value) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      ageRange: [value, prev.ageRange[1]],
-                    }))
-                  }
-                />
-                <Input style={{ width: 30 }} placeholder="~" disabled />
-                <InputNumber
-                  placeholder="Đến"
-                  value={filters.ageRange[1]}
-                  onChange={(value) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      ageRange: [prev.ageRange[0], value],
-                    }))
-                  }
-                />
-              </Space>
-            </Form.Item>
-          </Col>
-        </Row>
+      const pigs = response.data.data.map((pig) => ({
+        ...pig,
+        key: pig.id,
+        isHealthy: "healthy",
+        diagnosis: "Khỏe mạnh",
+        healthNote: "",
+        treatmentMethod: "",
+        medicines: [],
+      }));
+      setPigData(pigs);
+      setSelectedPigs(new Set());
+    } catch (error) {
+      message.error("Lỗi khi tải danh sách heo: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        <Row>
-          <Col span={24} style={{ textAlign: "right" }}>
-            <Space>
-              <Button onClick={handleReset}>Đặt lại</Button>
-              <Button type="primary" onClick={handleSearch}>
-                Tìm kiếm
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-      </Form>
-    </Card>
-  );
+  // Fetch danh sách thuốc và lọc
+  const fetchMedicines = async () => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/Medicine`,
+        {
+          params: {
+            isVaccine: false, // Thêm param để lọc từ server
+          },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      // Lọc ra những thuốc không có daysAfterImport
+      const filteredMedicines = response.data.data.filter(
+        (med) => !med.daysAfterImport
+      );
+      setMedicines(filteredMedicines);
+    } catch (error) {
+      message.error("Lỗi khi tải danh sách thuốc: " + error.message);
+    }
+  };
 
-  const handlePigSelection = (pigId, checked) => {
+  useEffect(() => {
+    fetchAreas();
+    fetchMedicines();
+  }, []);
+
+  // Xử lý khi chọn khu
+  const handleAreaChange = (value) => {
+    setSelectedArea(value);
+    setSelectedHouse(null);
+    setPigData([]);
+    fetchHouses(value);
+  };
+
+  // Xử lý khi chọn chuồng
+  const handleHouseChange = (value) => {
+    setSelectedHouse(value);
+    fetchPigsByHouse(value);
+  };
+
+  // Xử lý chọn tất cả
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      const newSelected = new Set(pigData.map((pig) => pig.id));
+      setSelectedPigs(newSelected);
+    } else {
+      setSelectedPigs(new Set());
+    }
+  };
+
+  // Xử lý chọn từng item
+  const handleSelect = (e, pigId) => {
+    e.stopPropagation(); // Ngăn chặn sự kiện nổi bọt
+
     setSelectedPigs((prev) => {
-      if (checked) return [...prev, pigId];
-      return prev.filter((id) => id !== pigId);
+      const newSelected = new Set(prev);
+      if (e.target.checked) {
+        newSelected.add(pigId);
+      } else {
+        newSelected.delete(pigId);
+      }
+      return newSelected;
     });
   };
 
-  const handleHealthDataChange = (pigId, field, value) => {
-    setPigHealthData((prev) => ({
-      ...prev,
-      [pigId]: {
-        ...prev[pigId],
-        [field]: value,
-      },
-    }));
+  // Sửa lại hàm handleHealthStatusChange
+  const handleHealthStatusChange = (record, value) => {
+    setPigData((prevData) => {
+      return prevData.map((pig) => {
+        if (pig.id === record.id) {
+          return {
+            ...pig,
+            isHealthy: value,
+            ...(value === "healthy"
+              ? {
+                  diagnosis: "Khỏe mạnh",
+                  treatmentMethod: "",
+                  medicines: [],
+                  healthNote: "",
+                }
+              : {
+                  diagnosis: "",
+                  treatmentMethod: "",
+                  medicines: [],
+                  healthNote: "",
+                }),
+          };
+        }
+        return pig;
+      });
+    });
   };
 
+  // X lý thêm thuốc
+  const handleAddMedicine = (record) => {
+    setPigData((prevData) => {
+      return prevData.map((pig) => {
+        if (pig.id === record.id) {
+          return {
+            ...pig,
+            medicines: [
+              ...(pig.medicines || []),
+              {
+                medicineId: undefined,
+                medicineName: "",
+                quantity: 1,
+                unit: "",
+                key: Date.now(),
+              },
+            ],
+          };
+        }
+        return pig;
+      });
+    });
+  };
+
+  // Thêm hàm xử lý xóa thuốc
+  const handleRemoveMedicine = (record, medicineIndex) => {
+    setPigData((prevData) => {
+      return prevData.map((pig) => {
+        if (pig.id === record.id) {
+          const updatedMedicines = [...pig.medicines];
+          updatedMedicines.splice(medicineIndex, 1);
+          return {
+            ...pig,
+            medicines: updatedMedicines,
+          };
+        }
+        return pig;
+      });
+    });
+  };
+
+  // Thêm hàm xử lý thay đổi thuốc
+  const handleMedicineChange = (record, medicineIndex, newValues) => {
+    setPigData((prevData) => {
+      return prevData.map((pig) => {
+        if (pig.id === record.id) {
+          const updatedMedicines = [...(pig.medicines || [])];
+          updatedMedicines[medicineIndex] = {
+            ...updatedMedicines[medicineIndex],
+            ...newValues,
+          };
+          return {
+            ...pig,
+            medicines: updatedMedicines,
+          };
+        }
+        return pig;
+      });
+    });
+  };
+
+  // Định nghĩa columns cho bảng
   const columns = [
     {
-      title: (
+      title: () => (
         <Checkbox
-          checked={selectedPigs.length === filteredPigs.length}
-          onChange={(e) => {
-            if (e.target.checked) {
-              setSelectedPigs(filteredPigs.map((pig) => pig.id));
-            } else {
-              setSelectedPigs([]);
-            }
-          }}
+          checked={pigData.length > 0 && selectedPigs.size === pigData.length}
+          indeterminate={
+            selectedPigs.size > 0 && selectedPigs.size < pigData.length
+          }
+          onChange={(e) => handleSelectAll(e.target.checked)}
         />
       ),
-      dataIndex: "select",
       width: 50,
       fixed: "left",
       render: (_, record) => (
         <Checkbox
-          checked={selectedPigs.includes(record.id)}
-          onChange={(e) => handlePigSelection(record.id, e.target.checked)}
+          checked={selectedPigs.has(record.id)}
+          onChange={(e) => handleSelect(e, record.id)}
+          onClick={(e) => e.stopPropagation()} // Thêm cả onClick để đảm bảo
         />
       ),
     },
@@ -518,381 +338,455 @@ const CreateHealthRecordPage = () => {
       dataIndex: "id",
       width: 120,
       fixed: "left",
+      render: (id) => <Tag color="blue">{id}</Tag>,
     },
     {
-      title: "Thông tin cơ bản",
-      children: [
-        {
-          title: "Cân nặng (kg)",
-          dataIndex: "weight",
-          width: 120,
-          render: (_, record) => (
-            <InputNumber
-              style={{ width: "100%" }}
-              min={0}
-              precision={1}
-              value={pigHealthData[record.id]?.weight ?? record.weight}
-              onChange={(value) =>
-                handleHealthDataChange(record.id, "weight", value)
-              }
-              addonAfter="kg"
-            />
-          ),
-        },
-        {
-          title: "Tuổi (tháng)",
-          dataIndex: "age",
-          width: 100,
-        },
-      ],
+      title: "Tình trạng",
+      width: 150,
+      render: (_, record) => (
+        <Select
+          style={{ width: "100%" }}
+          value={record.isHealthy}
+          onChange={(value) => handleHealthStatusChange(record, value)}
+          onClick={(e) => e.stopPropagation()} // Ngăn chặn sự kiện nổi bọt
+        >
+          <Select.Option value="healthy">
+            <Tag color="success">Khỏe mạnh</Tag>
+          </Select.Option>
+          <Select.Option value="sick">
+            <Tag color="error">Không khỏe</Tag>
+          </Select.Option>
+        </Select>
+      ),
     },
     {
-      title: "Khám sức khỏe",
-      children: [
-        {
-          title: "Trạng thái",
-          dataIndex: "status",
-          width: 150,
-          render: (_, record) => {
-            if (!selectedPigs.includes(record.id)) {
-              return <Tag>Chưa chọn khám</Tag>;
-            }
-            return (
-              <Select
-                style={{ width: "100%" }}
-                value={pigHealthData[record.id]?.status || "healthy"}
-                onChange={(value) =>
-                  handleHealthDataChange(record.id, "status", value)
-                }
-              >
-                <Select.Option value="healthy">
-                  <Tag color="success">Khỏe mạnh</Tag>
-                </Select.Option>
-                <Select.Option value="needTreatment">
-                  <Tag color="error">Cần điều trị</Tag>
-                </Select.Option>
-              </Select>
-            );
-          },
-        },
-        {
-          title: "Bệnh",
-          dataIndex: "disease",
-          width: 200,
-          render: (_, record) => {
-            if (
-              !selectedPigs.includes(record.id) ||
-              pigHealthData[record.id]?.status !== "needTreatment"
-            ) {
-              return null;
-            }
-            return (
-              <Input.TextArea
-                placeholder="Nhập tên bệnh..."
-                value={pigHealthData[record.id]?.disease}
-                onChange={(e) =>
-                  handleHealthDataChange(record.id, "disease", e.target.value)
-                }
-                rows={2}
-              />
-            );
-          },
-        },
-        {
-          title: "Triệu chứng",
-          dataIndex: "symptoms",
-          width: 200,
-          render: (_, record) => {
-            if (
-              !selectedPigs.includes(record.id) ||
-              pigHealthData[record.id]?.status !== "needTreatment"
-            ) {
-              return null;
-            }
-            return (
-              <TextArea
-                placeholder="Mô tả triệu chứng cụ thể..."
-                value={pigHealthData[record.id]?.symptoms}
-                onChange={(e) =>
-                  handleHealthDataChange(record.id, "symptoms", e.target.value)
-                }
-                rows={2}
-              />
-            );
-          },
-        },
-        {
-          title: "Thuốc điều trị",
-          dataIndex: "medicine",
-          width: 300,
-          render: (_, record) => {
-            if (
-              !selectedPigs.includes(record.id) ||
-              pigHealthData[record.id]?.status !== "needTreatment"
-            ) {
-              return null;
-            }
-            return (
-              <Select
-                style={{ width: "100%" }}
-                placeholder="Chọn thuốc điều trị"
-                value={pigHealthData[record.id]?.medicine}
-                onChange={(value) =>
-                  handleHealthDataChange(record.id, "medicine", value)
-                }
-                mode="multiple"
-              >
-                {MEDICINES.map((medicine) => (
-                  <Select.Option key={medicine.id} value={medicine.id}>
-                    <div>
-                      <div style={{ fontWeight: 500 }}>{medicine.name}</div>
-                      <div style={{ fontSize: "12px", color: "#666" }}>
-                        {medicine.usage} • {medicine.dosageGuide}
-                        <br />
-                        Thời gian điều trị: {medicine.duration}
-                      </div>
-                    </div>
-                  </Select.Option>
-                ))}
-              </Select>
-            );
-          },
-        },
-      ],
-    },
-    {
-      title: "Ghi chú",
-      dataIndex: "note",
+      title: "Chẩn đoán",
       width: 200,
-      render: (_, record) => {
-        if (!selectedPigs.includes(record.id)) return null;
-        return (
+      render: (_, record) =>
+        record.isHealthy === "sick" && (
           <TextArea
-            placeholder="Ghi chú thêm..."
-            value={pigHealthData[record.id]?.note}
-            onChange={(e) =>
-              handleHealthDataChange(record.id, "note", e.target.value)
-            }
-            rows={2}
+            placeholder="Nhập chẩn đoán..."
+            value={record.diagnosis}
+            onChange={(e) => {
+              const newData = [...pigData];
+              const index = newData.findIndex((item) => item.id === record.id);
+              newData[index].diagnosis = e.target.value;
+              setPigData(newData);
+            }}
+            autoSize={{ minRows: 2, maxRows: 4 }}
           />
+        ),
+    },
+    {
+      title: "Phương pháp điều trị",
+      width: 200,
+      render: (_, record) =>
+        record.isHealthy === "sick" && (
+          <TextArea
+            placeholder="Nhập phương pháp điều trị..."
+            value={record.treatmentMethod}
+            onChange={(e) => {
+              const newData = [...pigData];
+              const index = newData.findIndex((item) => item.id === record.id);
+              newData[index].treatmentMethod = e.target.value;
+              setPigData(newData);
+            }}
+            autoSize={{ minRows: 2, maxRows: 4 }}
+          />
+        ),
+    },
+    {
+      title: "Thuốc điều trị",
+      width: 450,
+      render: (_, record) => {
+        console.log("Rendering medicines for pig:", record.id); // Debug
+
+        return (
+          record.isHealthy === "sick" && (
+            <Space direction="vertical" style={{ width: "100%" }} size="middle">
+              {record.medicines?.map((med, index) => (
+                <Card
+                  key={`${record.id}-${med.key}`} // Thêm id vào key
+                  size="small"
+                  style={{ marginBottom: 8 }}
+                  bodyStyle={{ padding: "8px" }}
+                >
+                  <Row gutter={[8, 8]} align="middle">
+                    <Col span={10}>
+                      <Form.Item
+                        label="Tên thuốc"
+                        style={{ marginBottom: 0 }}
+                        required
+                      >
+                        <Select
+                          style={{ width: "100%" }}
+                          placeholder="Chọn thuốc"
+                          value={med.medicineId}
+                          onChange={(value) => {
+                            const selectedMedicine = medicines.find(
+                              (m) => m.id === value
+                            );
+                            handleMedicineChange(record, index, {
+                              medicineId: value,
+                              medicineName: selectedMedicine?.medicineName,
+                              unit: selectedMedicine?.unit,
+                            });
+                          }}
+                          options={medicines.map((m) => ({
+                            value: m.id,
+                            label: m.medicineName,
+                            disabled: record.medicines?.some(
+                              (existingMed) =>
+                                existingMed.medicineId === m.id &&
+                                existingMed.key !== med.key
+                            ),
+                          }))}
+                          optionFilterProp="children"
+                          showSearch
+                          filterOption={(input, option) =>
+                            (option?.label ?? "")
+                              .toLowerCase()
+                              .includes(input.toLowerCase())
+                          }
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item
+                        label="Số lượng"
+                        style={{ marginBottom: 0 }}
+                        required
+                      >
+                        <InputNumber
+                          style={{ width: "100%" }}
+                          min={1}
+                          placeholder="Số lượng"
+                          value={med.quantity}
+                          onChange={(value) =>
+                            handleMedicineChange(record, index, {
+                              quantity: value,
+                            })
+                          }
+                          addonAfter={med.unit || "Đơn vị"}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={4} style={{ textAlign: "right" }}>
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemoveMedicine(record, index)}
+                      />
+                    </Col>
+                  </Row>
+                  {med.medicineName && (
+                    <div
+                      style={{ marginTop: 4, fontSize: "12px", color: "#666" }}
+                    >
+                      Thuốc đã chọn: {med.medicineName}
+                    </div>
+                  )}
+                </Card>
+              ))}
+              <Button
+                type="dashed"
+                onClick={() => handleAddMedicine(record)}
+                icon={<PlusOutlined />}
+                size="small"
+                style={{ width: "100%" }}
+              >
+                Thêm thuốc
+              </Button>
+            </Space>
+          )
         );
       },
     },
   ];
 
-  const getSummary = () => {
-    const totalPigs = filteredPigs.length;
-    const selectedCount = selectedPigs.length;
-    const healthyCount = selectedPigs.filter(
-      (id) => pigHealthData[id]?.status === "healthy"
-    ).length;
-    const sickCount = selectedPigs.filter(
-      (id) => pigHealthData[id]?.status === "needTreatment"
-    ).length;
-    const unselectedCount = totalPigs - selectedCount;
-    const vaccineCount = selectedVaccine
-      ? selectedPigs.filter((id) => pigHealthData[id]?.status === "healthy")
-          .length
-      : 0;
+  const handleSubmit = async () => {
+    try {
+      const selectedPigData = pigData.filter((pig) => selectedPigs.has(pig.id));
+      const invalidPigs = selectedPigData.filter((pig) => {
+        if (pig.isHealthy === "sick") {
+          return !pig.diagnosis || !pig.treatmentMethod;
+        }
+        return false;
+      });
 
-    // Lấy thông tin khu vực và chuồng
-    const area = AREAS.find((a) => a.id === selectedArea);
-    const house = area?.houses.find((h) => h.id === selectedHouse);
-
-    // Cập nhật phần hiển thị chi tiết bệnh
-    const diseases = {};
-    selectedPigs.forEach((pigId) => {
-      const disease = pigHealthData[pigId]?.disease;
-      if (disease && pigHealthData[pigId]?.status === "needTreatment") {
-        diseases[disease] = (diseases[disease] || 0) + 1;
+      if (invalidPigs.length > 0) {
+        message.error(
+          "Vui lòng nhập đầy đủ thông tin chẩn đoán và phương pháp điều trị cho các heo không khỏe"
+        );
+        return;
       }
-    });
 
-    return (
-      <Card>
-        <Row gutter={[32, 16]}>
-          <Col span={6}>
-            <div style={{ marginBottom: 16 }}>
-              <div
-                style={{ fontWeight: 500, fontSize: "16px", marginBottom: 8 }}
-              >
-                Thông tin khu vực
-              </div>
-              <div>
-                <HomeOutlined /> Khu vực: {area?.name}
-              </div>
-              <div style={{ marginTop: 4 }}>
-                <HomeOutlined /> Chuồng: {house?.name}
-                <div
-                  style={{ fontSize: "12px", color: "#666", marginLeft: 16 }}
-                >
-                  {house?.type} • Sức chứa: {house?.capacity} con
-                </div>
-              </div>
-            </div>
-            <Statistic title="Tổng số heo" value={totalPigs} suffix="con" />
-          </Col>
+      setLoading(true);
 
-          <Col span={6}>
-            <Statistic
-              title="Đã khám"
-              value={selectedCount}
-              suffix={`con (${((selectedCount / totalPigs) * 100).toFixed(
-                1
-              )}%)`}
-              valueStyle={{ color: "#1890ff" }}
-            />
-            <div style={{ marginTop: 8, fontSize: "13px" }}>
-              <Space direction="vertical" style={{ width: "100%" }}>
-                <div>
-                  <Tag color="success">Khỏe mạnh:</Tag>
-                  <span style={{ fontWeight: 500 }}>
-                    {healthyCount} con (
-                    {((healthyCount / selectedCount) * 100).toFixed(1)}%)
-                  </span>
-                </div>
-                <div>
-                  <Tag color="error">Cần điều tr:</Tag>
-                  <span style={{ fontWeight: 500 }}>
-                    {sickCount} con (
-                    {((sickCount / selectedCount) * 100).toFixed(1)}%)
-                  </span>
-                </div>
-                {selectedVaccine && (
-                  <div>
-                    <Tag color="processing">Tiêm vaccine:</Tag>
-                    <span style={{ fontWeight: 500 }}>
-                      {vaccineCount} con (
-                      {((vaccineCount / selectedCount) * 100).toFixed(1)}%)
-                    </span>
-                  </div>
-                )}
-              </Space>
-            </div>
-          </Col>
+      // Chuẩn bị payload theo VaccinationInsertDTO
+      const payload = {
+        examinationDate: dayjs(examDate).toISOString(), // Chuyển sang ISO string
+        examinationNote: form.getFieldValue("examinationNote"),
+        examinationType: "Regular",
+        medicineId: null, // Có thể thêm field chọn thuốc chính nếu cần
+        vaccinationInsertDetails: selectedPigData.map((pig) => ({
+          pigId: pig.id,
+          isHealthy: pig.isHealthy === "healthy",
+          diagnosis: pig.diagnosis,
+          treatmentMethod: pig.treatmentMethod,
+          vaccineName: null, // Không cần trong trường hợp này
+          lastModifiedTime: dayjs().toISOString(), // Thời gian hiện tại
+          vaccinationInsertMedicationDetails:
+            pig.medicines
+              ?.filter((med) => med.medicineId && med.quantity)
+              .map((med) => ({
+                medicineId: med.medicineId,
+                quantity: med.quantity,
+              })) || [],
+        })),
+      };
 
-          <Col span={6}>
-            <Statistic
-              title="Chưa khám"
-              value={unselectedCount}
-              suffix={`con (${((unselectedCount / totalPigs) * 100).toFixed(
-                1
-              )}%)`}
-              valueStyle={{ color: "#faad14" }}
-            />
-          </Col>
+      // Gọi API
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/VaccinationPlan`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-          <Col span={6}>
-            <div
-              style={{
-                background: "#f5f5f5",
-                padding: "12px",
-                borderRadius: "6px",
-              }}
-            >
-              <div style={{ marginBottom: 8 }}>
-                <CalendarOutlined /> Ngày khám:{" "}
-                <span style={{ fontWeight: 500 }}>
-                  {moment(examDate).format("DD/MM/YYYY")}
-                </span>
-              </div>
-              {selectedVaccine && (
-                <div>
-                  <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                    Vaccine được chọn:
-                  </div>
-                  <div>
-                    {VACCINES.find((v) => v.id === selectedVaccine)?.name}
-                  </div>
-                  <div
-                    style={{ fontSize: "12px", color: "#666", marginTop: 4 }}
-                  >
-                    {VACCINES.find((v) => v.id === selectedVaccine)?.note}
-                  </div>
-                </div>
-              )}
-            </div>
-          </Col>
-        </Row>
-
-        {Object.keys(diseases).length > 0 && (
-          <div style={{ marginTop: 16 }}>
-            <Typography.Title level={5}>Chi tiết bệnh:</Typography.Title>
-            {Object.entries(diseases).map(([disease, count]) => (
-              <div key={disease} style={{ marginBottom: 8 }}>
-                <span style={{ fontWeight: 500 }}>{disease}:</span> {count} con
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-    );
+      if (response.status === 200) {
+        message.success("Lưu phiếu khám bệnh thành công");
+        navigate(-1);
+      }
+    } catch (error) {
+      console.error("Error details:", error.response?.data);
+      message.error(
+        "Lỗi khi lưu phiếu khám bệnh: " +
+          (error.response?.data?.message || error.message)
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
+  useEffect(() => {
+    console.log("Selected pigs updated:", selectedPigs);
+  }, [selectedPigs]);
+
+  // Thêm useEffect để debug
+  useEffect(() => {
+    console.log("PigData updated:", pigData);
+  }, [pigData]);
+
   return (
-    <Layout className="fade-in">
-      <Layout style={{ minHeight: "calc(100vh - 64px)" }}>
-        <div style={{ padding: "24px" }}>
-          <Typography.Title level={2}>Khám sức khỏe heo</Typography.Title>
-          <Space direction="vertical" style={{ width: "100%" }} size="large">
-            {renderSearchForm()}
+    <div>
+      <Layout style={pageStyles.layout}>
+        <Card bordered={false} style={pageStyles.mainCard}>
+          <Space direction="vertical" size="large" style={{ width: "100%" }}>
+            {/* Header */}
+            <Row justify="space-between" align="middle">
+              <Col>
+                <Space align="center">
+                  <MedicineBoxOutlined style={pageStyles.headerIcon} />
+                  <Title level={3} style={pageStyles.headerTitle}>
+                    Tạo phiếu khám bệnh
+                  </Title>
+                </Space>
+              </Col>
+              <Col>
+                <Space>
+                  <Button
+                    icon={<ArrowLeftOutlined />}
+                    onClick={() => navigate(-1)}
+                  >
+                    Quay lại
+                  </Button>
+                  <Button
+                    type="primary"
+                    onClick={handleSubmit}
+                    loading={loading}
+                    icon={<SaveOutlined />}
+                    disabled={selectedPigs.size === 0}
+                  >
+                    Lưu phiếu ({selectedPigs.size} con)
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
 
-            <Alert
-              message="Hướng dẫn"
-              description={
-                <ul style={{ marginBottom: 0, paddingLeft: 16 }}>
-                  <li>Chọn khu vực và chuồng cần khám</li>
-                  <li>Chọn ngày khám và vaccine (nếu cần tiêm)</li>
-                  <li>Tích chọn những heo cần khám</li>
-                  <li>Với heo khỏe mạnh có thể tiêm vaccine</li>
-                  <li>
-                    Với heo cần điều trị, vui lòng chọn bệnh và nhập đầy đủ
-                    thông tin điều trị
-                  </li>
-                </ul>
+            {/* Form tìm kiếm */}
+            <Card
+              size="small"
+              style={pageStyles.searchCard}
+              title={
+                <Space>
+                  <SearchOutlined />
+                  <span>Thông tin tìm kiếm</span>
+                </Space>
               }
-              type="info"
-              showIcon
-            />
-
-            <Table
-              columns={columns}
-              dataSource={filteredPigs}
-              bordered
-              size="middle"
-              scroll={{ x: "max-content" }}
-              pagination={{
-                total: filteredPigs.length,
-                pageSize: 10,
-                showTotal: (total) => `Tổng số: ${total} heo`,
-              }}
-              rowKey="id"
-              footer={getSummary}
-            />
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "16px",
-              }}
             >
-              <Button type="default" size="large">
-                Hủy
-              </Button>
-              <Button
-                type="primary"
-                size="large"
-                icon={<SaveOutlined />}
-                disabled={!examDate || selectedPigs.length === 0}
-              >
-                Lưu phiếu khám
-              </Button>
-            </div>
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item
+                    label="Khu vực"
+                    required
+                    tooltip="Vui lòng chọn khu vực"
+                  >
+                    <Select
+                      showSearch
+                      placeholder="Chọn khu vực"
+                      value={selectedArea}
+                      onChange={handleAreaChange}
+                      loading={loading}
+                      optionFilterProp="children"
+                      options={areas.map((area) => ({
+                        value: area.id,
+                        label: area.areaName,
+                      }))}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    label="Chuồng"
+                    required
+                    tooltip="Vui lòng chọn chuồng"
+                  >
+                    <Select
+                      showSearch
+                      placeholder={
+                        selectedArea
+                          ? "Chọn chuồng"
+                          : "Vui lòng chọn khu vực trước"
+                      }
+                      value={selectedHouse}
+                      onChange={handleHouseChange}
+                      disabled={!selectedArea}
+                      loading={loading}
+                      optionFilterProp="children"
+                      options={houses.map((house) => ({
+                        value: house.id,
+                        label: house.stableName,
+                      }))}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    label="Ngày khám"
+                    required
+                    tooltip="Chọn ngày khám bệnh"
+                  >
+                    <DatePicker
+                      style={{ width: "100%" }}
+                      value={examDate}
+                      onChange={setExamDate}
+                      format="DD/MM/YYYY"
+                      locale={locale}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Card>
+
+            {/* Kết quả tìm kiếm */}
+            {pigData.length > 0 ? (
+              <>
+                <Card style={pageStyles.statsCard}>
+                  <Row gutter={16}>
+                    <Col span={6}>
+                      <Statistic
+                        title="Tổng số heo"
+                        value={pigData.length}
+                        suffix="con"
+                        valueStyle={{ color: "#1890ff" }}
+                      />
+                    </Col>
+                    <Col span={6}>
+                      <Statistic
+                        title="Đã chọn"
+                        value={selectedPigs.size}
+                        suffix="con"
+                        valueStyle={{ color: "#722ed1" }}
+                      />
+                    </Col>
+                    <Col span={6}>
+                      <Statistic
+                        title="Heo khỏe mạnh"
+                        value={
+                          pigData.filter(
+                            (pig) =>
+                              selectedPigs.has(pig.id) &&
+                              pig.isHealthy === "healthy"
+                          ).length
+                        }
+                        valueStyle={{ color: "#52c41a" }}
+                        prefix={<Tag color="success">✓</Tag>}
+                      />
+                    </Col>
+                    <Col span={6}>
+                      <Statistic
+                        title="Heo không khỏe"
+                        value={
+                          pigData.filter(
+                            (pig) =>
+                              selectedPigs.has(pig.id) &&
+                              pig.isHealthy === "sick"
+                          ).length
+                        }
+                        valueStyle={{ color: "#ff4d4f" }}
+                        prefix={<Tag color="error">!</Tag>}
+                      />
+                    </Col>
+                  </Row>
+                </Card>
+
+                <Form form={form} layout="vertical">
+                  <Form.Item
+                    name="examinationNote"
+                    label="Ghi chú chung"
+                    tooltip="Nhập ghi chú chung cho phiếu khám"
+                  >
+                    <TextArea
+                      rows={4}
+                      placeholder="Nhập ghi chú chung..."
+                      showCount
+                      maxLength={500}
+                    />
+                  </Form.Item>
+                </Form>
+
+                <Table
+                  columns={columns}
+                  dataSource={pigData}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={false}
+                  bordered
+                  size="middle"
+                  scroll={{ x: 1300, y: 500 }}
+                  style={pageStyles.table}
+                />
+              </>
+            ) : selectedHouse ? (
+              <div style={pageStyles.emptyState}>
+                <Spin spinning={loading}>
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="Không tìm thấy heo trong chuồng này"
+                  />
+                </Spin>
+              </div>
+            ) : null}
           </Space>
-        </div>
+        </Card>
       </Layout>
-    </Layout>
+    </div>
   );
 };
 

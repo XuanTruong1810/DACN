@@ -131,8 +131,15 @@ namespace Application.Services
 
                             if (medicine != null && med.Quantity.HasValue)
                             {
-                                medicine.QuantityInStock -= med.Quantity.Value;
-                                await _unitOfWork.GetRepository<Medicines>().UpdateAsync(medicine);
+                                if (medicine.QuantityInStock >= med.Quantity.Value)
+                                {
+                                    medicine.QuantityInStock -= med.Quantity.Value;
+                                    await _unitOfWork.GetRepository<Medicines>().UpdateAsync(medicine);
+                                }
+                                else
+                                {
+                                    throw new Exception($"Số lượng thuốc không đủ để thực hiện dùng cho heo số lượng còn lại là {medicine.QuantityInStock}");
+                                }
                             }
                         }
                     }

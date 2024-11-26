@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DataBaseContext))]
-    [Migration("20241125155300_InitProject")]
+    [Migration("20241126182505_InitProject")]
     partial class InitProject
     {
         /// <inheritdoc />
@@ -1009,6 +1009,9 @@ namespace Infrastructure.Migrations
 
                     b.Property<int>("ExpectedQuantity")
                         .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("ExpectedReceiveDate")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int?>("ReceivedQuantity")
                         .HasColumnType("int");

@@ -45,6 +45,9 @@ namespace Application.SeedData
                 await roleManager.CreateAsync(dispatchRole);
                 await roleManager.AddClaimAsync(dispatchRole, new System.Security.Claims.Claim("Permission", "ProposePigImport"));
                 await roleManager.AddClaimAsync(dispatchRole, new System.Security.Claims.Claim("Permission", "AssignPigToPen"));
+                await roleManager.AddClaimAsync(dispatchRole, new System.Security.Claims.Claim("Permission", "TransferPig"));
+                await roleManager.AddClaimAsync(dispatchRole, new System.Security.Claims.Claim("Permission", "WeighPig"));
+
             }
             string emailMember = "nghianham125@gmail.com";
             string passwordMember = "TrungNghia123.";
@@ -106,8 +109,6 @@ namespace Application.SeedData
                 await roleManager.AddClaimAsync(veterinarianRole, new System.Security.Claims.Claim("Permission", "MedicalExamination"));
                 await roleManager.AddClaimAsync(veterinarianRole, new System.Security.Claims.Claim("Permission", "PeriodicInjection"));
                 await roleManager.AddClaimAsync(veterinarianRole, new System.Security.Claims.Claim("Permission", "ProposeMedicineImport"));
-                await roleManager.AddClaimAsync(veterinarianRole, new System.Security.Claims.Claim("Permission", "WeighPig"));
-                await roleManager.AddClaimAsync(veterinarianRole, new System.Security.Claims.Claim("Permission", "TransferPig"));
                 await roleManager.AddClaimAsync(veterinarianRole, new System.Security.Claims.Claim("Permission", "ProposePigExport"));
             }
             string emailVeterinarian = "tnan280103@gmail.com";

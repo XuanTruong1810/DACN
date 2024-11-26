@@ -14,6 +14,8 @@ namespace Application.Models.Medicine
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int? DaysAfterImport { get; set; }
         public bool IsActive { get; set; }
+
+        public int? QuantityRequired { get; set; } // Số lượng thuốc cần dùng cho 1 heo
         public List<SupplierModelView> Suppliers { get; set; }
     }
 }

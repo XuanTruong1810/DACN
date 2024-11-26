@@ -1,5 +1,6 @@
 using Application.DTOs.Medicines;
 using Application.Interfaces;
+using Application.Models;
 using Application.Models.Medicine;
 using AutoMapper;
 using Core.Entities;
@@ -57,10 +58,36 @@ namespace Application.Services
 
         public async Task<List<MedicineModelView>> GetAllMedicines(bool? isVaccine)
         {
-            List<Medicines> medicines = await _unitOfWork.GetRepository<Medicines>().GetEntities
+            var medicines = await _unitOfWork.GetRepository<Medicines>().GetEntities
                 .Where(x => x.IsActive && x.DeleteTime == null && (!isVaccine.HasValue || x.IsVaccine == isVaccine))
+                .Select(m => new MedicineModelView
+                {
+                    Id = m.Id,
+                    MedicineName = m.MedicineName,
+                    Description = m.Description,
+                    Usage = m.Usage,
+                    Unit = m.Unit,
+                    QuantityInStock = m.QuantityInStock,
+                    IsVaccine = m.IsVaccine,
+                    DaysAfterImport = m.DaysAfterImport,
+                    IsActive = m.IsActive,
+                    QuantityRequired = _unitOfWork.GetRepository<VaccinationPlan>()
+                        .GetEntities
+                        .Where(p => p.MedicineId == m.Id && p.IsActive
+                        && p.DeleteTime == null && p.Status == "pending")
+                        .Count(),
+                    Suppliers = m.MedicineSuppliers.Select(ms => new SupplierModelView
+                    {
+                        Id = ms.Suppliers.Id,
+                        Name = ms.Suppliers.Name,
+                        Email = ms.Suppliers.Email,
+                        Phone = ms.Suppliers.Phone,
+                        Address = ms.Suppliers.Address
+                    }).ToList()
+                })
                 .ToListAsync();
-            return _mapper.Map<List<MedicineModelView>>(medicines);
+
+            return medicines;
         }
 
 

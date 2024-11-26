@@ -60,7 +60,7 @@ public class WeighingHistoryService : IWeighingHistoryService
             {
                 Id = newId,
                 WeighingDate = dto.WeighingDate,
-                Note = dto.Note,
+                Note = dto.Note ?? "Cân heo ngày " + dto.WeighingDate,
                 CreatedBy = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value,
                 TotalPigs = dto.WeighingDetails.Count,
                 AverageWeight = dto.WeighingDetails.Average(x => x.Weight)
