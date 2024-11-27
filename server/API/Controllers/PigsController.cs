@@ -18,7 +18,7 @@ namespace API.Controllers
         private readonly IPigService pigService = pigService;
 
         [HttpGet]
-        [Authorize(Roles = "Admin,Dispatch")]
+        [Authorize]
         public async Task<IActionResult> GetAllAsync([FromQuery] PigFilterDTO filter)
         {
             BasePagination<PigModelView> pigs = await pigService.GetAllAsync(filter);
@@ -26,7 +26,7 @@ namespace API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Dispatch")]
+        [Authorize]
         public async Task<IActionResult> CreateAsync(PigDTO dto)
         {
             PigModelView? pig = await pigService.CreateAsync(dto);
@@ -34,7 +34,7 @@ namespace API.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin,Dispatch")]
+        [Authorize]
         public async Task<IActionResult> GetByIdAsync(string id)
         {
             PigModelView? pig = await pigService.GetByIdAsync(id);
@@ -42,7 +42,7 @@ namespace API.Controllers
         }
 
         [HttpGet("area/{areaId}")]
-        [Authorize(Roles = "Admin,Dispatch")]
+        [Authorize]
         public async Task<IActionResult> GetPigsByAreaAsync(string areaId)
         {
             List<PigModelView> pigs = await pigService.GetPigsByAreaAsync(areaId);
@@ -50,7 +50,7 @@ namespace API.Controllers
         }
 
         [HttpGet("house/{houseId}")]
-        [Authorize(Roles = "Admin,Dispatch")]
+        [Authorize]
         public async Task<IActionResult> GetPigsByHouseAsync(string houseId)
         {
             List<PigModelView> pigs = await pigService.GetPigsByHouseAsync(houseId);
@@ -58,7 +58,7 @@ namespace API.Controllers
         }
 
         [HttpPost("{id}/cancel")]
-        [Authorize(Roles = "Admin,Dispatch")]
+        [Authorize]
         public async Task<IActionResult> CancelPigAsync(string id, PigCancelDTO dto)
         {
             PigCancelModelView? pig = await pigService.CancelPigAsync(id, dto);
@@ -66,7 +66,7 @@ namespace API.Controllers
         }
 
         [HttpGet("cancel")]
-        [Authorize(Roles = "Admin,Dispatch")]
+        [Authorize]
         public async Task<IActionResult> GetPigCancelAsync([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
         {
             BasePagination<PigCancelModelView> pigs = await pigService.GetPigCancelAsync(pageIndex ?? 1, pageSize ?? 10);
@@ -75,7 +75,7 @@ namespace API.Controllers
 
 
         [HttpGet("export")]
-        [Authorize(Roles = "Admin,Dispatch")]
+        [Authorize]
         public async Task<IActionResult> GetPigsForExportAsync()
         {
             List<PigExportModelView> pigs = await pigService.GetPigsForExportAsync();
@@ -83,7 +83,7 @@ namespace API.Controllers
         }
 
         [HttpGet("export/pending")]
-        [Authorize(Roles = "Admin,Dispatch")]
+        [Authorize]
         public async Task<IActionResult> GetPigsStatusPendingAsync()
         {
             List<PigExportModelView> pigs = await pigService.GetPigsStatusPendingAsync();
@@ -91,7 +91,7 @@ namespace API.Controllers
         }
 
         [HttpGet("vaccination")]
-        [Authorize(Roles = "Admin,Dispatch")]
+        [Authorize]
         public async Task<IActionResult> GetPigsVaccinationAsync([FromQuery] string? areaId, [FromQuery] string? stableId)
         {
             List<PigVaccinationModelView> pigs = await pigService.GetPigsVaccinationAsync(areaId, stableId);

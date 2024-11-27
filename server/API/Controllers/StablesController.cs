@@ -14,7 +14,7 @@ namespace API.Controllers
         private readonly IStableService stableService = stableService;
 
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> Get([FromQuery] string? areaId, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
         {
             BasePagination<StableModelView>? result = await stableService.GetAllStablesByArea(pageIndex, pageSize, areaId);
@@ -22,7 +22,7 @@ namespace API.Controllers
 
         }
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> GetStableById(string id)
         {
             StableModelView? result = await stableService.GetStableById(id);
@@ -31,7 +31,7 @@ namespace API.Controllers
 
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
 
         public async Task<IActionResult> Post(StableDTO stableDTO)
         {
@@ -40,7 +40,7 @@ namespace API.Controllers
         }
 
         [HttpPatch("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
 
         public async Task<IActionResult> Patch(string id, StableDTO stableDTO)
         {
@@ -49,7 +49,7 @@ namespace API.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
 
         public async Task<IActionResult> Delete(string id)
         {

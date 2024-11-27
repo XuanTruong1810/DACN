@@ -124,7 +124,7 @@ const MedicineSchedule = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate(
-                      `/admin/health/vaccination/create?vaccineId=${item.vaccineId}&date=${date}`
+                      `/veterinarian/health/vaccination/create?vaccineId=${item.vaccineId}&date=${date}`
                     );
                   }}
                   style={{

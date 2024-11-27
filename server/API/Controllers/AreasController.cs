@@ -12,21 +12,21 @@ namespace API.Controllers
     {
         private readonly IAreaService areaService = areaService;
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> Get()
         {
             BasePagination<AreaModelView> areas = await areaService.GetAllAsync(1, 10);
             return Ok(BaseResponse<BasePagination<AreaModelView>>.OkResponse(areas));
         }
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> GetById(string id)
         {
             AreaModelView? area = await areaService.GetByIdAsync(id);
             return Ok(BaseResponse<AreaModelView>.OkResponse(area));
         }
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> Post([FromBody] AreaDTO areaModel)
         {
             AreaModelView? result = await areaService.CreateAsync(areaModel);
@@ -34,14 +34,14 @@ namespace API.Controllers
         }
 
         [HttpPatch]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> Patch([FromQuery] string id, [FromBody] AreaDTO areaModel)
         {
             AreaModelView? result = await areaService.UpdateAsync(id, areaModel);
             return Ok(BaseResponse<AreaModelView>.OkResponse(result));
         }
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> Delete(string id)
         {
             await areaService.DeleteAsync(id);

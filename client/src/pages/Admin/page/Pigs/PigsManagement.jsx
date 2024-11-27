@@ -39,8 +39,8 @@ const PigsManagement = () => {
   const columns = [
     {
       title: "Mã heo",
-      dataIndex: "pigId",
-      key: "pigId",
+      dataIndex: "id",
+      key: "id",
       sorter: true,
     },
     {

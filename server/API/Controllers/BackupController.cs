@@ -1,5 +1,6 @@
 using Application.Interfaces;
 using Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -18,6 +19,7 @@ public class BackupController(IRestoreService restoreService, IDropboxService dr
         return Ok(BaseResponse<object>.OkResponse("Khôi phục dữ liệu thành công"));
     }
     [HttpGet]
+    [Authorize]
     public async Task<IActionResult> GetBackupListAsync()
     {
         List<BackupFileInfo> backupFiles = await _dropboxService.GetBackupFilesAsync();

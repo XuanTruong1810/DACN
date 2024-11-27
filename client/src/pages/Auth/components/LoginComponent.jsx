@@ -47,7 +47,15 @@ const LoginComponent = () => {
         localStorage.setItem("token", response.data.data.accessToken);
         localStorage.setItem("refreshToken", response.data.data.refreshToken);
         message.success("Đăng nhập thành công!");
-        navigate("/admin");
+        if (response.data.data.user.roles[0] === "Admin") {
+          navigate("/admin");
+        } else if (response.data.data.user.roles[0] === "Dispatch") {
+          navigate("/dispatch");
+        } else if (response.data.data.user.roles[0] === "FeedManager") {
+          navigate("/feedmanager");
+        } else if (response.data.data.user.roles[0] === "Veterinarian") {
+          navigate("/veterinarian");
+        }
       }
     } catch (error) {
       console.error("Login error:", error);
