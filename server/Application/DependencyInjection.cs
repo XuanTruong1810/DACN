@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<ICalenderWeighingService, CalenderWeighingService>();
         services.AddScoped<IPerformanceStatisticsService, PerformanceStatisticsService>();
+        services.AddScoped<IPigExaminationService, PigExaminationService>();
     }
     public static void AddMapping(this IServiceCollection services)
     {

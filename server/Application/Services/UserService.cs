@@ -239,24 +239,24 @@ namespace Application.Services
             await _userManager.UpdateAsync(user);
         }
 
-        public async Task<bool> ToggleUserStatusAsync(string id)
+        public async Task LockUserAsync(string id)
         {
-            var user = await _userManager.FindByIdAsync(id);
+            ApplicationUser? user = await _userManager.FindByIdAsync(id);
             if (user == null || user.DeleteTime != null)
                 throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng");
 
             if (user.LockoutEnd == null || user.LockoutEnd < DateTimeOffset.UtcNow)
-            {
-                // Lock user
                 await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
-                return false;
-            }
-            else
-            {
-                // Unlock user
-                await _userManager.SetLockoutEndDateAsync(user, null);
-                return true;
-            }
+        }
+
+        public async Task UnlockUserAsync(string id)
+        {
+            ApplicationUser? user = await _userManager.FindByIdAsync(id);
+            if (user == null || user.DeleteTime != null)
+                throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng");
+
+
+            await _userManager.SetLockoutEndDateAsync(user, null);
         }
 
         public async Task<List<string>> GetUserRolesAsync(string id)

@@ -119,13 +119,13 @@ namespace Application.Services
             IList<string> roles = await userManager.GetRolesAsync(user);
 
             // Lấy permissions từ tất cả các roles
-            var permissions = new List<string>();
-            foreach (var role in roles)
+            List<string>? permissions = new List<string>();
+            foreach (string role in roles)
             {
-                var roleObj = await roleManager.FindByNameAsync(role);
+                IdentityRole? roleObj = await roleManager.FindByNameAsync(role);
                 if (roleObj != null)
                 {
-                    var roleClaims = await roleManager.GetClaimsAsync(roleObj);
+                    IList<Claim>? roleClaims = await roleManager.GetClaimsAsync(roleObj);
                     permissions.AddRange(roleClaims
                         .Where(c => c.Type == "Permission")
                         .Select(c => c.Value));
@@ -141,10 +141,13 @@ namespace Application.Services
                 RefreshToken = refreshToken,
                 TokenType = "JWT",
                 AuthType = "Bearer",
+
                 ExpiresIn = DateTime.UtcNow.AddHours(1),
                 User = new UserInfo
                 {
                     Email = user.Email,
+                    FullName = user.FullName,
+                    PhoneNumber = user.PhoneNumber,
                     Roles = roles.ToList(),
                     Permissions = permissions.Distinct().ToList()  // Loại bỏ các permission trùng lặp
                 }

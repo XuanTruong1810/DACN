@@ -42,6 +42,7 @@ const CreateExportRequest = () => {
           },
         }
       );
+      console.log(response.data);
       const pigs = Array.isArray(response.data)
         ? response.data
         : response.data.data;
@@ -72,7 +73,7 @@ const CreateExportRequest = () => {
         })),
       };
 
-      await axios.post(
+      const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/v1/pigExport/request`,
         exportRequest,
         {
@@ -81,12 +82,13 @@ const CreateExportRequest = () => {
           },
         }
       );
-      message.success("Tạo đề xuất xuất thành công");
+      console.log(response);
+      message.success("Tạo đề xuất vật nuôi thành công");
       setIsModalVisible(false);
       navigate("/admin/exports/animals/request/list");
     } catch (error) {
       console.error("Error creating export request:", error);
-      message.error("Không thể tạo đề xuất xuất");
+      message.error("Không thể tạo đề xuất vật nuôi");
     } finally {
       setLoading(false);
     }

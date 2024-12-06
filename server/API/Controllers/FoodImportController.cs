@@ -38,7 +38,7 @@ public class FoodImportController(IFoodImportService foodImportService) : Contro
     /// Tạo phiếu nhập mới từ phiếu đề xuất
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize]
     public async Task<IActionResult> CreateImport(string requestId, [FromBody] List<CreateFoodImportDto> dto)
     {
         await _foodImportService.CreateImportsAsync(requestId, dto);
@@ -49,7 +49,7 @@ public class FoodImportController(IFoodImportService foodImportService) : Contro
     /// Cập nhật trạng thái giao hàng của phiếu nhập
     /// </summary>
     [HttpPut("{id}/delivery")]
-    [Authorize(Roles = "Admin,Manager,Warehouse")]
+    [Authorize]
     public async Task<IActionResult> UpdateDeliveryStatus(string id, [FromBody] UpdateDeliveryDto dto)
     {
         FoodImportModelView? data = await _foodImportService.UpdateDeliveryStatusAsync(id, dto);
@@ -60,7 +60,7 @@ public class FoodImportController(IFoodImportService foodImportService) : Contro
     /// Cập nhật trạng thái kho
     /// </summary>
     [HttpPut("{id}/stock")]
-    [Authorize(Roles = "Admin,Manager,Warehouse")]
+    [Authorize]
     public async Task<IActionResult> UpdateStockStatus(string id)
     {
         FoodImportModelView? data = await _foodImportService.UpdateStockStatusAsync(id);

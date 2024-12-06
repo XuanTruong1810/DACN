@@ -1,22 +1,12 @@
 import {
-  HomeOutlined,
   TeamOutlined,
-  BugOutlined,
   ShoppingOutlined,
-  BarChartOutlined,
   UserOutlined,
   LogoutOutlined,
-  PieChartOutlined,
-  InboxOutlined,
   AppstoreOutlined,
-  MedicineBoxOutlined,
   ImportOutlined,
   ExportOutlined,
   UnorderedListOutlined,
-  CheckSquareOutlined,
-  DatabaseOutlined,
-  BarsOutlined,
-  TagsOutlined,
   FileTextOutlined,
 } from "@ant-design/icons";
 import { Menu, Avatar, Dropdown, Space } from "antd";
@@ -57,7 +47,7 @@ const FeedManagementSideBar = () => {
                   key: "createFoodImport",
                   icon: <FileTextOutlined />,
                   label: (
-                    <Link to="/admin/inventory/import-foods/create">
+                    <Link to="/feed-manager/inventory/import-foods/create">
                       Tạo phiếu nhập
                     </Link>
                   ),
@@ -65,11 +55,7 @@ const FeedManagementSideBar = () => {
                 {
                   key: "foodImportList",
                   icon: <UnorderedListOutlined />,
-                  label: (
-                    <Link to="/admin/inventory/import-foods/list">
-                      Danh sách phiếu nhập
-                    </Link>
-                  ),
+                  label: <Link to="/feed-manager">Danh sách phiếu nhập</Link>,
                 },
               ],
             },
@@ -84,7 +70,7 @@ const FeedManagementSideBar = () => {
               key: "dailyFoodExport",
               icon: <AppstoreOutlined />,
               label: (
-                <Link to="/admin/exports/daily-food">
+                <Link to="/feed-manager/exports/daily-food-export">
                   Xuất thức ăn hằng ngày
                 </Link>
               ),

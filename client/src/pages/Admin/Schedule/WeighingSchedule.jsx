@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Calendar,
   Card,
@@ -14,16 +14,10 @@ import {
   Table,
   Input,
   InputNumber,
-  Statistic,
   Tag,
   Alert,
 } from "antd";
-import {
-  PlusOutlined,
-  HistoryOutlined,
-  PrinterOutlined,
-  SaveOutlined,
-} from "@ant-design/icons";
+import { PlusOutlined, PrinterOutlined, SaveOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import axios from "axios";

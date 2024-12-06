@@ -58,14 +58,40 @@ public class DropboxService : IDropboxService
             foreach (Metadata item in result.Entries.Where(e => e.IsFile))
             {
                 FileMetadata? metadata = item.AsFile;
-                SharedLinkMetadata? sharedLink = await _dropboxClient.Sharing.CreateSharedLinkWithSettingsAsync(metadata.PathLower);
+                string downloadUrl;
+
+                try
+                {
+                    // Thử lấy shared link hiện có
+                    var listSharedLinksResult = await _dropboxClient.Sharing.ListSharedLinksAsync(
+                        path: metadata.PathLower,
+                        directOnly: true
+                    );
+
+                    if (listSharedLinksResult.Links.Any())
+                    {
+                        // Sử dụng shared link đã tồn tại
+                        downloadUrl = listSharedLinksResult.Links[0].Url;
+                    }
+                    else
+                    {
+                        // Tạo shared link mới nếu chưa có
+                        var sharedLink = await _dropboxClient.Sharing.CreateSharedLinkWithSettingsAsync(metadata.PathLower);
+                        downloadUrl = sharedLink.Url;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error getting shared link for {Path}, skipping download URL", metadata.PathLower);
+                    downloadUrl = string.Empty;
+                }
 
                 backups.Add(new BackupFileInfo
                 {
                     FileName = metadata.Name,
                     CreatedAt = metadata.ServerModified,
                     Size = FormatFileSize((long)metadata.Size),
-                    DownloadUrl = sharedLink.Url,
+                    DownloadUrl = downloadUrl,
                     Path = metadata.PathDisplay
                 });
             }

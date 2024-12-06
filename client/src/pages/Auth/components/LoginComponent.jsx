@@ -52,7 +52,7 @@ const LoginComponent = () => {
         } else if (response.data.data.user.roles[0] === "Dispatch") {
           navigate("/dispatch");
         } else if (response.data.data.user.roles[0] === "FeedManager") {
-          navigate("/feedmanager");
+          navigate("/feed-manager");
         } else if (response.data.data.user.roles[0] === "Veterinarian") {
           navigate("/veterinarian");
         }

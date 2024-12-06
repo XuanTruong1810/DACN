@@ -388,6 +388,9 @@ const ImportRequestManagement = () => {
         key: "requestDate",
         width: 120,
         render: (date) => dayjs(date).format("DD/MM/YYYY"),
+        sorter: (a, b) =>
+          dayjs(a.requestDate).unix() - dayjs(b.requestDate).unix(),
+        defaultSortOrder: "descend",
       },
       {
         title: "Nhà cung cấp",

@@ -15,7 +15,7 @@ namespace API.Controllers
         private readonly IPigIntakeService pigIntakeService = pigIntakeService;
 
         [HttpGet]
-        [Authorize(Policy = "ProposePigImport")]
+        [Authorize]
         public async Task<IActionResult> Get([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, string? filter = null)
         {
             BasePagination<PigInTakeModelView>? data = await pigIntakeService.GetAllAsync(pageIndex, pageSize, filter);
@@ -23,14 +23,14 @@ namespace API.Controllers
 
         }
         [HttpGet("{id}")]
-        [Authorize(Policy = "ProposePigImport")]
+        [Authorize]
         public async Task<IActionResult> GetById(string id)
         {
             PigInTakeModelView? data = await pigIntakeService.GetPigIntakeByIdAsync(id);
             return Ok(BaseResponse<PigInTakeModelView>.OkResponse(data));
         }
         [HttpPost]
-        [Authorize(Policy = "ProposePigImport")]
+        [Authorize]
         public async Task<IActionResult> Post([FromBody] PigIntakeInsertDTO dTO)
         {
             PigInTakeModelView? result = await pigIntakeService.InsertIntakeAsync(dTO);
@@ -45,14 +45,14 @@ namespace API.Controllers
         }
 
         [HttpPatch]
-        [Authorize(Policy = "ProposePigImport")]
+        [Authorize]
         public async Task<IActionResult> Patch([FromQuery] string id, [FromBody] PigIntakeUpdateDTO model)
         {
             PigDeliveryModel? result = await pigIntakeService.UpdateIntakeAsync(id, model);
             return Ok(BaseResponse<PigDeliveryModel>.OkResponse(result));
         }
         [HttpDelete]
-        [Authorize(Policy = "ProposePigImport")]
+        [Authorize]
         public async Task<IActionResult> Delete([FromQuery] string id)
         {
             await pigIntakeService.DeleteAsync(id);
@@ -60,7 +60,7 @@ namespace API.Controllers
         }
 
         [HttpPost("Allocate")]
-        [Authorize(Policy = "ProposePigImport")]
+        [Authorize]
         public async Task<IActionResult> Allocate([FromQuery] string AreasId, [FromQuery] string pigIntakeId)
         {
             List<GetPigStableModelView>? result = await pigIntakeService.AllocatePigsToStableAsync(AreasId, pigIntakeId);

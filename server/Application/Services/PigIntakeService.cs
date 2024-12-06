@@ -149,6 +149,10 @@ namespace Application.Services
             await unitOfWork.GetRepository<PigIntakes>().UpdateAsync(pigIntake);
             await unitOfWork.SaveAsync();
 
+
+            /// i want to send email to supplier
+
+
             return mapper.Map<PigInTakeModelView>(pigIntake);
 
         }

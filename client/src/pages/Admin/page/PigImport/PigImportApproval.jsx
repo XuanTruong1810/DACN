@@ -87,7 +87,7 @@ const PigImportApproval = () => {
         id: request.id,
         requestCode: request.id,
         supplier: request.suppliersName,
-        requestDate: request.createTime,
+        requestDate: request.createdTime,
         quantity: request.expectedQuantity,
         pigType: "Heo thịt", // Mặc định
         status: request.approvedTime
@@ -172,6 +172,7 @@ const PigImportApproval = () => {
       render: (date) => dayjs(date).format("DD/MM/YYYY"),
       sorter: (a, b) =>
         dayjs(a.requestDate).unix() - dayjs(b.requestDate).unix(),
+      defaultSortOrder: "descend",
     },
     {
       title: "Nhà cung cấp",

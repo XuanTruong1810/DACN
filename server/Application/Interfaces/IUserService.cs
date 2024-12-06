@@ -11,7 +11,8 @@ namespace Application.Interfaces
         Task<UserDTO> CreateUserAsync(CreateUserDTO dto);
         Task<UserDTO> UpdateUserAsync(string id, UpdateUserDTO dto);
         Task DeleteUserAsync(string id);
-        Task<bool> ToggleUserStatusAsync(string id);
+        Task LockUserAsync(string id);
+        Task UnlockUserAsync(string id);
         Task<List<string>> GetUserRolesAsync(string id);
         Task<bool> UpdateUserRolesAsync(string id, List<string> roles);
     }

@@ -76,6 +76,7 @@ const VeterinarianSideBar = () => {
         },
       ],
     },
+
     {
       key: "inventory",
       icon: <ShoppingOutlined />,

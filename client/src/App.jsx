@@ -1,5 +1,5 @@
 import "./App.css";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import GlobalStyle from "./styles/GlobalStyle";
 
 import AuthLayout from "./pages/Auth/AuthLayout";
@@ -8,14 +8,12 @@ import ForgotPasswordPage from "./pages/Auth/page/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/Auth/page/ResetPasswordPage";
 import HomePage from "./pages/Home/page/HomePage";
 import VerifyOTPPage from "./pages/Auth/page/VerifyOTPPage";
-import MainLayout from "./pages/Admin/MainLayout";
 import CreateHealthRecordPage from "./pages/Admin/page/CreateHealthRecordPage";
 import SuppliersPage from "./pages/Admin/page/Suppliers/SuppliersPage";
 import FoodCategoriesPage from "./pages/Admin/page/FoodCategories/FoodCategoriesPage";
 import AreasPage from "./pages/Admin/page/Areas/AreasPage";
 import HousesPage from "./pages/Admin/page/Houses/HousesPage";
 import FoodsPage from "./pages/Admin/page/Foods/FoodsPage";
-import CreateExport from "./pages/Admin/page/Exports/CreateExport";
 import DeadPigsPage from "./pages/Admin/page/DeadPigs/DeadPigsPage";
 import PigImportApproval from "./pages/Admin/page/PigImport/PigImportApproval";
 import PigImportRequest from "./pages/Admin/page/PigImport/PigImportRequest";
@@ -34,8 +32,6 @@ import CreateExportRequest from "./pages/Admin/ExportRequest/CreateExportRequest
 import ExportRequestList from "./pages/Admin/ExportRequest/ExportRequestList";
 import ExportList from "./pages/Admin/Export/ExportList";
 import CustomerManagement from "./pages/Admin/page/Customer/CustomerManagement";
-import WeighingSchedule from "./pages/Admin/Schedule/WeighingSchedule";
-import FoodExport from "./pages/Admin/FoodManagement/FoodExport";
 import MoveHouse from "./pages/Admin/page/Animals/MoveHouse";
 import MedicinePage from "./pages/Admin/Medicine/MedicinePage";
 import MedicineRequestPage from "./pages/Admin/Medicine/MedicineRequestPage";
@@ -44,11 +40,15 @@ import MedicineImportList from "./pages/Admin/Medicine/MedicineImportList";
 import MedicineSchedule from "./pages/Admin/MedicineSchedule/MedicineSchedule";
 import VaccinationForm from "./pages/Admin/Health/VaccinationForm";
 import Restore from "./pages/Admin/Restore/Restore";
-import { AuthProvider } from "./contexts/AuthContext";
 import AdminLayout from "./pages/Admin/AdminLayout";
 import FeedManagerLayout from "./pages/Admin/FeedManagerLayout";
 import DispatchLayout from "./pages/Admin/DispatchLayout";
 import VeterinarianLayout from "./pages/Admin/VeterinarianLayout";
+import Forbidden from "./pages/Error/Forbidden";
+import NotFound from "./pages/Error/NotFound";
+import Unauthorized from "./pages/Error/Unauthorized";
+import WeighingSchedule from "./pages/Admin/Schedule/WeighingSchedule";
+import VaccinationHistory from "./pages/Admin/VaccinationHistory/VaccinationHistory";
 
 function App() {
   return (
@@ -63,6 +63,7 @@ function App() {
               path="inventory/food-categories"
               element={<FoodCategoriesPage />}
             />
+
             <Route path="restore" element={<Restore />} />
             <Route path="Areas" element={<AreasPage />} />
             <Route path="Houses" element={<HousesPage />} />
@@ -74,6 +75,11 @@ function App() {
               <Route path="inventory" element={<InventoryStatistics />} />
               <Route path="performance" element={<PerformanceStatistics />} />
             </Route>
+
+            <Route
+              path="health/vaccination-history"
+              element={<VaccinationHistory />}
+            />
 
             {/* duyet phieu */}
             <Route
@@ -106,9 +112,10 @@ function App() {
             <Route path="animals/pigs" element={<PigsManagement />} />
           </Route>
 
-          <Route path="/Dispatch" element={<DispatchLayout />}>
+          <Route path="/dispatch" element={<DispatchLayout />}>
+            <Route path="animals/move-house" element={<MoveHouse />} />
             <Route path="animals/pigs" element={<PigsManagement />} />
-            <Route index path="animals/move-house" element={<MoveHouse />} />
+            <Route index element={<WeighingSchedule />} />
             <Route
               path="inventory/create-request"
               element={<PigImportRequest />}
@@ -123,20 +130,16 @@ function App() {
             />
           </Route>
 
-          <Route path="/FeedManagement" element={<FeedManagerLayout />}>
+          <Route path="/feed-manager" element={<FeedManagerLayout />}>
             <Route
-              index
-              path="exports/daily-food"
+              path="exports/daily-food-export"
               element={<DailyFoodExport />}
             />
             <Route
               path="inventory/import-foods/create"
               element={<FoodImport />}
             />
-            <Route
-              path="inventory/import-foods/list"
-              element={<FoodImportList />}
-            />
+            <Route index element={<FoodImportList />} />
           </Route>
 
           <Route path="/Veterinarian" element={<VeterinarianLayout />}>
@@ -168,6 +171,10 @@ function App() {
               path="health/vaccination/create"
               element={<VaccinationForm />}
             />
+            <Route
+              path="health/vaccination-history"
+              element={<VaccinationHistory />}
+            />
           </Route>
 
           <Route path="/Home" element={<HomePage />} />
@@ -178,6 +185,11 @@ function App() {
             <Route path="confirm-otp" element={<VerifyOTPPage />} />
           </Route>
           <Route path="profile" element={<Profile />} />
+          <Route path="/" element={<Navigate to="/auth/login" replace />} />
+          <Route path="*" element={<NotFound />} />
+          <Route path="/403" element={<Forbidden />} />
+          <Route path="/404" element={<NotFound />} />
+          <Route path="/401" element={<Unauthorized />} />
         </Routes>
       </BrowserRouter>
     </>

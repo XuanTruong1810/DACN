@@ -489,12 +489,13 @@ const MedicineSchedule = () => {
             </Button>
             <Button
               type="primary"
-              icon={<PlusOutlined />}
+              icon={<CalendarOutlined />}
               onClick={() =>
-                (window.location.href = "/admin/health-record/create")
+                (window.location.href =
+                  "/veterinarian/health/vaccination-history")
               }
             >
-              Tạo lịch tiêm
+              Lịch sử tiêm chủng
             </Button>
           </Space>
         </div>

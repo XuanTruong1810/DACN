@@ -10,5 +10,8 @@ namespace Application.DTOs
         public decimal UnitPrice { get; set; }
         [Required(ErrorMessage = "Deposit is required")]
         public decimal Deposit { get; set; }
+
+        [Required(ErrorMessage = "DeliveryDate is required")]
+        public DateTimeOffset DeliveryDate { get; set; }
     }
 }

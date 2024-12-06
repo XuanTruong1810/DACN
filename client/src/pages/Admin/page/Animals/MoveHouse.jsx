@@ -713,7 +713,7 @@ const MoveHouse = () => {
           <Card className="area-guide-card">
             <Space direction="vertical">
               <Badge status="processing" text={<Text strong>Khu D</Text>} />
-              <Text type="secondary">>105kg</Text>
+              <Text type="secondary">105kg</Text>
               <Tag color="green">Xuất chuồng</Tag>
             </Space>
           </Card>

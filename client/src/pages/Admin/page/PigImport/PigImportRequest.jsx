@@ -259,7 +259,7 @@ const PigImportRequest = () => {
       );
 
       message.success("Đã tạo yêu cầu nhập heo thành công!");
-      navigate("/admin/inventory/request-list");
+      navigate("../inventory/request-list");
       form.resetFields();
       setSelectedQuantity(0);
     } catch (error) {

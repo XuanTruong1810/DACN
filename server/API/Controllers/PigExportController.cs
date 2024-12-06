@@ -12,7 +12,7 @@ public class PigExportController(IPigExportService pigExportService) : Controlle
 {
     private readonly IPigExportService _pigExportService = pigExportService;
     [HttpPost("request")]
-    [Authorize(Roles = "Admin,Dispatcher")]
+    [Authorize(Roles = "Admin, Dispatch")]
     public async Task<IActionResult> CreatePigExportRequest([FromBody] CreatePigExportRequestDTO dto)
     {
         PigExportRequestModelView? result = await _pigExportService.CreatePigExportRequest(dto);
@@ -20,7 +20,7 @@ public class PigExportController(IPigExportService pigExportService) : Controlle
     }
 
     [HttpGet("request/{id}")]
-    [Authorize(Roles = "Admin,Dispatcher")]
+    [Authorize(Roles = "Admin,Dispatch")]
 
     public async Task<IActionResult> GetPigExportRequestById(string id)
     {
@@ -29,7 +29,7 @@ public class PigExportController(IPigExportService pigExportService) : Controlle
     }
 
     [HttpGet("request")]
-    [Authorize(Roles = "Admin,Dispatcher")]
+    [Authorize(Roles = "Admin,Dispatch")]
 
     public async Task<IActionResult> GetAllPigExportRequests()
     {
@@ -38,7 +38,7 @@ public class PigExportController(IPigExportService pigExportService) : Controlle
     }
 
     [HttpPatch("request/{id}/approve")]
-    [Authorize(Roles = "Admin,Dispatcher")]
+    [Authorize(Roles = "Admin,Dispatch")]
     public async Task<IActionResult> ApprovePigExportRequest(string id)
     {
         PigExportRequestModelView? result = await _pigExportService.ApprovePigExportRequest(id);

@@ -77,6 +77,13 @@ const Sidebar = () => {
       ],
     },
     {
+      key: "vaccinationHistory",
+      icon: <BarsOutlined />,
+      label: (
+        <Link to="/admin/health/vaccination-history">Lịch sử tiêm chủng</Link>
+      ),
+    },
+    {
       key: "inventory",
       icon: <ShoppingOutlined />,
       label: "Quản lý kho",

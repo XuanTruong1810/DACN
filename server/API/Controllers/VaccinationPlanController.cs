@@ -19,7 +19,7 @@ namespace API.Controllers
             return Ok(BaseResponse<List<VaccinationPlanModelView>>.OkResponse(result));
         }
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> InsertVaccinationPlanAsync(VaccinationInsertDTO vaccinationInsertDTO)
         {
             bool result = await _vaccinationPlanService.InsertVaccinationPlanAsync(vaccinationInsertDTO);

@@ -545,7 +545,7 @@ const ExportRequestList = () => {
               icon={<ExportOutlined />}
               onClick={() => navigate("/admin/exports/animals/create")}
             >
-              Tạo đề xuất xuất
+              Tạo đề xuất vật nuôi
             </Button>
           </Space>
         }

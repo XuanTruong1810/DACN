@@ -53,11 +53,18 @@ public class UserController : ControllerBase
         return NoContent();
     }
 
-    [HttpPatch("{id}/toggle-status")]
-    public async Task<IActionResult> ToggleUserStatus(string id)
+    [HttpPatch("{id}/lock")]
+    public async Task<IActionResult> LockUser(string id)
     {
-        var result = await _userService.ToggleUserStatusAsync(id);
-        return Ok(BaseResponse<bool>.OkResponse(result));
+        await _userService.LockUserAsync(id);
+        return Ok(BaseResponse<object>.OkResponse("Khóa người dùng thành công!"));
+    }
+
+    [HttpPatch("{id}/unlock")]
+    public async Task<IActionResult> UnlockUser(string id)
+    {
+        await _userService.UnlockUserAsync(id);
+        return Ok(BaseResponse<object>.OkResponse("Mở khóa người dùng thành công!"));
     }
 
     [HttpGet("{id}/roles")]

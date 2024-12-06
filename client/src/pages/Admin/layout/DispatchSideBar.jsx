@@ -53,15 +53,20 @@ const DispatchSideBar = () => {
               key: "animalsList",
               icon: <UnorderedListOutlined />,
               label: (
-                <Link to="/Dispatch/animals/pigs">Danh sách vật nuôi</Link>
+                <Link to="/dispatch/animals/pigs">Danh sách vật nuôi</Link>
               ),
             },
             {
               key: "moveHouse",
               icon: <HomeOutlined />,
               label: (
-                <Link to="/Dispatch/animals/move-house">Chuyển chuồng</Link>
+                <Link to="/dispatch/animals/move-house">Chuyển chuồng</Link>
               ),
+            },
+            {
+              key: "weighingSchedule",
+              icon: <BarChartOutlined />,
+              label: <Link to="/dispatch">Lịch cân heo</Link>,
             },
           ],
         },
