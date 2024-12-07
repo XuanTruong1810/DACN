@@ -58,7 +58,7 @@ namespace Application.Services
 
         public async Task<List<MedicineModelView>> GetAllMedicines(bool? isVaccine)
         {
-            var medicines = await _unitOfWork.GetRepository<Medicines>().GetEntities
+            List<MedicineModelView>? medicines = await _unitOfWork.GetRepository<Medicines>().GetEntities
                 .Where(x => x.IsActive && x.DeleteTime == null && (!isVaccine.HasValue || x.IsVaccine == isVaccine))
                 .Select(m => new MedicineModelView
                 {
@@ -95,7 +95,31 @@ namespace Application.Services
         {
             Medicines? medicine = await _unitOfWork.GetRepository<Medicines>().GetByIdAsync(id)
                 ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy thuốc");
-            return _mapper.Map<MedicineModelView>(medicine);
+            return new MedicineModelView
+            {
+                Id = medicine.Id,
+                MedicineName = medicine.MedicineName,
+                Unit = medicine.Unit,
+                IsVaccine = medicine.IsVaccine,
+                Description = medicine.Description,
+                Usage = medicine.Usage,
+                QuantityInStock = medicine.QuantityInStock,
+                DaysAfterImport = medicine.DaysAfterImport,
+                IsActive = medicine.IsActive,
+                QuantityRequired = _unitOfWork.GetRepository<VaccinationPlan>()
+                       .GetEntities
+                       .Where(p => p.MedicineId == medicine.Id && p.IsActive
+                       && p.DeleteTime == null && p.Status == "pending")
+                       .Count(),
+                Suppliers = medicine.MedicineSuppliers.Select(ms => new SupplierModelView
+                {
+                    Id = ms.Suppliers.Id,
+                    Name = ms.Suppliers.Name,
+                    Email = ms.Suppliers.Email,
+                    Phone = ms.Suppliers.Phone,
+                    Address = ms.Suppliers.Address
+                }).ToList(),
+            };
         }
 
         public async Task<MedicineModelView> InsertMedicine(InsertMedicineDTO dto)
@@ -156,7 +180,20 @@ namespace Application.Services
                     Usage = medicine.Usage,
                     QuantityInStock = medicine.QuantityInStock,
                     DaysAfterImport = medicine.DaysAfterImport,
-                    IsActive = medicine.IsActive
+                    IsActive = medicine.IsActive,
+                    QuantityRequired = _unitOfWork.GetRepository<VaccinationPlan>()
+                        .GetEntities
+                        .Where(p => p.MedicineId == medicine.Id && p.IsActive
+                        && p.DeleteTime == null && p.Status == "pending")
+                        .Count(),
+                    Suppliers = medicine.MedicineSuppliers.Select(ms => new SupplierModelView
+                    {
+                        Id = ms.Suppliers.Id,
+                        Name = ms.Suppliers.Name,
+                        Email = ms.Suppliers.Email,
+                        Phone = ms.Suppliers.Phone,
+                        Address = ms.Suppliers.Address
+                    }).ToList(),
                 };
             }
             catch (Exception ex)
@@ -172,28 +209,99 @@ namespace Application.Services
             {
                 throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Id không được để trống");
             }
-            Medicines? medicine = await _unitOfWork.GetRepository<Medicines>().GetByIdAsync(id)
-                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy thuốc");
 
-
-            bool exists = await _unitOfWork.GetRepository<Medicines>().GetEntities
-                .AnyAsync(x => x.MedicineName == dto.MedicineName
-                              && x.Id != id
-                              && x.IsActive
-                              && x.DeleteTime == null);
-
-            if (exists)
+            using IDbContextTransaction? transaction = await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Tên thuốc đã tồn tại");
+                Medicines? medicine = await _unitOfWork.GetRepository<Medicines>().GetByIdAsync(id)
+                    ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy thuốc");
+
+                bool exists = await _unitOfWork.GetRepository<Medicines>().GetEntities
+                    .AnyAsync(x => x.MedicineName == dto.MedicineName
+                                  && x.Id != id
+                                  && x.IsActive
+                                  && x.DeleteTime == null);
+
+                if (exists)
+                {
+                    throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Tên thuốc đã tồn tại");
+                }
+
+                medicine.MedicineName = dto.MedicineName;
+                medicine.Description = dto.Description;
+                medicine.IsVaccine = dto.IsVaccine.GetValueOrDefault();
+                medicine.Usage = dto.Usage;
+                medicine.DaysAfterImport = dto.DaysAfterImport;
+                medicine.IsActive = dto.IsActive.GetValueOrDefault();
+                medicine.UpdatedTime = DateTimeOffset.UtcNow;
+
+                await _unitOfWork.GetRepository<Medicines>().UpdateAsync(medicine);
+                await _unitOfWork.SaveAsync();
+
+                if (dto.MedicineSuppliers != null && dto.MedicineSuppliers.Any())
+                {
+                    // Remove existing suppliers
+                    List<MedicineSupplier>? existingSuppliers = await _unitOfWork.GetRepository<MedicineSupplier>()
+                        .GetEntities
+                        .Where(ms => ms.MedicineId == id)
+                        .ToListAsync();
+
+                    await _unitOfWork.GetRepository<MedicineSupplier>().DeleteRangeAsync(existingSuppliers);
+                    await _unitOfWork.SaveAsync();
+
+                    // Add new suppliers
+                    foreach (string supplierDto in dto.MedicineSuppliers)
+                    {
+                        MedicineSupplier medicineSupplier = new MedicineSupplier
+                        {
+                            MedicineId = medicine.Id,
+                            SupplierId = supplierDto
+                        };
+                        await _unitOfWork.GetRepository<MedicineSupplier>().InsertAsync(medicineSupplier);
+                    }
+                    await _unitOfWork.SaveAsync();
+                }
+
+                await transaction.CommitAsync();
+
+                // Reload medicine to get updated data including suppliers
+                medicine = await _unitOfWork.GetRepository<Medicines>()
+                    .GetEntities
+                    .Include(m => m.MedicineSuppliers)
+                        .ThenInclude(ms => ms.Suppliers)
+                    .FirstOrDefaultAsync(m => m.Id == id);
+
+                return new MedicineModelView
+                {
+                    Id = medicine.Id,
+                    MedicineName = medicine.MedicineName,
+                    Unit = medicine.Unit,
+                    IsVaccine = medicine.IsVaccine,
+                    Description = medicine.Description,
+                    Usage = medicine.Usage,
+                    QuantityInStock = medicine.QuantityInStock,
+                    DaysAfterImport = medicine.DaysAfterImport,
+                    IsActive = medicine.IsActive,
+                    QuantityRequired = _unitOfWork.GetRepository<VaccinationPlan>()
+                       .GetEntities
+                       .Where(p => p.MedicineId == medicine.Id && p.IsActive
+                       && p.DeleteTime == null && p.Status == "pending")
+                       .Count(),
+                    Suppliers = medicine.MedicineSuppliers.Select(ms => new SupplierModelView
+                    {
+                        Id = ms.Suppliers.Id,
+                        Name = ms.Suppliers.Name,
+                        Email = ms.Suppliers.Email,
+                        Phone = ms.Suppliers.Phone,
+                        Address = ms.Suppliers.Address
+                    }).ToList(),
+                };
             }
-
-            medicine.MedicineName = dto.MedicineName;
-            medicine.Description = dto.Description;
-            medicine.UpdatedTime = DateTimeOffset.UtcNow;
-            await _unitOfWork.GetRepository<Medicines>().UpdateAsync(medicine);
-            await _unitOfWork.SaveAsync();
-
-            return _mapper.Map<MedicineModelView>(medicine);
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, ex.Message);
+            }
         }
     }
 }

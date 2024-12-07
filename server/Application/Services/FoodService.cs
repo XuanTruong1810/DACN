@@ -16,13 +16,11 @@ namespace Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public FoodService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
-            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<FoodModelView> CreateFood(CreateFoodDto createFoodDto)
@@ -95,7 +93,6 @@ namespace Application.Services
                     {
                         FoodsId = newId,
                         SuppliersId = supplierDto.SuppliersId,
-                        Status = supplierDto.Status,
                         CreatedTime = DateTimeOffset.Now
                     };
                     await _unitOfWork.GetRepository<FoodSuppliers>().InsertAsync(foodSupplier);
@@ -107,7 +104,7 @@ namespace Application.Services
                 await transaction.CommitAsync();
 
                 // 9. Trả về kết quả
-                return _mapper.Map<FoodModelView>(food);
+                return await GetFoodById(newId);
             }
             catch (Exception ex)
             {
@@ -188,7 +185,7 @@ namespace Application.Services
                     currentPage = totalPages;
                 }
 
-                // Lấy d�� liệu theo trang
+                // Lấy d liệu theo trang
                 List<Foods>? foods = await query
                     .OrderByDescending(x => x.CreatedTime)
                     .Skip((currentPage - 1) * currentPageSize)
@@ -239,56 +236,29 @@ namespace Application.Services
                     ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
                         "Không tìm thấy thức ăn");
 
-                // 2. Kiểm tra và cập nhật FoodSuppliers
+                // 2. Xóa tất cả FoodSuppliers hiện tại
+                if (food.FoodSuppliers != null && food.FoodSuppliers.Any())
+                {
+                    await _unitOfWork.GetRepository<FoodSuppliers>().DeleteRangeAsync(food.FoodSuppliers.ToList());
+                }
+
+                // 3. Thêm mới FoodSuppliers từ DTO
                 if (updateFoodDto.FoodSuppliers != null && updateFoodDto.FoodSuppliers.Any())
                 {
-                    // 2.1 Lấy danh sách supplier hiện tại
-                    List<string>? currentSupplierIds = food.FoodSuppliers.Select(x => x.SuppliersId).ToList();
-                    List<string?>? newSupplierIds = updateFoodDto.FoodSuppliers.Select(x => x.SuppliersId).ToList();
-
-                    // 2.2 Xác định suppliers cần thêm mới
-                    List<UpdateFoodSupplierDto>? suppliersToAdd = updateFoodDto.FoodSuppliers
-                        .Where(x => !currentSupplierIds.Contains(x.SuppliersId))
-                        .ToList();
-
-                    // Thêm mới các suppliers
-                    foreach (UpdateFoodSupplierDto supplierDto in suppliersToAdd)
+                    foreach (UpdateFoodSupplierDto supplierDto in updateFoodDto.FoodSuppliers)
                     {
                         FoodSuppliers? foodSupplier = new FoodSuppliers
                         {
                             FoodsId = id,
                             SuppliersId = supplierDto.SuppliersId,
-
-                            Status = supplierDto.Status ?? "active",
                             CreatedTime = DateTimeOffset.Now
                         };
 
                         await _unitOfWork.GetRepository<FoodSuppliers>().InsertAsync(foodSupplier);
                     }
-
-                    // 2.3 Xác định suppliers cần xóa (chỉ xóa khi số lượng = 0)
-                    List<FoodSuppliers>? suppliersToRemove = food.FoodSuppliers
-                        .Where(x => !newSupplierIds.Contains(x.SuppliersId))
-                        .ToList();
-
-
-
-                    // 2.4 Cập nhật thông tin cho suppliers hiện có
-                    foreach (var supplierDto in updateFoodDto.FoodSuppliers
-                        .Where(x => currentSupplierIds.Contains(x.SuppliersId)))
-                    {
-                        var existingSupplier = food.FoodSuppliers
-                            .First(x => x.SuppliersId == supplierDto.SuppliersId);
-
-                        // Chỉ cập nhật khi có thay đổi
-                        if (!string.IsNullOrEmpty(supplierDto.Status))
-                            existingSupplier.Status = supplierDto.Status;
-
-                        existingSupplier.LastUpdatedTime = DateTimeOffset.Now;
-                    }
                 }
 
-                // 3. Cập nhật thông tin cơ bản của food
+                // 4. Cập nhật thông tin cơ bản của food
                 if (!string.IsNullOrEmpty(updateFoodDto.Name))
                     food.Name = updateFoodDto.Name;
                 if (!string.IsNullOrEmpty(updateFoodDto.Description))
@@ -306,14 +276,14 @@ namespace Application.Services
 
                 food.UpdatedTime = DateTimeOffset.Now;
 
-                // 4. Lưu thay đổi
+                // 5. Lưu thay đổi
                 await _unitOfWork.GetRepository<Foods>().UpdateAsync(food);
                 await _unitOfWork.SaveAsync();
 
-                // 5. Commit transaction
+                // 6. Commit transaction
                 await transaction.CommitAsync();
 
-                // 6. Trả về kết quả
+                // 7. Trả về kết quả
                 return await GetFoodById(id);
             }
             catch (Exception ex)

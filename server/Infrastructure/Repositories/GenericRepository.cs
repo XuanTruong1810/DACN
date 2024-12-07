@@ -59,5 +59,11 @@ namespace Infrastructure.Repositories
         {
             await dbSet.AddRangeAsync(entities);
         }
+
+        public Task DeleteRangeAsync(List<Entity> entities)
+        {
+            dbSet.RemoveRange(entities);
+            return Task.CompletedTask;
+        }
     }
 }

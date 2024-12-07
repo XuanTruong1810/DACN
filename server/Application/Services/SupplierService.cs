@@ -25,7 +25,6 @@ namespace Application.Services
                 .GetEntities
                 .Where(s => s.DeleteTime == null);
 
-            // Lọc theo tên hoặc email hoặc số điện thoại
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 searchTerm = searchTerm.ToLower().Trim();
@@ -36,7 +35,6 @@ namespace Application.Services
                 );
             }
 
-            // Lọc theo mảng loại nhà cung cấp
             if (typeSuppliers != null && typeSuppliers.Length > 0)
             {
                 string[]? lowerTypeSuppliers = typeSuppliers.Select(t => t.ToLower().Trim()).ToArray();
@@ -45,7 +43,6 @@ namespace Application.Services
                 );
             }
 
-            // Lọc theo trạng thái
             if (!string.IsNullOrWhiteSpace(status))
             {
                 status = status.ToLower().Trim();
@@ -54,18 +51,10 @@ namespace Application.Services
                 );
             }
 
-            // Sắp xếp theo tên
             supplierQuery = supplierQuery.OrderBy(s => s.Name);
 
             int totalCount = await supplierQuery.CountAsync();
-            // if (totalCount == 0)
-            // {
-            //     throw new BaseException(
-            //         StatusCodeHelper.NotFound,
-            //         ErrorCode.NotFound,
-            //         "Không tìm thấy nhà cung cấp nào phù hợp với điều kiện tìm kiếm"
-            //     );
-            // }
+
 
             BasePagination<Suppliers> basePagination = await unitOfWork.GetRepository<Suppliers>()
                 .GetPagination(supplierQuery, pageIndex, pageSize);
@@ -103,24 +92,20 @@ namespace Application.Services
             if (supplier.TypeSuppier.ToLower() == "food")
             {
                 result.Permissions = supplier.FoodSuppliers
-                    .Where(fs => fs.Status == "active")
                     .Select(fs => new SupplierPermissions
                     {
                         Id = fs.FoodsId,
                         Name = fs.Foods.Name,
-                        Status = fs.Status
                     })
                     .ToList();
             }
             else if (supplier.TypeSuppier.ToLower() == "medicine")
             {
                 result.Permissions = supplier.MedicineSuppliers
-                    .Where(ms => ms.Status)
                     .Select(ms => new SupplierPermissions
                     {
                         Id = ms.MedicineId,
                         Name = ms.Medicines.MedicineName,
-                        Status = ms.Status.ToString()
                     })
                     .ToList();
             }
@@ -165,7 +150,6 @@ namespace Application.Services
                 {
                     SuppliersId = newId,
                     FoodsId = p,
-                    Status = "active"
                 }).ToList();
                 await unitOfWork.GetRepository<FoodSuppliers>().InsertRangeAsync(foodSuppliers);
             }
@@ -175,7 +159,6 @@ namespace Application.Services
                 {
                     SupplierId = newId,
                     MedicineId = p,
-                    Status = true
                 }).ToList();
                 await unitOfWork.GetRepository<MedicineSupplier>().InsertRangeAsync(medicineSuppliers);
             }
@@ -198,7 +181,7 @@ namespace Application.Services
             }
 
             // Get supplier by id
-            var supplier = await unitOfWork.GetRepository<Suppliers>()
+            Suppliers? supplier = await unitOfWork.GetRepository<Suppliers>()
                 .GetEntities
                 .FirstOrDefaultAsync(s => s.Id == id && s.DeleteTime == null);
 
@@ -206,9 +189,10 @@ namespace Application.Services
             {
                 throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không thể tìm thấy nhà cung cấp này");
             }
+
             if (supplier.Name != supplierModel.Name)
             {
-                var existingSupplier = await unitOfWork.GetRepository<Suppliers>()
+                Suppliers? existingSupplier = await unitOfWork.GetRepository<Suppliers>()
                     .GetEntities
                     .FirstOrDefaultAsync(s =>
                         s.Name.ToLower() == supplierModel.Name.ToLower() &&
@@ -231,8 +215,43 @@ namespace Application.Services
             supplier.Status = supplierModel.Status;
             supplier.UpdatedTime = DateTimeOffset.Now;
 
-            // Save changes
+
             await unitOfWork.GetRepository<Suppliers>().UpdateAsync(supplier);
+            if (supplierModel.Permissions != null)
+            {
+                if (supplierModel.TypeSuppier.ToLower() == "food")
+                {
+                    List<FoodSuppliers>? existingFoodSuppliers = await unitOfWork.GetRepository<FoodSuppliers>()
+                        .GetEntities
+                        .Where(fs => fs.SuppliersId == id)
+                        .ToListAsync();
+                    await unitOfWork.GetRepository<FoodSuppliers>().DeleteRangeAsync(existingFoodSuppliers);
+
+                    List<FoodSuppliers> foodSuppliers = supplierModel.Permissions.Select(p => new FoodSuppliers
+                    {
+                        SuppliersId = id,
+                        FoodsId = p,
+                    }).ToList();
+                    await unitOfWork.GetRepository<FoodSuppliers>().InsertRangeAsync(foodSuppliers);
+                }
+                else if (supplierModel.TypeSuppier.ToLower() == "medicine")
+                {
+
+                    List<MedicineSupplier>? existingMedicineSuppliers = await unitOfWork.GetRepository<MedicineSupplier>()
+                        .GetEntities
+                        .Where(ms => ms.SupplierId == id)
+                        .ToListAsync();
+                    await unitOfWork.GetRepository<MedicineSupplier>().DeleteRangeAsync(existingMedicineSuppliers);
+
+                    List<MedicineSupplier> medicineSuppliers = supplierModel.Permissions.Select(p => new MedicineSupplier
+                    {
+                        SupplierId = id,
+                        MedicineId = p,
+                    }).ToList();
+                    await unitOfWork.GetRepository<MedicineSupplier>().InsertRangeAsync(medicineSuppliers);
+                }
+            }
+
             await unitOfWork.SaveAsync();
 
             // Map to view model and return

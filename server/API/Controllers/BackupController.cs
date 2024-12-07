@@ -1,4 +1,5 @@
 using Application.Interfaces;
+using Application.Models.Backup;
 using Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,9 +8,9 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class BackupController(IRestoreService restoreService, IDropboxService dropboxService) : ControllerBase
+public class BackupController(IRestoreService restoreService, ISupabaseStorageService supabaseStorageService) : ControllerBase
 {
-    private readonly IDropboxService _dropboxService = dropboxService;
+    private readonly ISupabaseStorageService _supabaseStorageService = supabaseStorageService;
     private readonly IRestoreService _restoreService = restoreService;
 
     [HttpPost("{filePath}/restore")]
@@ -22,7 +23,7 @@ public class BackupController(IRestoreService restoreService, IDropboxService dr
     [Authorize]
     public async Task<IActionResult> GetBackupListAsync()
     {
-        List<BackupFileInfo> backupFiles = await _dropboxService.GetBackupFilesAsync();
-        return Ok(BaseResponse<List<BackupFileInfo>>.OkResponse(backupFiles));
+        List<BackupFileInfoModelView> backupFiles = await _supabaseStorageService.GetBackupFilesAsync();
+        return Ok(BaseResponse<List<BackupFileInfoModelView>>.OkResponse(backupFiles));
     }
 }

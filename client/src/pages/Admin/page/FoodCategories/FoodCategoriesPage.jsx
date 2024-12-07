@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Table,
   Card,
@@ -18,7 +18,6 @@ import {
   Popover,
   Divider,
   Badge,
-  Spin,
 } from "antd";
 import {
   PlusOutlined,
@@ -26,12 +25,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   MoreOutlined,
-  EyeOutlined,
   FilterOutlined,
-  CopyOutlined,
-  CalendarOutlined,
-  ClockCircleOutlined,
-  FieldTimeOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 
@@ -48,16 +42,11 @@ const FoodCategoriesPage = () => {
     total: 0,
   });
   const [statusFilter, setStatusFilter] = useState("all");
+  const searchTimeout = useRef(null);
+  const [allCategories, setAllCategories] = useState([]);
 
   // Thêm state để kiểm tra filter đang được áp dụng
   const isFiltering = statusFilter !== "all";
-
-  // Thêm state cho modal chi tiết
-  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-
-  // Thêm state cho loading chi tiết
-  const [detailLoading, setDetailLoading] = useState(false);
 
   // Content của Popover filter
   const filterContent = (
@@ -72,7 +61,10 @@ const FoodCategoriesPage = () => {
             marginTop: 8,
           }}
           value={statusFilter}
-          onChange={(value) => setStatusFilter(value)}
+          onChange={(value) => {
+            setStatusFilter(value);
+            filterCategories(value, searchTerm);
+          }}
         >
           <Select.Option value="all">Tất cả trạng thái</Select.Option>
           <Select.Option value="active">Đang sử dụng</Select.Option>
@@ -85,25 +77,18 @@ const FoodCategoriesPage = () => {
           size="small"
           onClick={() => {
             setStatusFilter("all");
+            setSearchTerm("");
+            filterCategories("all", "");
           }}
         >
           Đặt lại
-        </Button>
-        <Button
-          type="primary"
-          size="small"
-          onClick={() => {
-            // Xử lý áp dụng filter
-          }}
-        >
-          Áp dụng
         </Button>
       </div>
     </div>
   );
 
   // Fetch categories
-  const fetchCategories = async (params = {}) => {
+  const fetchCategories = async () => {
     try {
       setLoading(true);
       const response = await axios({
@@ -113,12 +98,11 @@ const FoodCategoriesPage = () => {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-      console.log(response.data);
 
+      setAllCategories(response.data.data);
       setCategories(response.data.data);
       setPagination({
-        current: 1,
-        pageSize: 10,
+        ...pagination,
         total: response.data.data.length,
       });
     } catch (error) {
@@ -129,12 +113,48 @@ const FoodCategoriesPage = () => {
     }
   };
 
+  // Thêm hàm filter mới xử lý trên client
+  const filterCategories = (status, search) => {
+    let filteredData = [...allCategories];
+
+    // Filter by status
+    if (status !== "all") {
+      filteredData = filteredData.filter((item) => item.status === status);
+    }
+
+    // Filter by search term
+    if (search) {
+      filteredData = filteredData.filter((item) =>
+        item.foodTypeName.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    setCategories(filteredData);
+    setPagination({
+      ...pagination,
+      total: filteredData.length,
+    });
+  };
+
+  // Sửa lại hàm handleSearch
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+    searchTimeout.current = setTimeout(() => {
+      filterCategories(statusFilter, value);
+    }, 300);
+  };
+
   useEffect(() => {
     fetchCategories();
-  }, [searchTerm, statusFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Add new category
   const handleAdd = async (values) => {
+    console.log(values);
     try {
       const response = await axios({
         url: `${import.meta.env.VITE_API_URL}/api/FoodType`,
@@ -145,7 +165,7 @@ const FoodCategoriesPage = () => {
         },
         data: values,
       });
-
+      console.log(response);
       if (response.status === 201) {
         const newCategory = response.data.data;
         setCategories((prev) => [newCategory, ...prev]);
@@ -154,6 +174,7 @@ const FoodCategoriesPage = () => {
         form.resetFields();
       }
     } catch (error) {
+      console.log(error);
       console.error("Error adding category:", error.response?.data);
       message.error(
         error.response?.data?.message || "Có lỗi xảy ra khi thêm loại thức ăn"
@@ -163,11 +184,13 @@ const FoodCategoriesPage = () => {
 
   // Update category
   const handleUpdate = async (values) => {
+    console.log(values);
     try {
       const response = await axios({
-        url: `${import.meta.env.VITE_API_URL}/api/FoodType`,
-        method: "PATCH",
-        params: { id: editingCategory.id },
+        url: `${import.meta.env.VITE_API_URL}/api/FoodType/${
+          editingCategory.id
+        }`,
+        method: "PUT",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
           "Content-Type": "application/json",
@@ -200,9 +223,8 @@ const FoodCategoriesPage = () => {
   const handleDelete = async (id) => {
     try {
       await axios({
-        url: `${import.meta.env.VITE_API_URL}/api/FoodType`,
+        url: `${import.meta.env.VITE_API_URL}/api/FoodType/${id}`,
         method: "DELETE",
-        params: { id: id },
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -261,12 +283,6 @@ const FoodCategoriesPage = () => {
       render: (_, record) => {
         const items = [
           {
-            key: "view",
-            label: "Xem chi tiết",
-            icon: <EyeOutlined />,
-            onClick: () => handleViewDetails(record),
-          },
-          {
             key: "edit",
             label: "Chỉnh sửa",
             icon: <EditOutlined />,
@@ -319,73 +335,11 @@ const FoodCategoriesPage = () => {
       },
     },
   ];
-  const fetchCategoryDetail = async (id) => {
-    try {
-      setDetailLoading(true);
-      const response = await axios({
-        url: `${import.meta.env.VITE_API_URL}/api/v1/feedtypes/${id}`,
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      console.log(response.data);
-      if (response.status === 200) {
-        setSelectedCategory(response.data.data);
-        setIsViewModalVisible(true);
-      } else {
-        message.error("Không thể tải thông tin chi tiết");
-      }
-    } catch (error) {
-      console.error("Error fetching category detail:", error);
-      message.error(
-        error.response?.data?.message ||
-          "Có lỗi xảy ra khi tải thông tin chi tiết"
-      );
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  // Cập nhật hàm handleViewDetails
-  const handleViewDetails = (record) => {
-    fetchCategoryDetail(record.id);
-  };
 
   const handleEdit = (record) => {
     setEditingCategory(record);
     form.setFieldsValue(record);
     setIsModalVisible(true);
-  };
-
-  // Thêm hàm format datetime
-  const formatDateTime = (dateString) => {
-    if (!dateString) return "";
-
-    const date = new Date(dateString);
-
-    // Format ngày
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const year = date.getFullYear();
-
-    // Format giờ
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-
-    // Tạo chuỗi thời gian đẹp
-    return (
-      <div className="datetime-display">
-        <div className="date-part">
-          <CalendarOutlined style={{ marginRight: 8 }} />
-          {`${day}/${month}/${year}`}
-        </div>
-        <div className="time-part">
-          <ClockCircleOutlined style={{ marginRight: 8 }} />
-          {`${hours}:${minutes}`}
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -451,7 +405,7 @@ const FoodCategoriesPage = () => {
               prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
               allowClear
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               style={{
                 borderRadius: 6,
                 height: 40,
@@ -505,7 +459,6 @@ const FoodCategoriesPage = () => {
           borderRadius: 8,
           boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)",
         }}
-        bodyStyle={{ padding: 0 }}
       >
         <Table
           columns={columns}
@@ -521,9 +474,7 @@ const FoodCategoriesPage = () => {
         />
       </Card>
 
-      {/* Update styles */}
-      {/* eslint-disable */}
-      <style jsx global>{`
+      <style>{`
         .ant-card {
           background: white;
         }
@@ -709,7 +660,7 @@ const FoodCategoriesPage = () => {
           }
         >
           <Form.Item
-            name="feedTypeName"
+            name="foodTypeName"
             label="Tên loại thức ăn"
             rules={[
               {
@@ -779,326 +730,6 @@ const FoodCategoriesPage = () => {
           </Form.Item>
         </Form>
       </Modal>
-
-      {/* Thêm Modal chi tiết */}
-      <Modal
-        title={
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <EyeOutlined style={{ color: "#1890ff" }} />
-            <span>Chi tiết loại thức ăn</span>
-          </div>
-        }
-        open={isViewModalVisible}
-        onCancel={() => {
-          setIsViewModalVisible(false);
-          setSelectedCategory(null);
-        }}
-        footer={[
-          <Button
-            key="close"
-            onClick={() => {
-              setIsViewModalVisible(false);
-              setSelectedCategory(null);
-            }}
-          >
-            Đóng
-          </Button>,
-        ]}
-        width={600}
-      >
-        {detailLoading ? (
-          <div style={{ textAlign: "center", padding: "24px 0" }}>
-            <Spin size="large" />
-          </div>
-        ) : selectedCategory ? (
-          <div className="detail-container">
-            <div className="detail-header">
-              <h2>{selectedCategory.feedTypeName}</h2>
-              <Tag
-                color={
-                  selectedCategory.status === "active" ? "success" : "error"
-                }
-              >
-                {selectedCategory.status === "active"
-                  ? "Đang sử dụng"
-                  : "Ngừng sử dụng"}
-              </Tag>
-            </div>
-
-            <Divider />
-
-            <div className="detail-content">
-              <div className="detail-item">
-                <div className="label">ID</div>
-                <div className="value id-value">
-                  <span>{selectedCategory.id}</span>
-                  <Tooltip title="Sao chép">
-                    <Button
-                      type="text"
-                      icon={<CopyOutlined />}
-                      size="small"
-                      onClick={() => {
-                        navigator.clipboard.writeText(selectedCategory.id);
-                        message.success("Đã sao chép ID");
-                      }}
-                    />
-                  </Tooltip>
-                </div>
-              </div>
-
-              <div className="detail-item">
-                <div className="label">Tên loại thức ăn</div>
-                <div className="value">{selectedCategory.feedTypeName}</div>
-              </div>
-
-              <div className="detail-item">
-                <div className="label">Mô tả</div>
-                <div className="value description">
-                  {selectedCategory.description}
-                </div>
-              </div>
-
-              <div className="detail-item">
-                <div className="label">Số lượng sản phẩm</div>
-                <div className="value">
-                  <Tag color="blue">{selectedCategory.totalProducts}</Tag>
-                </div>
-              </div>
-
-              <div className="detail-item">
-                <div className="label">
-                  <div className="label-icon">
-                    <FieldTimeOutlined />
-                  </div>
-                  <span>Thông tin thời gian</span>
-                </div>
-                <div className="time-info">
-                  <div className="time-item">
-                    <div className="time-label">
-                      <div className="dot create-dot" />
-                      Được tạo
-                    </div>
-                    <div className="time-value">
-                      {formatDateTime(selectedCategory.createdTime)}
-                    </div>
-                  </div>
-
-                  {selectedCategory.updatedTime && (
-                    <div className="time-item">
-                      <div className="time-label">
-                        <div className="dot update-dot" />
-                        Cập nhật lần cuối
-                      </div>
-                      <div className="time-value">
-                        {formatDateTime(selectedCategory.updatedTime)}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        <style jsx>{`
-          .detail-container {
-            padding: 0 16px;
-          }
-
-          .detail-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-          }
-
-          .detail-header h2 {
-            margin: 0;
-            color: #262626;
-            font-size: 20px;
-            font-weight: 600;
-          }
-
-          .detail-content {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-          }
-
-          .detail-item {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          }
-
-          .label {
-            font-size: 14px;
-            color: #8c8c8c;
-            font-weight: 500;
-          }
-
-          .value {
-            font-size: 15px;
-            color: #262626;
-            line-height: 1.5;
-          }
-
-          .description {
-            background: #fafafa;
-            padding: 12px;
-            border-radius: 6px;
-            border: 1px solid #f0f0f0;
-          }
-        `}</style>
-      </Modal>
-
-      {/* Thêm styles cho Modal */}
-      <style jsx global>{`
-        .ant-modal-content {
-          border-radius: 8px;
-          overflow: hidden;
-        }
-
-        .ant-modal-header {
-          padding: 20px 24px;
-          border-bottom: 1px solid #f0f0f0;
-          background: #fff;
-        }
-
-        .ant-modal-title {
-          font-weight: 600;
-          font-size: 16px;
-          color: #262626;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .ant-modal-body {
-          padding: 24px 0;
-          max-height: calc(100vh - 280px);
-          overflow-y: auto;
-        }
-
-        .ant-modal-footer {
-          padding: 16px 24px;
-          border-top: 1px solid #f0f0f0;
-          margin-top: 0;
-        }
-
-        .ant-divider {
-          margin: 16px 0;
-        }
-
-        .ant-tag {
-          font-weight: 500;
-          text-transform: uppercase;
-          font-size: 12px;
-          padding: 2px 8px;
-          border-radius: 4px;
-        }
-      `}</style>
-
-      {/* Thêm styles */}
-      <style jsx>{`
-        .datetime-display {
-          display: flex;
-          gap: 16px;
-          align-items: center;
-          font-size: 14px;
-          color: #262626;
-        }
-
-        .date-part,
-        .time-part {
-          display: flex;
-          align-items: center;
-          background: #f5f5f5;
-          padding: 4px 12px;
-          border-radius: 4px;
-          font-family: "SF Mono", "Courier New", Courier, monospace;
-        }
-
-        .label-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 24px;
-          height: 24px;
-          background: #e6f4ff;
-          border-radius: 6px;
-          margin-right: 8px;
-          color: #1890ff;
-        }
-
-        .time-info {
-          background: #fafafa;
-          border: 1px solid #f0f0f0;
-          border-radius: 8px;
-          padding: 16px;
-          margin-top: 8px;
-        }
-
-        .time-item {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          padding: 12px 0;
-        }
-
-        .time-item:not(:last-child) {
-          border-bottom: 1px dashed #f0f0f0;
-        }
-
-        .time-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #8c8c8c;
-          font-size: 13px;
-        }
-
-        .dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-        }
-
-        .create-dot {
-          background: #52c41a;
-        }
-
-        .update-dot {
-          background: #1890ff;
-        }
-
-        .time-value {
-          margin-left: 16px;
-        }
-      `}</style>
-
-      {/* Cập nhật global styles */}
-      <style jsx global>{`
-        .ant-modal-body {
-          padding: 24px;
-        }
-
-        .detail-item {
-          margin-bottom: 24px;
-        }
-
-        .detail-item .label {
-          display: flex;
-          align-items: center;
-          margin-bottom: 8px;
-          font-weight: 500;
-          color: #262626;
-        }
-
-        .anticon {
-          font-size: 14px;
-        }
-      `}</style>
     </Layout>
   );
 };

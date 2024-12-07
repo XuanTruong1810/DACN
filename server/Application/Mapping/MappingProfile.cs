@@ -59,7 +59,7 @@ namespace Application.Mapping
                     {
                         SupplierId = fs.SuppliersId,
                         SupplierName = fs.Suppliers.Name,
-                        Status = fs.Status,
+
                     })));
             CreateMap<FoodModelView, Foods>();
             CreateMap<CreateFoodDto, Foods>().ReverseMap();
@@ -95,7 +95,6 @@ namespace Application.Mapping
                         {
                             SupplierId = fs.SuppliersId,
                             SupplierName = fs.Suppliers.Name,
-                            Status = fs.Status
                         })));
             CreateMap<Pigs, PigCancelModelView>().ReverseMap();
             CreateMap<PigCancelDTO, Pigs>().ReverseMap();

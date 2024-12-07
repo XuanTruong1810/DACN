@@ -12,14 +12,14 @@ public class DatabaseBackupJob : IJob
     private readonly string _connectionString;
     private readonly string _databaseName;
     private readonly ILogger<DatabaseBackupJob> _logger;
-    private readonly IDropboxService _dropboxService;
+    private readonly ISupabaseStorageService _supabaseStorageService;
 
     public DatabaseBackupJob(
         ILogger<DatabaseBackupJob> logger,
-       IDropboxService dropboxService)
+        ISupabaseStorageService supabaseStorageService)
     {
         _logger = logger;
-        _dropboxService = dropboxService;
+        _supabaseStorageService = supabaseStorageService;
         _connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING") ?? throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError, "Không tìm thấy connection string");
         _databaseName = "PigManagement";
     }
@@ -56,7 +56,7 @@ public class DatabaseBackupJob : IJob
             _logger.LogInformation("Đã tạo file backup local: {path}", tempPath);
 
             // 3. Upload file local lên Dropbox
-            string dropboxUrl = await _dropboxService.UploadBackupAsync(tempPath);
+            string dropboxUrl = await _supabaseStorageService.UploadBackupAsync(tempPath);
             _logger.LogInformation("Đã upload lên Dropbox: {url}", dropboxUrl);
         }
         catch (Exception ex)

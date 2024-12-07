@@ -320,7 +320,16 @@ C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\obj\Debug\net8.0
 C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\obj\Debug\net8.0\ref\API.dll
 C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\CloudinaryDotNet.dll
 C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Newtonsoft.Json.dll
-C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Dropbox.Api.dll
 C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Quartz.dll
 C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Quartz.Extensions.DependencyInjection.dll
 C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Quartz.Extensions.Hosting.dll
+C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Supabase.Functions.dll
+C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Supabase.Gotrue.dll
+C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\MimeMapping.dll
+C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Supabase.Postgrest.dll
+C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Supabase.Realtime.dll
+C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Supabase.dll
+C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Supabase.Core.dll
+C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Supabase.Storage.dll
+C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\System.Reactive.dll
+C:\Users\AnhNhi\Documents\Desktop\DACN\PigManagement\server\API\bin\Debug\net8.0\Websocket.Client.dll

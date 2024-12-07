@@ -405,10 +405,6 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("LastUpdatedTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("FoodsId", "SuppliersId");
 
                     b.HasIndex("SuppliersId");
@@ -606,9 +602,6 @@ namespace Infrastructure.Migrations
 
                     b.Property<DateTimeOffset?>("LastUpdateTime")
                         .HasColumnType("datetimeoffset");
-
-                    b.Property<bool>("Status")
-                        .HasColumnType("bit");
 
                     b.HasKey("MedicineId", "SupplierId");
 

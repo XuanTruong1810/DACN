@@ -101,14 +101,12 @@ namespace Application.SeedData
                 {
                     FoodsId = "F0006",
                     SuppliersId = "SUP0005",
-                    Status = "active",
                     CreatedTime = DateTimeOffset.Now
                 },
                 new FoodSuppliers
                 {
                     FoodsId = "F0007",
                     SuppliersId = "SUP0005",
-                    Status = "active",
                     CreatedTime = DateTimeOffset.Now
                 },
 
@@ -117,14 +115,12 @@ namespace Application.SeedData
                 {
                     FoodsId = "F0008",
                     SuppliersId = "SUP0006",
-                    Status = "active",
                     CreatedTime = DateTimeOffset.Now
                 },
                 new FoodSuppliers
                 {
                     FoodsId = "F0009",
                     SuppliersId = "SUP0006",
-                    Status = "active",
                     CreatedTime = DateTimeOffset.Now
                 }
             };

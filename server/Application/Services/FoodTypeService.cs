@@ -81,16 +81,21 @@ namespace Application.Services
 
         public async Task<FoodTypeModelView> UpdateFoodType(string id, UpdateFoodTypeDto updateFoodTypeDto)
         {
+            FoodTypes? foodType = await _unitOfWork.GetRepository<FoodTypes>().GetByIdAsync(id)
+                ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Loại thức ăn không tồn tại trong hệ thống!");
+
             FoodTypes? existingFoodType = await _unitOfWork.GetRepository<FoodTypes>()
-            .GetEntities
-            .FirstOrDefaultAsync(x => x.Id != id && x.FoodTypeName.Equals(updateFoodTypeDto.FoodTypeName, StringComparison.CurrentCultureIgnoreCase));
+                .GetEntities
+                .FirstOrDefaultAsync(x => x.Id != id && x.FoodTypeName.ToLower() == updateFoodTypeDto.FoodTypeName.ToLower());
 
             if (existingFoodType != null)
             {
                 throw new BaseException(StatusCodeHelper.Conflict, ErrorCode.Conflict, "Loại thức ăn đã tồn tại trong hệ thống!");
             }
 
-            FoodTypes foodType = _mapper.Map<FoodTypes>(updateFoodTypeDto);
+            _mapper.Map(updateFoodTypeDto, foodType);
+            foodType.UpdatedTime = DateTimeOffset.Now;
+
             await _unitOfWork.GetRepository<FoodTypes>().UpdateAsync(foodType);
             await _unitOfWork.SaveAsync();
 

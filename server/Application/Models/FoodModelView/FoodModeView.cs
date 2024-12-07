@@ -21,6 +21,5 @@ namespace Application.Models.FoodModelView
         public int QuantityInStock { get; set; }
         public string SupplierId { get; set; }
         public string SupplierName { get; set; }
-        public string Status { get; set; }
     }
 }

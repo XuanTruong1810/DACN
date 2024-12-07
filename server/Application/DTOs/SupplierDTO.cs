@@ -17,6 +17,7 @@ namespace Application.DTOs
         [Required(ErrorMessage = "Email là bắt buộc")]
         [EmailAddress(ErrorMessage = "Email không hợp lệ")]
         public string Email { get; set; }
+
         [Required(ErrorMessage = "Trạng thái là bắt buộc")]
         public string Status { get; set; }
 

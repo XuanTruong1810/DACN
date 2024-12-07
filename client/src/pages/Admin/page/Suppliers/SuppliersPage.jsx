@@ -16,6 +16,8 @@ import {
   Col,
   Dropdown,
   Typography,
+  Descriptions,
+  Divider,
 } from "antd";
 import {
   PlusOutlined,
@@ -34,14 +36,6 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 
-// Định nghĩa constants cho supplier types
-
-const SUPPLIER_TYPE_LABELS = {
-  food: "Thức ăn",
-  medicine: "Thuốc",
-  pig: "Heo",
-};
-
 const SUPPLIER_TYPE_COLORS = {
   food: "#f50", // màu cam đậm
   medicine: "#108ee9", // màu xanh dương
@@ -51,7 +45,7 @@ const SUPPLIER_TYPE_COLORS = {
 const SuppliersPage = () => {
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState([]);
-  const [searchText, setSearchText] = useState("");
+  const [searchText] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [form] = Form.useForm();
@@ -59,7 +53,6 @@ const SuppliersPage = () => {
     type: [],
     status: [],
   });
-  const [showFilters, setShowFilters] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -74,8 +67,8 @@ const SuppliersPage = () => {
   const [editForm] = Form.useForm();
   const [products, setProducts] = useState([]);
   const [selectedType, setSelectedType] = useState(null);
-  const [editProducts, setEditProducts] = useState([]);
-  const [editSelectedType, setEditSelectedType] = useState(null);
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState(null);
 
   // Fetch suppliers data
   const fetchSuppliers = async (params = {}) => {
@@ -85,23 +78,19 @@ const SuppliersPage = () => {
 
       const queryParams = new URLSearchParams();
 
-      // Thêm các params cơ bản
       queryParams.append("pageIndex", params.current || pagination.current);
       queryParams.append("pageSize", params.pageSize || pagination.pageSize);
 
-      // Thêm searchTerm nếu có giá trị
       if (searchTerm && searchTerm.trim() !== "") {
         queryParams.append("searchTerm", searchTerm.trim());
       }
 
-      // Thêm từng typeSupplier vào query params
       if (filters.type && filters.type.length > 0) {
         filters.type.forEach((type) => {
           queryParams.append("typeSuppliers", type);
         });
       }
 
-      // Thêm status nếu có
       if (filters.status && filters.status.length > 0) {
         queryParams.append("status", filters.status[0]);
       }
@@ -109,7 +98,7 @@ const SuppliersPage = () => {
       const finalUrl = `${
         import.meta.env.VITE_API_URL
       }/api/v1/suppliers?${queryParams.toString()}`;
-      console.log("Calling API:", finalUrl); // Debug log
+      console.log("Calling API:", finalUrl);
 
       const response = await axios({
         url: finalUrl,
@@ -136,7 +125,6 @@ const SuppliersPage = () => {
     }
   };
 
-  // Initial fetch and when filters change
   useEffect(() => {
     fetchSuppliers({
       current: pagination.current,
@@ -298,20 +286,17 @@ const SuppliersPage = () => {
           {
             type: "divider",
           },
-          record.status === "active"
-            ? {
-                key: "deactivate",
-                label: "Ngừng hợp tác",
-                icon: <StopOutlined />,
-                danger: true,
-                onClick: () => handleStatusChange(record, "inactive"),
-              }
-            : {
-                key: "activate",
-                label: "Kích hoạt lại",
-                icon: <CheckOutlined />,
-                onClick: () => handleStatusChange(record, "active"),
-              },
+          {
+            key: "status",
+            label:
+              record.status === "active"
+                ? "Ngưng hợp tác"
+                : "Kích hoạt hợp tác",
+            icon:
+              record.status === "active" ? <StopOutlined /> : <CheckOutlined />,
+            danger: record.status === "active",
+            onClick: () => confirmStatusChange(record),
+          },
           {
             type: "divider",
           },
@@ -392,9 +377,55 @@ const SuppliersPage = () => {
     });
   };
 
-  const handleView = (record) => {
-    // Xử lý xem chi tiết
-    console.log("View:", record);
+  const handleView = async (record) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/suppliers/${record.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      setSelectedSupplier(response.data.data);
+      setIsViewModalVisible(true);
+    } catch (error) {
+      console.error("Error fetching supplier details:", error);
+      message.error("Không thể tải thông tin chi tiết nhà cung cấp");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmStatusChange = (record) => {
+    const isDeactivating = record.status === "active";
+    Modal.confirm({
+      title: isDeactivating
+        ? "Xác nhận ngưng hợp tác"
+        : "Xác nhận kích hoạt hợp tác",
+      content: (
+        <div>
+          <p>{`Bạn có chắc chắn muốn ${
+            isDeactivating ? "ngưng" : "kích hoạt"
+          } hợp tác với nhà cung cấp "${record.name}"?`}</p>
+          {isDeactivating && (
+            <p style={{ color: "#ff4d4f" }}>
+              Lưu ý: Ngưng hợp tác sẽ tạm dừng tất cả giao dịch với nhà cung cấp
+              này!
+            </p>
+          )}
+        </div>
+      ),
+      okText: isDeactivating ? "Ngưng hợp tác" : "Kích hoạt",
+      okButtonProps: {
+        danger: isDeactivating,
+      },
+      cancelText: "Hủy",
+      onOk: () =>
+        handleStatusChange(record, isDeactivating ? "inactive" : "active"),
+    });
   };
 
   const handleStatusChange = async (record, newStatus) => {
@@ -408,11 +439,8 @@ const SuppliersPage = () => {
           "Content-Type": "application/json",
         },
         data: {
-          name: record.name,
-          email: record.email,
-          phone: record.phone,
-          address: record.address,
-          typeSuppier: record.typeSuppier,
+          ...record,
+          permissions: record.permissions?.map((p) => p.id) || [],
           status: newStatus,
         },
       });
@@ -420,7 +448,6 @@ const SuppliersPage = () => {
       if (response.status === 200) {
         const updatedSupplier = response.data.data;
 
-        // Cập nhật state
         setSuppliers((prevSuppliers) =>
           prevSuppliers.map((supplier) =>
             supplier.id === record.id ? updatedSupplier : supplier
@@ -428,31 +455,17 @@ const SuppliersPage = () => {
         );
 
         message.success(
-          newStatus === "active" ? "Đã kích hoạt hợp tác" : "Đã ngưng hợp tác"
+          newStatus === "active"
+            ? "Đã kích hoạt hợp tác thành công"
+            : "Đã ngưng hợp tác thành công"
         );
       }
     } catch (error) {
-      console.error("Error updating supplier status:", error.response?.data);
+      console.error("Error updating supplier status:", error);
       message.error(
         error.response?.data?.message || "Có lỗi xảy ra khi cập nhật trạng thái"
       );
     }
-  };
-
-  const confirmStatusChange = (record, newStatus) => {
-    const isDeactivating = newStatus === "inactive";
-    Modal.confirm({
-      title: isDeactivating
-        ? "Xác nhận ngưng hợp tác"
-        : "Xác nhận kích hoạt hợp tác",
-      content: `Bạn có chắc chắn muốn ${
-        isDeactivating ? "ngưng" : "kích hoạt"
-      } hợp tác với "${record.name}" không?`,
-      okText: "Xác nhận",
-      okType: isDeactivating ? "danger" : "primary",
-      cancelText: "Hủy",
-      onOk: () => handleStatusChange(record, newStatus),
-    });
   };
 
   const handleAddSupplier = async (values) => {
@@ -495,10 +508,45 @@ const SuppliersPage = () => {
     }
   };
 
-  const handleEditClick = (record) => {
-    setEditingSupplier(record);
-    editForm.setFieldsValue(record);
-    setIsEditModalVisible(true);
+  const handleEditClick = async (record) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/suppliers/${record.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      const supplierData = response.data.data;
+      setEditingSupplier(supplierData);
+
+      // Fetch products based on supplier type
+      if (supplierData.typeSuppier !== "pig") {
+        await fetchProductsByType(supplierData.typeSuppier);
+      }
+
+      // Cập nhật form với dữ liệu hiện tại
+      editForm.setFieldsValue({
+        name: supplierData.name,
+        email: supplierData.email,
+        phone: supplierData.phone,
+        address: supplierData.address,
+        typeSuppier: supplierData.typeSuppier,
+        status: supplierData.status,
+        // Lấy danh sách ID sản phẩm từ permissions
+        permissions: supplierData.permissions?.map((p) => p.id) || [],
+      });
+
+      setIsEditModalVisible(true);
+    } catch (error) {
+      console.error("Error fetching supplier details:", error);
+      message.error("Không thể tải thông tin nhà cung cấp");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleUpdateSupplier = async (values) => {
@@ -510,109 +558,55 @@ const SuppliersPage = () => {
         address: values.address,
         typeSuppier: values.typeSuppier,
         status: values.status,
-        permissions: values.products,
+        permissions: values.permissions || [],
       };
 
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/v1/suppliers/${
-          editingSupplier.id
-        }`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      const response = await axios({
+        url: `${import.meta.env.VITE_API_URL}/api/v1/suppliers`,
+        params: { id: editingSupplier.id },
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        data: payload,
+      });
 
-      message.success("Cập nhật nhà cung cấp thành công");
-      setIsEditModalVisible(false);
-      setEditingSupplier(null);
-      editForm.resetFields();
-      setEditProducts([]);
-      setEditSelectedType(null);
-      fetchSuppliers();
+      if (response.status === 200) {
+        message.success("Cập nhật nhà cung cấp thành công");
+        setIsEditModalVisible(false);
+        setEditingSupplier(null);
+        editForm.resetFields();
+        fetchSuppliers(); // Refresh danh sách
+      }
     } catch (error) {
       console.error("Error updating supplier:", error);
-      if (error.response?.data?.message) {
-        message.error(error.response.data.message);
-      } else {
-        message.error("Có lỗi xảy ra khi cập nhật nhà cung cấp");
-      }
+      message.error(
+        error.response?.data?.message ||
+          "Có lỗi xảy ra khi cập nhật nhà cung cấp"
+      );
     }
   };
 
   const fetchProductsByType = async (type) => {
     try {
       let endpoint = "";
-      switch (type) {
-        case "medicine":
-          endpoint = `${import.meta.env.VITE_API_URL}/api/v1/Medicine`;
-          break;
-        case "food":
-          endpoint = `${import.meta.env.VITE_API_URL}/api/Food`;
-          break;
-        default:
-          setProducts([]);
-          return;
+      if (type === "food") {
+        endpoint = `${import.meta.env.VITE_API_URL}/api/Food`;
+      } else if (type === "medicine") {
+        endpoint = `${import.meta.env.VITE_API_URL}/api/v1/Medicine`;
       }
 
-      const response = await axios.get(endpoint, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      console.log(response);
-      if (type === "food") {
-        setProducts(response.data.data.items);
-      } else {
+      if (endpoint) {
+        const response = await axios.get(endpoint, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
         setProducts(response.data.data);
       }
     } catch (error) {
       console.error("Error fetching products:", error);
-      message.error("Không thể tải danh sách sản phẩm");
-    }
-  };
-
-  const fetchEditProductsByType = async (type, supplierId) => {
-    try {
-      let endpoint = "";
-      switch (type) {
-        case "medicine":
-          endpoint = `${import.meta.env.VITE_API_URL}/api/Medicines`;
-          break;
-        case "food":
-          endpoint = `${import.meta.env.VITE_API_URL}/api/Foods`;
-          break;
-        default:
-          setEditProducts([]);
-          return;
-      }
-
-      const [productsResponse, supplierProductsResponse] = await Promise.all([
-        axios.get(endpoint, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }),
-        axios.get(
-          `${
-            import.meta.env.VITE_API_URL
-          }/api/v1/suppliers/${supplierId}/products`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        ),
-      ]);
-
-      setEditProducts(productsResponse.data.data);
-      editForm.setFieldsValue({
-        products: supplierProductsResponse.data.data.map((p) => p.id),
-      });
-    } catch (error) {
-      console.error("Error fetching edit products:", error);
       message.error("Không thể tải danh sách sản phẩm");
     }
   };
@@ -934,7 +928,7 @@ const SuppliersPage = () => {
 
           <Form.Item
             name="address"
-            label="Địa chỉ"
+            label="Địa chỉ nhà cung cấp"
             rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}
           >
             <Input.TextArea placeholder="Nhập địa chỉ" />
@@ -1012,13 +1006,16 @@ const SuppliersPage = () => {
           setIsEditModalVisible(false);
           setEditingSupplier(null);
           editForm.resetFields();
-          setEditProducts([]);
-          setEditSelectedType(null);
         }}
         footer={null}
-        width={700}
+        width={800}
       >
-        <Form form={editForm} layout="vertical" onFinish={handleUpdateSupplier}>
+        <Form
+          form={editForm}
+          layout="vertical"
+          onFinish={handleUpdateSupplier}
+          initialValues={{ status: "active" }}
+        >
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -1072,8 +1069,11 @@ const SuppliersPage = () => {
                   },
                 ]}
               >
-                <Select placeholder="Chọn loại nhà cung cấp">
-                  <Select.Option value="feed">Thức ăn</Select.Option>
+                <Select
+                  placeholder="Chọn loại nhà cung cấp"
+                  disabled // Không cho phép thay đổi loại nhà cung cấp
+                >
+                  <Select.Option value="food">Thức ăn</Select.Option>
                   <Select.Option value="medicine">Thuốc</Select.Option>
                   <Select.Option value="pig">Heo</Select.Option>
                 </Select>
@@ -1081,30 +1081,74 @@ const SuppliersPage = () => {
             </Col>
           </Row>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="address"
-                label="Địa chỉ"
-                rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}
+          <Form.Item
+            name="address"
+            label="Địa chỉ"
+            rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}
+          >
+            <Input.TextArea placeholder="Nhập địa chỉ" />
+          </Form.Item>
+
+          {editingSupplier && editingSupplier.typeSuppier !== "pig" && (
+            <Form.Item
+              name="permissions"
+              label={`Danh sách ${
+                editingSupplier.typeSuppier === "medicine" ? "thuốc" : "thức ăn"
+              }`}
+              rules={[
+                {
+                  required: true,
+                  message: "Vui lòng chọn ít nhất một sảản phẩm",
+                },
+              ]}
+            >
+              <Select
+                mode="multiple"
+                placeholder={`Chọn ${
+                  editingSupplier.typeSuppier === "medicine"
+                    ? "thuốc"
+                    : "thức ăn"
+                }`}
+                style={{ width: "100%" }}
+                optionFilterProp="children"
+                showSearch
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().indexOf(input.toLowerCase()) >=
+                  0
+                }
               >
-                <Input.TextArea placeholder="Nhập địa chỉ" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="status"
-                label="Trạng thái"
-                initialValue="active"
-                rules={[{ required: true }]}
-              >
-                <Select>
-                  <Select.Option value="active">Đang hợp tác</Select.Option>
-                  <Select.Option value="inactive">Ngừng hợp tác</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+                {products.map((product) => (
+                  <Select.Option
+                    key={product.id}
+                    value={product.id}
+                    // Thêm style để đánh dấu sản phẩm đã được chọn
+                    className={
+                      editingSupplier.permissions?.some(
+                        (p) => p.id === product.id
+                      )
+                        ? "ant-select-item-option-selected"
+                        : ""
+                    }
+                  >
+                    {editingSupplier.typeSuppier === "medicine"
+                      ? product.medicineName
+                      : product.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
+
+          <Form.Item
+            name="status"
+            label="Trạng thái"
+            rules={[{ required: true }]}
+          >
+            <Select>
+              <Select.Option value="active">Đang hợp tác</Select.Option>
+              <Select.Option value="inactive">Ngừng hợp tác</Select.Option>
+            </Select>
+          </Form.Item>
 
           <Form.Item className="text-right">
             <Space>
@@ -1113,8 +1157,6 @@ const SuppliersPage = () => {
                   setIsEditModalVisible(false);
                   setEditingSupplier(null);
                   editForm.resetFields();
-                  setEditProducts([]);
-                  setEditSelectedType(null);
                 }}
               >
                 Hủy
@@ -1125,6 +1167,132 @@ const SuppliersPage = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Modal Xem chi tiết */}
+      <Modal
+        title="Chi tiết nhà cung cấp"
+        open={isViewModalVisible}
+        onCancel={() => {
+          setIsViewModalVisible(false);
+          setSelectedSupplier(null);
+        }}
+        footer={[
+          <Button
+            key="close"
+            onClick={() => {
+              setIsViewModalVisible(false);
+              setSelectedSupplier(null);
+            }}
+          >
+            Đóng
+          </Button>,
+        ]}
+        width={800}
+      >
+        {selectedSupplier && (
+          <div>
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="Mã nhà cung cấp" span={2}>
+                {selectedSupplier.id}
+              </Descriptions.Item>
+              <Descriptions.Item label="Tên nhà cung cấp" span={2}>
+                {selectedSupplier.name}
+              </Descriptions.Item>
+              <Descriptions.Item label="Số điện thoại">
+                {selectedSupplier.phone}
+              </Descriptions.Item>
+              <Descriptions.Item label="Email">
+                {selectedSupplier.email}
+              </Descriptions.Item>
+              <Descriptions.Item label="Địa chỉ" span={2}>
+                {selectedSupplier.address}
+              </Descriptions.Item>
+              <Descriptions.Item label="Loại nhà cung cấp">
+                <Space size={[0, 4]} wrap style={{ gap: "4px !important" }}>
+                  {Array.isArray(selectedSupplier.typeSuppier) ? (
+                    selectedSupplier.typeSuppier.map((type, index) => (
+                      <Tag
+                        key={index}
+                        color={SUPPLIER_TYPE_COLORS[type]}
+                        style={{
+                          minWidth: "80px",
+                          textAlign: "center",
+                          margin: "2px",
+                          padding: "0 10px",
+                        }}
+                      >
+                        {type === "food"
+                          ? "Thức ăn"
+                          : type === "medicine"
+                          ? "Thuốc"
+                          : "Heo"}
+                      </Tag>
+                    ))
+                  ) : (
+                    <Tag
+                      color={SUPPLIER_TYPE_COLORS[selectedSupplier.typeSuppier]}
+                      style={{
+                        minWidth: "80px",
+                        textAlign: "center",
+                        margin: "2px",
+                        padding: "0 10px",
+                      }}
+                    >
+                      {selectedSupplier.typeSuppier === "food"
+                        ? "Thức ăn"
+                        : selectedSupplier.typeSuppier === "medicine"
+                        ? "Thuốc"
+                        : "Heo"}
+                    </Tag>
+                  )}
+                </Space>
+              </Descriptions.Item>
+              <Descriptions.Item label="Trạng thái">
+                <Tag
+                  color={
+                    selectedSupplier.status === "active" ? "success" : "error"
+                  }
+                >
+                  {selectedSupplier.status === "active"
+                    ? "Đang hợp tác"
+                    : "Ngừng hợp tác"}
+                </Tag>
+              </Descriptions.Item>
+            </Descriptions>
+
+            {selectedSupplier.typeSuppier !== "pig" &&
+              selectedSupplier.permissions && (
+                <>
+                  <Divider orientation="left">
+                    Danh sách{" "}
+                    {selectedSupplier.typeSuppier === "food"
+                      ? "thức ăn"
+                      : "thuốc"}{" "}
+                    cung cấp
+                  </Divider>
+                  <Table
+                    dataSource={selectedSupplier.permissions}
+                    rowKey="id"
+                    pagination={false}
+                    size="small"
+                    columns={[
+                      {
+                        title: "Mã sản phẩm",
+                        dataIndex: "id",
+                        key: "id",
+                      },
+                      {
+                        title: "Tên sản phẩm",
+                        dataIndex: "name",
+                        key: "name",
+                      },
+                    ]}
+                  />
+                </>
+              )}
+          </div>
+        )}
       </Modal>
     </Layout>
   );

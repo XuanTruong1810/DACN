@@ -14,8 +14,6 @@ import {
 import {
   ReloadOutlined,
   ImportOutlined,
-  ExclamationCircleFilled,
-  CloudDownloadOutlined,
   HistoryOutlined,
   DatabaseOutlined,
   FileOutlined,
@@ -56,15 +54,10 @@ const Restore = () => {
     fetchBackups();
   }, []);
 
-  const handleRestore = (path) => {
+  const handleRestore = (fileName) => {
     confirm({
       title: (
-        <div style={confirmModalStyle.title}>
-          <ExclamationCircleFilled
-            style={{ color: "#faad14", marginRight: 8 }}
-          />
-          Xác nhận phục hồi dữ liệu
-        </div>
+        <div style={confirmModalStyle.title}>Xác nhận phục hồi dữ liệu</div>
       ),
       content: (
         <div style={confirmModalStyle.content}>
@@ -81,9 +74,9 @@ const Restore = () => {
       onOk: async () => {
         try {
           setLoading(true);
-          const encodedPath = encodeURIComponent(path);
+
           await axios.post(
-            `${import.meta.env.VITE_API_URL}/api/Backup/${encodedPath}/restore`,
+            `${import.meta.env.VITE_API_URL}/api/Backup/${fileName}/restore`,
             {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -104,8 +97,54 @@ const Restore = () => {
     });
   };
 
+  const handleQuickRestore = () => {
+    if (backups.length === 0) {
+      message.warning("Không có bản sao lưu nào");
+      return;
+    }
+
+    const latestBackup = backups[0];
+
+    confirm({
+      title: <div style={confirmModalStyle.title}>Xác nhận phục hồi nhanh</div>,
+      content: (
+        <div style={confirmModalStyle.content}>
+          <Text>
+            Bạn có chắc chắn muốn phục hồi dữ liệu từ bản sao lưu mới nhất (
+            {dayjs(latestBackup.createdAt).format("DD/MM/YYYY HH:mm:ss")})?
+          </Text>
+          <Divider />
+          <Text type="secondary">Tên file: {latestBackup.fileName}</Text>
+          <Divider />
+          <Text type="danger" strong style={confirmModalStyle.warning}>
+            Lưu ý: Dữ liệu hiện tại sẽ bị thay thế bởi dữ liệu từ bản sao lưu
+            này.
+          </Text>
+        </div>
+      ),
+      onOk: () => handleRestore(latestBackup.fileName),
+      okText: "Xác nhận",
+      cancelText: "Hủy",
+    });
+  };
+
   return (
     <div style={{ padding: "24px" }}>
+      <Card style={{ marginBottom: 16 }}>
+        <Title level={4} style={{ marginTop: 0 }}>
+          <InfoCircleOutlined /> Hướng dẫn
+        </Title>
+        <Text>
+          • Chọn &quot;Phục hồi&quot; để khôi phục dữ liệu từ bản sao lưu đã
+          chọn
+        </Text>
+        <br />
+        <Text type="warning">
+          • Lưu ý: Khi phục hồi, dữ liệu hiện tại sẽ bị thay thế hoàn toàn bởi
+          dữ liệu từ bản sao lưu
+        </Text>
+      </Card>
+
       <Card>
         <div
           style={{
@@ -121,13 +160,26 @@ const Restore = () => {
               Phục hồi dữ liệu
             </Title>
           </Space>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={fetchBackups}
-            loading={loading}
-          >
-            Làm mới
-          </Button>
+          <Space>
+            <Tooltip title="Phục hồi bản sao lưu mới nhất">
+              <Button
+                type="primary"
+                icon={<ImportOutlined />}
+                onClick={handleQuickRestore}
+                loading={loading}
+                danger
+              >
+                Phục hồi nhanh
+              </Button>
+            </Tooltip>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={fetchBackups}
+              loading={loading}
+            >
+              Làm mới
+            </Button>
+          </Space>
         </div>
 
         <List
@@ -138,81 +190,79 @@ const Restore = () => {
             pageSize: 8,
             showSizeChanger: false,
             showTotal: (total) => `Tổng số ${total} bản sao lưu`,
+            style: { marginTop: 16 },
           }}
           renderItem={(item) => (
             <List.Item
+              style={{
+                padding: "16px 24px",
+                backgroundColor: "white",
+                borderRadius: "8px",
+                marginBottom: "8px",
+                border: "1px solid #f0f0f0",
+              }}
               actions={[
-                <Tooltip title="Phục hồi dữ liệu">
+                <Tooltip key="restore-tooltip" title="Phục hồi dữ liệu">
                   <Button
+                    key="restore"
                     type="primary"
                     icon={<ImportOutlined />}
-                    onClick={() => handleRestore(item.path)}
+                    onClick={() => handleRestore(item.fileName)}
                     loading={loading}
+                    style={{ borderRadius: "6px" }}
                   >
                     Phục hồi
-                  </Button>
-                </Tooltip>,
-                <Tooltip title="Tải xuống bản sao lưu">
-                  <Button
-                    type="default"
-                    icon={<CloudDownloadOutlined />}
-                    href={item.downloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Tải xuống
                   </Button>
                 </Tooltip>,
               ]}
             >
               <List.Item.Meta
                 avatar={
-                  <FileOutlined
+                  <div
                     style={{
-                      fontSize: 36,
-                      color: "#1890ff",
-                      border: "1px solid #e8e8e8",
-                      padding: "8px",
-                      borderRadius: "4px",
+                      backgroundColor: "#f5f5f5",
+                      padding: "12px",
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
-                  />
+                  >
+                    <FileOutlined style={{ fontSize: 24, color: "#1890ff" }} />
+                  </div>
                 }
                 title={
-                  <Space>
-                    <Text strong>{item.fileName}</Text>
-                    <Tag color="blue">{item.size}</Tag>
+                  <Space size="middle" style={{ marginBottom: 4 }}>
+                    <Text strong style={{ fontSize: 16 }}>
+                      {item.fileName}
+                    </Text>
+                    <Tag
+                      color="blue"
+                      style={{ borderRadius: "4px", padding: "2px 8px" }}
+                    >
+                      {(item.size / (1024 * 1024)).toFixed(2)} MB
+                    </Tag>
                   </Space>
                 }
                 description={
                   <Space>
-                    <HistoryOutlined />
+                    <HistoryOutlined style={{ color: "#8c8c8c" }} />
                     <Text type="secondary">
                       Sao lưu lúc:{" "}
                       {dayjs(item.createdAt).format("DD/MM/YYYY HH:mm:ss")}
                     </Text>
                   </Space>
                 }
+                style={{ margin: "4px 0" }}
               />
             </List.Item>
           )}
+          style={{
+            backgroundColor: "#fafafa",
+            padding: "16px",
+            borderRadius: "8px",
+          }}
         />
-      </Card>
-
-      {/* Thêm thông tin hướng dẫn */}
-      <Card style={{ marginTop: 16 }}>
-        <Title level={4}>
-          <InfoCircleOutlined /> Hướng dẫn
-        </Title>
-        <Text>
-          • Chọn "Phục hồi" để khôi phục dữ liệu từ bản sao lưu đã chọn
-        </Text>
-        <br />
-        <Text>• Chọn "Tải xuống" để tải bản sao lưu về máy tính</Text>
-        <br />
-        <Text type="warning">
-          • Lưu ý: Khi phục hồi, dữ liệu hiện tại sẽ bị thay thế hoàn toàn bởi
-          dữ liệu từ bản sao lưu
-        </Text>
       </Card>
     </div>
   );

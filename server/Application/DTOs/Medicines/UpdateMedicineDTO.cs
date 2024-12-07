@@ -8,5 +8,6 @@ namespace Application.DTOs.Medicines
         public bool? IsVaccine { get; set; }
         public int? DaysAfterImport { get; set; }
         public bool? IsActive { get; set; }
+        public List<string>? MedicineSuppliers { get; set; }
     }
 }

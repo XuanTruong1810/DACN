@@ -128,42 +128,36 @@ public static class SeedDataMedicine
             {
                 MedicineId = "MED0001", // Vắc xin FMD
                 SupplierId = "SUP0003",
-                Status = true,
                 CreateTime = DateTimeOffset.UtcNow
             },
             new MedicineSupplier
             {
                 MedicineId = "MED0002", // Vắc xin Dịch tả
                 SupplierId = "SUP0003",
-                Status = true,
                 CreateTime = DateTimeOffset.UtcNow
             },
             new MedicineSupplier
             {
                 MedicineId = "MED0003", // Vắc xin PRRS
                 SupplierId = "SUP0003",
-                Status = true,
                 CreateTime = DateTimeOffset.UtcNow
             },
             new MedicineSupplier
             {
                 MedicineId = "MED0006", // Vắc xin Tụ huyết trùng
                 SupplierId = "SUP0003",
-                Status = true,
                 CreateTime = DateTimeOffset.UtcNow
             },
             new MedicineSupplier
             {
                 MedicineId = "MED0007", // Vắc xin Phó thương hàn
                 SupplierId = "SUP0003",
-                Status = true,
                 CreateTime = DateTimeOffset.UtcNow
             },
             new MedicineSupplier
             {
                 MedicineId = "MED0008", // Vắc xin Mycoplasma
                 SupplierId = "SUP0003",
-                Status = true,
                 CreateTime = DateTimeOffset.UtcNow
             },
 
@@ -172,21 +166,18 @@ public static class SeedDataMedicine
             {
                 MedicineId = "MED0004", // Amoxicillin
                 SupplierId = "SUP0004",
-                Status = true,
                 CreateTime = DateTimeOffset.UtcNow
             },
             new MedicineSupplier
             {
                 MedicineId = "MED0005", // Tylosin
                 SupplierId = "SUP0004",
-                Status = true,
                 CreateTime = DateTimeOffset.UtcNow
             },
             new MedicineSupplier
             {
                 MedicineId = "MED0009", // Vitamin AD3E
                 SupplierId = "SUP0004",
-                Status = true,
                 CreateTime = DateTimeOffset.UtcNow
             },
 
@@ -195,21 +186,18 @@ public static class SeedDataMedicine
             {
                 MedicineId = "MED0001", // Vắc xin FMD
                 SupplierId = "SUP0005",
-                Status = true,
                 CreateTime = DateTimeOffset.UtcNow
             },
             new MedicineSupplier
             {
                 MedicineId = "MED0002", // Vắc xin Dịch tả
                 SupplierId = "SUP0005",
-                Status = true,
                 CreateTime = DateTimeOffset.UtcNow
             },
             new MedicineSupplier
             {
                 MedicineId = "MED0003", // Vắc xin PRRS
                 SupplierId = "SUP0005",
-                Status = true,
                 CreateTime = DateTimeOffset.UtcNow
             }
         };

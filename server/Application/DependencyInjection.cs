@@ -1,8 +1,10 @@
 using Application.Interfaces;
 using Application.Mapping;
 using Application.Services;
+using Core.Stores;
 using Microsoft.Extensions.DependencyInjection;
 using server.Application.Services;
+using Supabase;
 
 public static class DependencyInjection
 {
@@ -39,7 +41,15 @@ public static class DependencyInjection
         services.AddScoped<IMedicineRequestService, MedicineRequestService>();
         services.AddScoped<IMedicineImportService, MedicineImportService>();
         services.AddScoped<IVaccinationPlanService, VaccinationPlanService>();
-        services.AddScoped<IDropboxService, DropboxService>();
+
+        services.AddSingleton(provider =>
+            new Client(
+                Environment.GetEnvironmentVariable("SUPABASE_URL") ?? throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError, "Không tìm thấy url"),
+                Environment.GetEnvironmentVariable("SUPABASE_KEY") ?? throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError, "Không tìm thấy key"),
+                new SupabaseOptions { AutoRefreshToken = true }
+            )
+        );
+        services.AddScoped<ISupabaseStorageService, SupabaseStorageService>();
         services.AddScoped<IRestoreService, RestoreService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<ICalenderWeighingService, CalenderWeighingService>();

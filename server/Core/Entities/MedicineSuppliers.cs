@@ -10,7 +10,6 @@ namespace Core.Entities
         public string MedicineId { get; set; }
         [ForeignKey("Suppliers")]
         public string SupplierId { get; set; }
-        public bool Status { get; set; } = true;
 
         public DateTimeOffset CreateTime { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset? DeleteTime { get; set; }
