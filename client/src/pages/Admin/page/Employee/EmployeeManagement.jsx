@@ -37,6 +37,7 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
+import EmployeeFilter from "./components/EmployeeFilter";
 
 const { Title } = Typography;
 
@@ -44,7 +45,7 @@ const UserManagementPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
+  const [editingUser] = useState(null);
   const [form] = Form.useForm();
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [addForm] = Form.useForm();
@@ -53,6 +54,10 @@ const UserManagementPage = () => {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [editForm] = Form.useForm();
+  const [filters, setFilters] = useState({
+    search: "",
+    roles: [],
+  });
 
   // Fetch users data
   const fetchUsers = async () => {
@@ -114,11 +119,6 @@ const UserManagementPage = () => {
       ),
     },
     {
-      title: "Email",
-      dataIndex: "email",
-      width: 150,
-    },
-    {
       title: "Số điện thoại",
       dataIndex: "phoneNumber",
       width: 120,
@@ -128,6 +128,13 @@ const UserManagementPage = () => {
       title: "Chức vụ",
       dataIndex: "roles",
       width: 180,
+      filters: [
+        { text: "Quản lý", value: "Admin" },
+        { text: "Nhân viên điều phối", value: "Dispatch" },
+        { text: "Nhân viên dinh dưỡng", value: "FeedManager" },
+        { text: "Nhân viên thú y", value: "Veterinarian" },
+      ],
+      onFilter: (value, record) => record.roles.includes(value),
       render: (roles) => (
         <Space direction="vertical" size={4} style={{ width: "100%" }}>
           {roles?.map((role) => {
@@ -165,10 +172,18 @@ const UserManagementPage = () => {
       title: "Trạng thái",
       dataIndex: "isActive",
       width: 120,
+      filters: [
+        { text: "Đang hoạt động", value: true },
+        { text: "Đã khóa", value: false },
+      ],
+      onFilter: (value, record) => {
+        const isLocked =
+          record.lockOutEnd && new Date(record.lockOutEnd) > new Date();
+        return value ? !isLocked : isLocked;
+      },
       render: (_, record) => {
         const isLocked =
           record.lockOutEnd && new Date(record.lockOutEnd) > new Date();
-
         return (
           <Tag color={isLocked ? "error" : "success"}>
             {isLocked ? "Đã khóa" : "Hoạt động"}
@@ -279,21 +294,32 @@ const UserManagementPage = () => {
     });
   };
 
-  const handleDelete = async (record) => {
-    try {
-      await axios.delete(
-        `${import.meta.env.VITE_API_URL}/api/User/${record.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+  const handleDelete = (record) => {
+    Modal.confirm({
+      title: "Xác nhận xóa",
+      content: `Bạn có chắc chắn muốn xóa nhân viên ${record.fullName}?`,
+      okText: "Xóa",
+      cancelText: "Hủy",
+      okButtonProps: {
+        danger: true,
+      },
+      onOk: async () => {
+        try {
+          await axios.delete(
+            `${import.meta.env.VITE_API_URL}/api/User/${record.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+          message.success("Xóa nhân viên thành công");
+          fetchUsers(); // Refresh lại danh sách
+        } catch (error) {
+          message.error("Lỗi khi xóa nhân viên: " + error.message);
         }
-      );
-      message.success("Xóa người dùng thành công");
-      fetchUsers(); // Refresh data
-    } catch (error) {
-      message.error("Lỗi khi xóa người dùng: " + error.message);
-    }
+      },
+    });
   };
 
   // Thêm hàm xử lý submit form
@@ -1157,25 +1183,53 @@ const UserManagementPage = () => {
     }
   `;
 
+  // Thêm hàm xử lý thay đổi bộ lọc
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  // Thêm hàm lọc dữ liệu
+  const getFilteredData = () => {
+    return users.filter((user) => {
+      // Lọc theo tìm kiếm
+      const searchMatch =
+        !filters.search ||
+        user.fullName.toLowerCase().includes(filters.search.toLowerCase()) ||
+        user.email.toLowerCase().includes(filters.search.toLowerCase());
+
+      // Lọc theo vai trò
+      const roleMatch =
+        !filters.roles.length ||
+        user.roles.some((role) => filters.roles.includes(role));
+
+      return searchMatch && roleMatch;
+    });
+  };
+
   return (
     <Card title={<Title level={3}>Quản lý nhân viên</Title>}>
       <Space direction="vertical" style={{ width: "100%" }} size="large">
-        <Button type="primary" icon={<UserOutlined />} onClick={handleAdd}>
-          Thêm nhân viên
-        </Button>
+        <EmployeeFilter
+          onFilterChange={handleFilterChange}
+          onAdd={handleAdd} // Truyền hàm handleAdd xuống component con
+        />
 
         <Table
           columns={columns}
-          dataSource={users}
+          dataSource={getFilteredData()}
           rowKey="id"
           loading={loading}
           scroll={{ x: 1300 }}
           pagination={{
-            total: users.length,
+            total: getFilteredData().length,
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
           }}
+          filterMultiple={true}
         />
 
         {/* Modal thêm mới */}
