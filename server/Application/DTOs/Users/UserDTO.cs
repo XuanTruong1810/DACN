@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace Application.DTOs.Users
 {
@@ -20,19 +21,19 @@ namespace Application.DTOs.Users
     public class CreateUserDTO
     {
         [Required]
-        public string UserName { get; set; }
-
-        [Required]
         [EmailAddress]
         public string Email { get; set; }
 
-        [Required]
-        public string Password { get; set; }
 
         [Required]
         public string FullName { get; set; }
+        [Required]
 
-        public string? Avatar { get; set; }
+        public IFormFile Avatar { get; set; }
+
+        [Phone]
+        [Required]
+        public string PhoneNumber { get; set; }
 
         [Required]
         public DateTimeOffset DateOfBirth { get; set; }
@@ -45,9 +46,10 @@ namespace Application.DTOs.Users
     {
         public string? Email { get; set; }
         public string? FullName { get; set; }
-        public string? Avatar { get; set; }
+        public IFormFile? Avatar { get; set; }
+        public string? PhoneNumber { get; set; }
         public DateTimeOffset? DateOfBirth { get; set; }
         public List<string>? Roles { get; set; }
-        public string? NewPassword { get; set; }
+
     }
 }

@@ -103,9 +103,9 @@ namespace Application.Services
         {
             ApplicationUser? user = await userManager.FindByEmailAsync(loginModel.Email)
          ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy user");
-            if (user.DeleteTime.HasValue)
+            if (user.DeleteTime.HasValue || user.LockoutEnd.HasValue)
             {
-                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Tài khoản đã bị xóa");
+                throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest, "Tài khoản của bạn đã bị khóa");
             }
             if (!await userManager.IsEmailConfirmedAsync(user))
             {

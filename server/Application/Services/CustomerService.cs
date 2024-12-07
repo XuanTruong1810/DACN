@@ -39,14 +39,20 @@ namespace Application.Services
 
         public async Task DeleteCustomer(string id)
         {
-            Customers? customer = await _unitOfWork.GetRepository<Customers>().GetByIdAsync(id);
+            Customers? customer = await _unitOfWork.GetRepository<Customers>().GetByIdAsync(id)
+             ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy khách hàng");
+
+            customer.DeleteTime = DateTimeOffset.Now;
+
             await _unitOfWork.GetRepository<Customers>().UpdateAsync(customer);
             await _unitOfWork.SaveAsync();
         }
 
         public async Task<IEnumerable<CustomerModelView>> GetAllCustomers()
         {
-            IEnumerable<Customers> customers = await _unitOfWork.GetRepository<Customers>().GetAllAsync();
+            IEnumerable<Customers> customers = await _unitOfWork.GetRepository<Customers>().GetEntities
+            .Where(x => x.DeleteTime == null)
+            .ToListAsync();
             return _mapper.Map<IEnumerable<CustomerModelView>>(customers);
         }
 

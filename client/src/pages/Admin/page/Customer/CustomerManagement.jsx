@@ -27,9 +27,8 @@ import {
   MailOutlined,
   EnvironmentOutlined,
 } from "@ant-design/icons";
-import { motion } from "framer-motion";
+import { circIn, motion } from "framer-motion";
 import axios from "axios";
-import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 
@@ -58,6 +57,7 @@ const CustomerManagement = () => {
       );
       setCustomers(response.data.data);
     } catch (error) {
+      console.log(error);
       message.error("Không thể tải danh sách khách hàng");
     } finally {
       setLoading(false);
@@ -106,9 +106,23 @@ const CustomerManagement = () => {
       okText: "Xóa",
       okType: "danger",
       cancelText: "Hủy",
-      onOk() {
-        setCustomers((prev) => prev.filter((c) => c.id !== customer.id));
-        message.success("Đã xóa khách hàng thành công");
+      async onOk() {
+        try {
+          const response = await axios.delete(
+            `${import.meta.env.VITE_API_URL}/api/Customer/${customer.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+          console.log(response);
+          message.success("Đã xóa khách hàng thành công");
+          fetchCustomers(); // Refresh the list
+        } catch (error) {
+          console.error("Error:", error);
+          message.error("Có lỗi xảy ra khi xóa khách hàng");
+        }
       },
     });
   };
@@ -118,27 +132,40 @@ const CustomerManagement = () => {
       const values = await form.validateFields();
 
       if (editingCustomer) {
-        // Update
-        setCustomers((prev) =>
-          prev.map((cus) =>
-            cus.id === editingCustomer.id ? { ...cus, ...values } : cus
-          )
+        // Update customer
+        const response = await axios.put(
+          `${import.meta.env.VITE_API_URL}/api/Customer/${editingCustomer.id}`,
+          values,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
         );
+        console.log(response);
         message.success("Đã cập nhật thông tin khách hàng");
+        fetchCustomers(); // Refresh the list
       } else {
-        // Create
-        const newCustomer = {
-          ...values,
-          id: `CUS${String(customers.length + 1).padStart(3, "0")}`,
-        };
-        setCustomers((prev) => [...prev, newCustomer]);
+        // Create new customer
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/Customer`,
+          values,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        console.log(response);
         message.success("Đã thêm khách hàng mới");
+        fetchCustomers(); // Refresh the list
       }
 
       setIsModalVisible(false);
       form.resetFields();
     } catch (error) {
-      console.error("Validation failed:", error);
+      console.error("Error:", error);
+      message.error("Có lỗi xảy ra. Vui lòng thử lại!");
     }
   };
 
@@ -216,32 +243,41 @@ const CustomerManagement = () => {
     },
   ];
 
-  const handleViewDetails = (record) => {
-    Modal.info({
-      title: "Thông tin chi tiết khách hàng",
-      width: 600,
-      content: (
-        <Descriptions column={2} bordered>
-          <Descriptions.Item label="Tên người đại diện" span={2}>
-            {record.name}
-          </Descriptions.Item>
-          <Descriptions.Item label="Tên công ty" span={2}>
-            {record.companyName || "Không có"}
-          </Descriptions.Item>
-          <Descriptions.Item label="Email">{record.email}</Descriptions.Item>
-          <Descriptions.Item label="Số điện thoại">
-            {record.phone}
-          </Descriptions.Item>
-          <Descriptions.Item label="Địa chỉ" span={2}>
-            {record.address}
-          </Descriptions.Item>
-          <Descriptions.Item label="Ghi chú" span={2}>
-            {record.note || "Không có"}
-          </Descriptions.Item>
-        </Descriptions>
-      ),
-      okText: "Đóng",
-    });
+  const handleViewDetails = async (record) => {
+    try {
+      const customerDetails = await fetchCustomerDetails(record.id);
+      if (customerDetails) {
+        Modal.info({
+          title: "Thông tin chi tiết khách hàng",
+          width: 600,
+          content: (
+            <Descriptions column={2} bordered>
+              <Descriptions.Item label="Tên người đại diện" span={2}>
+                {customerDetails.name}
+              </Descriptions.Item>
+              <Descriptions.Item label="Tên công ty" span={2}>
+                {customerDetails.companyName || "Không có"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Email">
+                {customerDetails.email}
+              </Descriptions.Item>
+              <Descriptions.Item label="Số điện thoại">
+                {customerDetails.phone}
+              </Descriptions.Item>
+              <Descriptions.Item label="Địa chỉ" span={2}>
+                {customerDetails.address}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ghi chú" span={2}>
+                {customerDetails.note || "Không có"}
+              </Descriptions.Item>
+            </Descriptions>
+          ),
+          okText: "Đóng",
+        });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   const handleFilterChange = (changedValues, allValues) => {

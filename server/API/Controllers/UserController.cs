@@ -33,16 +33,16 @@ public class UserController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateUser(CreateUserDTO dto)
+    public async Task<IActionResult> CreateUser([FromForm] CreateUserDTO dto)
     {
-        var user = await _userService.CreateUserAsync(dto);
+        UserDTO? user = await _userService.CreateUserAsync(dto);
         return CreatedAtAction(nameof(GetUserById), new { id = user.Id }, BaseResponse<UserDTO>.CreatedResponse(user));
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateUser(string id, UpdateUserDTO dto)
+    public async Task<IActionResult> UpdateUser(string id, [FromForm] UpdateUserDTO dto)
     {
-        var user = await _userService.UpdateUserAsync(id, dto);
+        UserDTO? user = await _userService.UpdateUserAsync(id, dto);
         return Ok(BaseResponse<UserDTO>.OkResponse(user));
     }
 
