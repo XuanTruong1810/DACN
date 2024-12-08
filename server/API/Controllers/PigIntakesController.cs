@@ -18,8 +18,8 @@ namespace API.Controllers
         [Authorize]
         public async Task<IActionResult> Get([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, string? filter = null)
         {
-            BasePagination<PigInTakeModelView>? data = await pigIntakeService.GetAllAsync(pageIndex, pageSize, filter);
-            return Ok(BaseResponse<BasePagination<PigInTakeModelView>>.OkResponse(data));
+            List<PigInTakeModelView>? data = await pigIntakeService.GetAllAsync(pageIndex, pageSize, filter);
+            return Ok(BaseResponse<List<PigInTakeModelView>>.OkResponse(data));
 
         }
         [HttpGet("{id}")]

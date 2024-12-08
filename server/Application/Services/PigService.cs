@@ -25,7 +25,7 @@ namespace Application.Services
             _mapper = mapper;
         }
 
-        public async Task<BasePagination<PigModelView>> GetAllAsync(PigFilterDTO filter)
+        public async Task<List<PigInfoModelView>> GetAllAsync(PigFilterDTO filter)
         {
             // Bắt đầu query
             IQueryable<Pigs> pigQuery = _unitOfWork.GetRepository<Pigs>()
@@ -57,7 +57,7 @@ namespace Application.Services
 
             int totalCount = await pigQuery.CountAsync();
             List<Pigs> pigs = await pigQuery.ToListAsync();
-            List<PigModelView> pigModels = pigs.Select(p => new PigModelView
+            List<PigInfoModelView> pigModels = pigs.Select(p => new PigInfoModelView
             {
                 Id = p.Id,
                 StableId = p.StableId,
@@ -66,10 +66,20 @@ namespace Application.Services
                 AreaName = p.Stables.Areas.Name,
                 CreatedTime = p.CreatedTime.Value,
                 UpdatedTime = p.UpdatedTime.HasValue ? p.UpdatedTime.Value : null,
-            }).ToList();
-            // Phân trang
+                Weight = p.Weight ?? 0,
+                Status = p.Status,
+                PigVaccinations = p.VaccinationPlans.Select(v => new PigVaccinationInfoModelView
+                {
+                    ActualDate = v.ActualDate,
+                    LastModifiedTime = v.LastModifiedTime,
+                    MedicineId = v.MedicineId,
+                    MedicineName = v.Medicine.MedicineName,
+                    ScheduleDate = v.ScheduledDate,
+                    Status = v.Status
 
-            return new BasePagination<PigModelView>(pigModels, totalCount, filter.PageIndex, filter.PageSize);
+                }).ToList()
+            }).ToList();
+            return pigModels;
         }
 
         public async Task<PigModelView> CreateAsync(PigDTO dto)
@@ -135,28 +145,72 @@ namespace Application.Services
             return _mapper.Map<PigModelView>(pig);
         }
 
-        public async Task<List<PigModelView>> GetPigsByAreaAsync(string areaId)
+        public async Task<List<PigInfoModelView>> GetPigsByAreaAsync(string areaId)
         {
             var pigs = await _unitOfWork.GetRepository<Pigs>()
                 .GetEntities
-                .Where(p => p.Stables.AreasId == areaId && p.DeleteTime == null && p.Status == "alive")
+                .Where(p => p.Stables.AreasId == areaId && p.DeleteTime == null)
                 .Include(p => p.Stables)
                 .ThenInclude(s => s.Areas)
+                .Include(p => p.VaccinationPlans)
+                .ThenInclude(vp => vp.Medicine)
                 .ToListAsync();
 
-            return _mapper.Map<List<PigModelView>>(pigs);
+            return pigs.Select(p => new PigInfoModelView
+            {
+                Id = p.Id,
+                StableId = p.StableId,
+                StableName = p.Stables.Name,
+                AreaId = p.Stables.AreasId,
+                AreaName = p.Stables.Areas.Name,
+                CreatedTime = p.CreatedTime.Value,
+                UpdatedTime = p.UpdatedTime.HasValue ? p.UpdatedTime.Value : null,
+                Weight = p.Weight ?? 0,
+                Status = p.Status,
+                PigVaccinations = p.VaccinationPlans.Select(v => new PigVaccinationInfoModelView
+                {
+                    ActualDate = v.ActualDate,
+                    LastModifiedTime = v.LastModifiedTime,
+                    MedicineId = v.MedicineId,
+                    MedicineName = v.Medicine.MedicineName,
+                    ScheduleDate = v.ScheduledDate,
+                    Status = v.Status
+                }).ToList()
+            }).ToList();
         }
 
-        public async Task<List<PigModelView>> GetPigsByHouseAsync(string houseId)
+        public async Task<List<PigInfoModelView>> GetPigsByHouseAsync(string houseId)
         {
             List<Pigs>? pigs = await _unitOfWork.GetRepository<Pigs>()
                 .GetEntities
-                .Where(p => p.StableId == houseId && p.DeleteTime == null && p.Status == "alive")
+                .Where(p => p.StableId == houseId && p.DeleteTime == null)
                 .Include(p => p.Stables)
                 .ThenInclude(s => s.Areas)
+                .Include(p => p.VaccinationPlans)
+                .ThenInclude(vp => vp.Medicine)
                 .ToListAsync();
 
-            return _mapper.Map<List<PigModelView>>(pigs);
+            return pigs.Select(p => new PigInfoModelView
+            {
+                Id = p.Id,
+                StableId = p.StableId,
+                StableName = p.Stables.Name,
+                AreaId = p.Stables.AreasId,
+                AreaName = p.Stables.Areas.Name,
+                CreatedTime = p.CreatedTime.Value,
+                UpdatedTime = p.UpdatedTime.HasValue ? p.UpdatedTime.Value : null,
+                Weight = p.Weight ?? 0,
+                Status = p.Status,
+                PigVaccinations = p.VaccinationPlans.Select(v => new PigVaccinationInfoModelView
+                {
+                    ActualDate = v.ActualDate,
+                    LastModifiedTime = v.LastModifiedTime,
+                    MedicineId = v.MedicineId,
+                    MedicineName = v.Medicine.MedicineName,
+                    ScheduleDate = v.ScheduledDate,
+                    Status = v.Status
+                }).ToList()
+            }).ToList();
         }
 
         public async Task<PigCancelModelView> CancelPigAsync(string id, PigCancelDTO dto)

@@ -1,5 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react/prop-types */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Card,
   Table,
@@ -16,20 +18,15 @@ import {
   Row,
   Col,
   Alert,
-  Divider,
   Tooltip,
-  Dropdown,
-  Menu,
   Descriptions,
   Spin,
+  Statistic,
 } from "antd";
 import {
-  FilterOutlined,
   CheckCircleOutlined,
   ImportOutlined,
   FilePdfOutlined,
-  MoreOutlined,
-  InfoCircleOutlined,
   EyeOutlined,
   DollarOutlined,
   SearchOutlined,
@@ -38,32 +35,16 @@ import dayjs from "dayjs";
 import axios from "axios";
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
-const { RangePicker } = DatePicker;
 
-// Constants
 const PAGE_SIZE = 10;
 const ANIMATION_DURATION = 0.3;
 
-// Animation variants
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -20 },
 };
 
-const modalVariants = {
-  initial: { opacity: 0, scale: 0.95 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.95 },
-};
-
-const buttonVariants = {
-  hover: { scale: 1.02 },
-  tap: { scale: 0.98 },
-};
-
-// Thêm config cho actions
 const ACTION_CONFIG = {
   check: {
     key: "check",
@@ -123,7 +104,6 @@ const ImportRequestManagement = () => {
   const [isCheckModalVisible, setIsCheckModalVisible] = useState(false);
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [isShowPayment, setIsShowPayment] = useState(false);
   const [tableParams, setTableParams] = useState({
     pagination: {
       current: 1,
@@ -131,41 +111,40 @@ const ImportRequestManagement = () => {
     },
   });
 
+  // eslint-disable-next-line no-unused-vars
   const [form] = Form.useForm();
   const [checkForm] = Form.useForm();
 
-  // Thêm state cho suppliers
   const [suppliers, setSuppliers] = useState([]);
 
-  // Thêm state để quản lý modal payment
+  // eslint-disable-next-line no-unused-vars
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
 
-  // Thêm state để lưu areaId của khu A
-  const AREA_A_ID = "KV001"; // ID của khu vực A - cần thay đổi theo ID thực tế của bạn
-
-  // Thêm state để lưu thông tin khu vực A
   const [areaA, setAreaA] = useState(null);
 
-  // Thêm state cho modal chi tiết
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [detailData, setDetailData] = useState(null);
 
-  // Thêm state để lưu và hiển thị kết quả phân bổ
+  // eslint-disable-next-line no-unused-vars
   const [allocationResult, setAllocationResult] = useState(null);
   const [isAllocationModalVisible, setIsAllocationModalVisible] =
     useState(false);
 
-  // Thêm state để lưu danh sách heo được phân bổ
   const [allocatedPigs, setAllocatedPigs] = useState(null);
   const [isAllocatedListVisible, setIsAllocatedListVisible] = useState(false);
 
-  // Thêm useEffect để fetch khu vực A khi component mount
+  const [statistics, setStatistics] = useState({
+    totalRequests: 0,
+    pendingRequests: 0,
+    approvedRequests: 0,
+    importedRequests: 0,
+  });
+
   useEffect(() => {
     fetchAreaA();
   }, []);
 
-  // Thêm hàm fetch khu vực A
   const fetchAreaA = async () => {
     try {
       const response = await axios.get(
@@ -189,7 +168,6 @@ const ImportRequestManagement = () => {
     }
   };
 
-  // Thêm hàm fetchSuppliers
   const fetchSuppliers = async () => {
     try {
       const response = await axios.get(
@@ -202,13 +180,10 @@ const ImportRequestManagement = () => {
       );
 
       const items = response.data?.data?.items || [];
-
-      // Chỉ lấy suppliers có type là pig
       const pigSuppliers = items.filter(
         (supplier) => supplier.typeSuppier?.toLowerCase() === "pig"
       );
 
-      // Format data cho filter
       const formattedSuppliers = pigSuppliers.map((supplier) => ({
         text: supplier.name,
         value: supplier.id,
@@ -221,18 +196,9 @@ const ImportRequestManagement = () => {
     }
   };
 
-  // Thêm useEffect để load suppliers khi component mount
   useEffect(() => {
     fetchSuppliers();
   }, []);
-
-  // Xử lý filter
-  const handleFilterChange = (values) => {
-    setFilters(values);
-    // Thực hiện filter dữ liệu theo values
-  };
-
-  // Memoized Values
 
   const getStatusTag = (record) => {
     if (!record) return null;
@@ -248,8 +214,6 @@ const ImportRequestManagement = () => {
     }
     return <Tag color="default">Chờ duyệt</Tag>;
   };
-
-  // Định nghĩa handleCheck trước
   const handleCheck = useCallback(async (request) => {
     try {
       const response = await axios.get(
@@ -280,7 +244,6 @@ const ImportRequestManagement = () => {
     }
   }, []);
 
-  // Sửa lại hàm handleImport
   const handleImport = useCallback(
     async (record) => {
       const token = localStorage.getItem("token");
@@ -306,7 +269,6 @@ const ImportRequestManagement = () => {
           }
         );
 
-        // Lưu danh sách heo được phân bổ và hiển thị modal
         setAllocatedPigs(response.data.data);
         setIsAllocatedListVisible(true);
 
@@ -332,7 +294,6 @@ const ImportRequestManagement = () => {
     [areaA, tableParams]
   );
 
-  // Sau đó mới định nghĩa columns với useMemo
   const columns = useMemo(
     () => [
       {
@@ -397,10 +358,15 @@ const ImportRequestManagement = () => {
         dataIndex: "supplier",
         key: "supplier",
         width: 200,
-        filters: suppliers,
+        filters: suppliers.map((supplier) => ({
+          text: supplier.text,
+          value: supplier.text,
+        })),
         filterMode: "tree",
         filterSearch: true,
-        onFilter: (value, record) => record.supplier === value,
+        onFilter: (value, record) => {
+          return record.supplier?.toLowerCase() === value?.toLowerCase();
+        },
         render: (supplier) => supplier || "N/A",
       },
       {
@@ -420,6 +386,54 @@ const ImportRequestManagement = () => {
             {price.toLocaleString()} VNĐ/con
           </Text>
         ),
+      },
+      {
+        title: "Người yêu cầu",
+        dataIndex: "createdByName",
+        key: "createdByName",
+        width: 150,
+        filterDropdown: ({
+          setSelectedKeys,
+          selectedKeys,
+          confirm,
+          clearFilters,
+        }) => (
+          <div style={{ padding: 8 }}>
+            <Input
+              placeholder="Tìm người yêu cầu"
+              value={selectedKeys[0]}
+              onChange={(e) =>
+                setSelectedKeys(e.target.value ? [e.target.value] : [])
+              }
+              onPressEnter={() => confirm()}
+              style={{ width: 188, marginBottom: 8, display: "block" }}
+            />
+            <Space>
+              <Button
+                type="primary"
+                onClick={() => confirm()}
+                icon={<SearchOutlined />}
+                size="small"
+                style={{ width: 90 }}
+              >
+                Tìm
+              </Button>
+              <Button
+                onClick={() => clearFilters()}
+                size="small"
+                style={{ width: 90 }}
+              >
+                Đặt lại
+              </Button>
+            </Space>
+          </div>
+        ),
+        filterIcon: (filtered) => (
+          <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+        ),
+        onFilter: (value, record) =>
+          record.createdByName?.toLowerCase().includes(value.toLowerCase()),
+        render: (text) => <Text>{text || "N/A"}</Text>,
       },
       {
         title: "Trạng thái",
@@ -537,7 +551,6 @@ const ImportRequestManagement = () => {
         }
       );
 
-      // Lưu danh sách heo được phân bổ
       setAllocatedPigs(allocateResponse.data.data);
       setIsAllocatedListVisible(true);
 
@@ -555,36 +568,6 @@ const ImportRequestManagement = () => {
     }
   };
 
-  // Sửa lại hàm handleFinalCheckSubmit
-  const handleFinalCheckSubmit = useCallback(async () => {
-    try {
-      const values = await checkForm.validateFields();
-
-      // Tính toán các thông tin thanh toán
-      const totalAmount = values.acceptedQuantity * selectedRequest.pricePerPig;
-      const deposit = selectedRequest.deposit || 0;
-      const remainingAmount = totalAmount - deposit;
-
-      // Lưu thông tin thanh toán
-      setPaymentInfo({
-        receivedQuantity: values.receivedQuantity,
-        acceptedQuantity: values.acceptedQuantity,
-        pricePerPig: selectedRequest.pricePerPig,
-        totalAmount: totalAmount,
-        deposit: deposit,
-        remainingAmount: remainingAmount,
-        deliveryDate: values.deliveryDate,
-      });
-
-      // Hiển thị modal thanh toán
-      setIsPaymentModalVisible(true);
-    } catch (error) {
-      console.error("Error calculating payment:", error);
-      message.error("Vui lòng điền đầy đủ thông tin!");
-    }
-  }, [selectedRequest, checkForm]);
-
-  // Thêm hàm xử lý xác nhận thanh toán
   const handlePaymentConfirm = async () => {
     try {
       await axios.patch(
@@ -628,7 +611,6 @@ const ImportRequestManagement = () => {
     }
   };
 
-  // Thêm component modal thanh toán
   const renderPaymentModal = () => (
     <Modal
       title={
@@ -685,14 +667,6 @@ const ImportRequestManagement = () => {
       )}
     </Modal>
   );
-
-  const calculateTotalAmount = () => {
-    const quantity = form.getFieldValue("acceptedQuantity") || 0;
-    const price = selectedRequest?.pricePerPig || 0;
-    return quantity * price;
-  };
-
-  // Table change handler
   const handleTableChange = useCallback((pagination, filters, sorter) => {
     setTableParams({
       pagination,
@@ -710,7 +684,27 @@ const ImportRequestManagement = () => {
     });
   }, []);
 
-  // Fetch data function (mock)
+  const calculateStatistics = (data) => {
+    const stats = {
+      totalRequests: data.length,
+      pendingRequests: 0,
+      approvedRequests: 0,
+      importedRequests: 0,
+    };
+
+    data.forEach((request) => {
+      if (request.stokeDate) {
+        stats.importedRequests++;
+      } else if (request.approvedTime) {
+        stats.approvedRequests++;
+      } else {
+        stats.pendingRequests++;
+      }
+    });
+
+    setStatistics(stats);
+  };
+
   const fetchData = async (params = {}) => {
     try {
       setLoading(true);
@@ -726,15 +720,16 @@ const ImportRequestManagement = () => {
           },
         }
       );
-      console.log(response);
-      const items = response.data?.data?.items || [];
+      console.log("API Response:", response.data);
+
+      const items = response.data?.data || [];
 
       const formattedRequests = items.map((request) => ({
         id: request.id || "",
         requestCode: request.code || "",
         requestDate: request.createdTime || null,
         quantity: request.expectedQuantity || 0,
-        // Đảm bảo các trờng thời gian luôn có giá trị (null nếu không có)
+
         approvedTime: request.approvedTime || null,
         deliveryDate: request.deliveryDate || null,
         stokeDate: request.stokeDate || null,
@@ -743,10 +738,11 @@ const ImportRequestManagement = () => {
         supplier: request.suppliersName || "Chưa xác nhận",
         createdBy: request.createdBy || "",
         deposit: request.deposit || 0,
-        // Thêm các trường khác nếu cần
+        createdByName: request.createByName || "N/A",
       }));
 
       setRequests(formattedRequests);
+      calculateStatistics(formattedRequests);
       setTableParams({
         ...tableParams,
         pagination: {
@@ -762,12 +758,10 @@ const ImportRequestManagement = () => {
     }
   };
 
-  // Initial data fetch
   useEffect(() => {
     fetchData(tableParams);
   }, []);
 
-  // Thêm handler cho view detail
   const handleViewDetail = async (record) => {
     try {
       const response = await axios.get(
@@ -787,7 +781,6 @@ const ImportRequestManagement = () => {
     }
   };
 
-  // Thêm component modal chi tiết
   const renderViewModal = () => (
     <Modal
       title={
@@ -894,7 +887,6 @@ const ImportRequestManagement = () => {
     </Modal>
   );
 
-  // Thêm component hiển thị kết quả phân bổ
   const renderAllocationResultModal = () => (
     <Modal
       title={
@@ -953,19 +945,15 @@ const ImportRequestManagement = () => {
     </Modal>
   );
 
-  // Sửa lại phần in danh sách
   const handlePrintList = useCallback(() => {
-    // Tạo tên file với format: DS_Heo_[Mã phiếu]_[Ngày]
     const fileName = `DS_Heo_${
       selectedRequest?.id || "Unknown"
     }_${dayjs().format("DDMMYYYY")}`;
 
-    // Tạo và thêm iframe tạm thời
     const iframe = document.createElement("iframe");
     iframe.style.display = "none";
     document.body.appendChild(iframe);
 
-    // Ghi nội dung vào iframe
     const content = `
       <!DOCTYPE html>
       <html>
@@ -1042,28 +1030,22 @@ const ImportRequestManagement = () => {
       </html>
     `;
 
-    // Ghi nội dung vào iframe
     const doc = iframe.contentWindow.document;
     doc.open();
     doc.write(content);
     doc.close();
 
-    // Đợi iframe load xong
     iframe.onload = () => {
-      // Đảm bảo title được set
       iframe.contentWindow.document.title = fileName;
 
-      // In với tên file được đặt
       iframe.contentWindow.print();
 
-      // Xóa iframe sau khi in xong
       setTimeout(() => {
         document.body.removeChild(iframe);
       }, 100);
     };
   }, [allocatedPigs, selectedRequest]);
 
-  // Sửa lại modal hiển thị danh sách
   const renderAllocatedPigsModal = () => (
     <Modal
       title={
@@ -1124,7 +1106,6 @@ const ImportRequestManagement = () => {
     </Modal>
   );
 
-  // Render Methods
   const renderCheckModal = () => (
     <Modal
       title="Kiểm tra giao hàng"
@@ -1283,24 +1264,41 @@ const ImportRequestManagement = () => {
                 Quản lý phiếu yêu cầu nhập heo
               </Title>
             </Col>
-            <Col>
-              <Space size="middle">
-                <RangePicker
-                  onChange={(dates) =>
-                    handleFilterChange({ ...filters, dateRange: dates })
-                  }
-                  placeholder={["Từ ngày", "Đến ngày"]}
-                />
-                <Button
-                  icon={<FilterOutlined />}
-                  onClick={() => setFilters({})}
-                >
-                  Xóa bộ lọc
-                </Button>
-              </Space>
-            </Col>
           </Row>
         </div>
+
+        <Card style={{ marginBottom: 24 }}>
+          <Row gutter={16} justify="space-around">
+            <Col span={6}>
+              <Statistic
+                title="Tổng số phiếu"
+                value={statistics.totalRequests}
+                valueStyle={{ color: "#1890ff" }}
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic
+                title="Chờ duyệt"
+                value={statistics.pendingRequests}
+                valueStyle={{ color: "#faad14" }}
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic
+                title="Đã xác nhận"
+                value={statistics.approvedRequests}
+                valueStyle={{ color: "#52c41a" }}
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic
+                title="Đã nhập kho"
+                value={statistics.importedRequests}
+                valueStyle={{ color: "#13c2c2" }}
+              />
+            </Col>
+          </Row>
+        </Card>
 
         <Table
           columns={columns}

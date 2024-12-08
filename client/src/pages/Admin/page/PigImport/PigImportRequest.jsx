@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 
-import axiosConfig from "../../../../utils/axiosConfig";
 import {
   Form,
   Input,
@@ -271,14 +270,6 @@ const PigImportRequest = () => {
     }
   };
 
-  // Định nghĩa options cho tình trạng sức khỏe
-  const healthStatusOptions = [
-    { value: "healthy", label: "Khỏe mạnh" },
-    { value: "sick", label: "Bệnh" },
-    { value: "quarantine", label: "Cần kiểm dịch" },
-  ];
-
-  // Thêm style cho cột môi trường
   const additionalStyle = `
     .environment-column {
       min-width: 150px;
@@ -296,7 +287,6 @@ const PigImportRequest = () => {
     }
   `;
 
-  // Cập nhật style
   const style = document.createElement("style");
   style.textContent = `
     .custom-table .ant-table {
@@ -348,7 +338,6 @@ const PigImportRequest = () => {
           quantity: 1,
         }}
       >
-        {/* Statistics Cards */}
         <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
           <Col xs={24} sm={8}>
             <Card style={styles.statsCard}>
@@ -385,9 +374,7 @@ const PigImportRequest = () => {
           </Col>
         </Row>
 
-        {/* Main Content */}
         <Card style={styles.mainCard}>
-          {/* Thông tin chuồng trại */}
           <div style={{ marginBottom: "24px" }}>
             <Title level={4}>
               <HomeOutlined /> Thông tin chuồng trại
@@ -417,7 +404,6 @@ const PigImportRequest = () => {
 
           <Divider />
 
-          {/* Thông tin heo */}
           <div>
             <Title level={4}>
               <InboxOutlined /> Thông tin heo
@@ -474,7 +460,6 @@ const PigImportRequest = () => {
             </Row>
           </div>
 
-          {/* Action Buttons */}
           <Row justify="end" style={{ marginTop: "24px" }}>
             <Space>
               <Button

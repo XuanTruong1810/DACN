@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+/* eslint-disable no-unused-vars */
+/* eslint-disable react/prop-types */
+import { useState, useEffect } from "react";
 import {
   Modal,
   Form,
@@ -12,12 +14,8 @@ import {
   Col,
   Alert,
   Statistic,
-  Descriptions,
   Divider,
-  Tag,
-  Timeline,
-  Avatar,
-  Tooltip,
+  DatePicker,
 } from "antd";
 import {
   DollarOutlined,
@@ -26,12 +24,10 @@ import {
   PhoneOutlined,
   EnvironmentOutlined,
   CheckCircleOutlined,
-  InfoCircleOutlined,
   CalendarOutlined,
   NumberOutlined,
   BankOutlined,
   WarningOutlined,
-  AuditOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -45,6 +41,7 @@ const ApproveRequestModal = ({
   onOk,
   onCancel,
 }) => {
+  console.log(suppliers);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
@@ -52,6 +49,17 @@ const ApproveRequestModal = ({
   const unitPrice = Form.useWatch("unitPrice", form) || 0;
   const deposit = Form.useWatch("deposit", form) || 0;
   const totalAmount = unitPrice * record?.quantity;
+
+  useEffect(() => {
+    if (visible && record) {
+      form.setFieldsValue({
+        requestCode: record.requestCode,
+        supplier: record.supplier,
+        quantity: record.quantity,
+        email: record.email,
+      });
+    }
+  }, [visible, record, form]);
 
   return (
     <Modal
@@ -80,7 +88,7 @@ const ApproveRequestModal = ({
         {/* Thông tin yêu cầu */}
         <Card className="info-section">
           <Row gutter={[24, 24]}>
-            <Col span={8}>
+            <Col span={6}>
               <Statistic
                 title={
                   <>
@@ -91,7 +99,7 @@ const ApproveRequestModal = ({
                 className="custom-statistic"
               />
             </Col>
-            <Col span={8}>
+            <Col span={6}>
               <Statistic
                 title={
                   <>
@@ -107,10 +115,10 @@ const ApproveRequestModal = ({
               <Statistic
                 title={
                   <>
-                    <AuditOutlined /> Loại heo
+                    <UserOutlined /> Người yêu cầu
                   </>
                 }
-                value={record?.pigType}
+                value={record?.requester || "N/A"}
                 className="custom-statistic"
               />
             </Col>
@@ -123,7 +131,16 @@ const ApproveRequestModal = ({
           onFinish={async (values) => {
             try {
               setLoading(true);
-              await onOk(values);
+              const expectedReceiveDate = values.expectedReceiveDate
+                ? values.expectedReceiveDate.hour(0).minute(0).second(0)
+                : null;
+
+              await onOk({
+                ...values,
+                expectedReceiveDate: expectedReceiveDate?.format(
+                  "YYYY-MM-DD HH:mm:ss"
+                ),
+              });
               form.resetFields();
             } finally {
               setLoading(false);
@@ -160,6 +177,7 @@ const ApproveRequestModal = ({
                       form.setFieldsValue({
                         supplierAddress: supplier?.address,
                         supplierPhone: supplier?.phone,
+                        supplierEmail: supplier?.email,
                       });
                     }}
                   />
@@ -169,6 +187,18 @@ const ApproveRequestModal = ({
 
             <Row gutter={16}>
               <Col span={12}>
+                <Form.Item
+                  name="supplierEmail"
+                  label={
+                    <>
+                      <UserOutlined /> Email
+                    </>
+                  }
+                >
+                  <Input disabled />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
                 <Form.Item
                   name="supplierAddress"
                   label={
@@ -180,7 +210,7 @@ const ApproveRequestModal = ({
                   <Input disabled />
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col span={6}>
                 <Form.Item
                   name="supplierPhone"
                   label={
@@ -190,6 +220,51 @@ const ApproveRequestModal = ({
                   }
                 >
                   <Input disabled />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Card>
+
+          {/* Thêm trường ngày dự kiến giao trước phần thanh toán */}
+          <Card
+            title={
+              <Space>
+                <CalendarOutlined />
+                <Text strong>Thông tin giao hàng</Text>
+              </Space>
+            }
+            className="delivery-section"
+          >
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="expectedReceiveDate"
+                  label="Ngày dự kiến nhận"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Vui lòng chọn ngày dự kiến nhận",
+                    },
+                    {
+                      validator: (_, value) => {
+                        if (value && value.isBefore(dayjs(), "day")) {
+                          return Promise.reject(
+                            "Ngày dự kiến nhận không được nhỏ hơn ngày hiện tại"
+                          );
+                        }
+                        return Promise.resolve();
+                      },
+                    },
+                  ]}
+                >
+                  <DatePicker
+                    style={{ width: "100%" }}
+                    format="DD/MM/YYYY"
+                    placeholder="Chọn ngày dự kiến nhận"
+                    disabledDate={(current) => {
+                      return current && current < dayjs().startOf("day");
+                    }}
+                  />
                 </Form.Item>
               </Col>
             </Row>
@@ -214,8 +289,8 @@ const ApproveRequestModal = ({
                     { required: true, message: "Vui lòng nhập đơn giá" },
                     {
                       type: "number",
-                      min: 1,
-                      message: "Đơn giá phải lớn hơn 0",
+                      min: 1000,
+                      message: "Đơn giá phải lớn hơn hoặc bằng 1,000 VNĐ",
                     },
                   ]}
                   tooltip="Đơn giá cho mỗi con heo"
@@ -227,6 +302,8 @@ const ApproveRequestModal = ({
                     }
                     parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
                     placeholder="Nhập đơn giá"
+                    min={1000}
+                    step={1000}
                   />
                 </Form.Item>
               </Col>

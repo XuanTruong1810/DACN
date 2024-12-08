@@ -1,104 +1,185 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   Table,
-  Button,
-  Modal,
-  Form,
   Input,
-  DatePicker,
   Select,
   message,
   Typography,
   Space,
+  Tag,
+  Button,
 } from "antd";
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { SearchOutlined, ReloadOutlined } from "@ant-design/icons";
 import axios from "axios";
-import dayjs from "dayjs";
 
 const { Title } = Typography;
 const { Option } = Select;
 
 const PigsManagement = () => {
   const [pigs, setPigs] = useState([]);
+  const [filteredPigs, setFilteredPigs] = useState([]);
   const [areas, setAreas] = useState([]);
   const [stables, setStables] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingPig, setEditingPig] = useState(null);
-  const [form] = Form.useForm();
   const [filter, setFilter] = useState({
     pageIndex: 1,
     pageSize: 10,
-    search: undefined,
-    areaId: undefined,
-    stableId: undefined,
+    search: "",
+    areaId: null,
+    stableId: null,
   });
+  const [sortedInfo, setSortedInfo] = useState({});
 
-  // Columns cho bảng
   const columns = [
     {
       title: "Mã heo",
       dataIndex: "id",
       key: "id",
-      sorter: true,
+      sorter: (a, b) => a.id - b.id,
+      sortOrder: sortedInfo.columnKey === "id" && sortedInfo.order,
+      render: (id) => <Tag color="purple">{id}</Tag>,
     },
     {
       title: "Khu vực",
       dataIndex: "areaName",
       key: "areaName",
+      render: (areaName) => <Tag color="blue">{areaName}</Tag>,
     },
     {
       title: "Chuồng",
       dataIndex: "stableName",
       key: "stableName",
+      render: (stableName) => <Tag color="cyan">{stableName}</Tag>,
     },
     {
-      title: "Ngày tạo",
+      title: "Cân nặng (kg)",
+      dataIndex: "weight",
+      key: "weight",
+      render: (weight) => (
+        <Tag color="orange">{weight ? `${weight} kg` : "Chưa cân"}</Tag>
+      ),
+    },
+    {
+      title: "Ngày nhập chuồng",
       dataIndex: "createdTime",
       key: "createdTime",
-      render: (text) => new Date(text).toLocaleDateString(),
+      render: (text) => (
+        <Tag color="geekblue">{new Date(text).toLocaleDateString()}</Tag>
+      ),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      filters: [
+        { text: "Còn sống", value: "alive" },
+        { text: "Đã chết", value: "dead" },
+        { text: "Đã bán", value: "sold" },
+      ],
+      onFilter: (value, record) => record.status.toLowerCase() === value,
+      render: (status) => {
+        let color = "green";
+        let text = "Còn sống";
+
+        switch (status?.toLowerCase()) {
+          case "dead":
+            color = "red";
+            text = "Đã chết";
+            break;
+          case "sold":
+            color = "blue";
+            text = "Đã bán";
+            break;
+          case "alive":
+          default:
+            color = "green";
+            text = "Còn sống";
+        }
+
+        return <Tag color={color}>{text}</Tag>;
+      },
     },
   ];
 
-  //Fetch dữ liệu
+  const expandedRowRender = (record) => {
+    const vaccinationColumns = [
+      {
+        title: "Tên vaccine",
+        dataIndex: "medicineName",
+        key: "medicineName",
+      },
+      {
+        title: "Ngày dự kiến",
+        dataIndex: "scheduleDate",
+        key: "scheduleDate",
+        render: (text) =>
+          text ? new Date(text).toLocaleDateString() : "Chưa lên lịch",
+      },
+      {
+        title: "Ngày tiêm",
+        dataIndex: "actualDate",
+        key: "actualDate",
+        render: (text) =>
+          text ? new Date(text).toLocaleDateString() : "Chưa tiêm",
+      },
+      {
+        title: "Trạng thái",
+        dataIndex: "status",
+        key: "status",
+        render: (status) => (
+          <Tag color={status === "completed" ? "green" : "red"}>
+            {status === "completed" ? "Đã tiêm" : "Chưa tiêm"}
+          </Tag>
+        ),
+      },
+    ];
+
+    return (
+      <div style={{ padding: "20px" }}>
+        <Table
+          columns={vaccinationColumns}
+          dataSource={record.pigVaccinations || []}
+          pagination={false}
+          rowKey={(record) => `${record.medicineId}-${record.scheduleDate}`}
+        />
+      </div>
+    );
+  };
+
   const fetchPigs = async () => {
     setLoading(true);
     try {
+      const params = {
+        pageIndex: filter.pageIndex,
+        pageSize: filter.pageSize,
+        ...(filter.areaId && { areaId: filter.areaId }),
+        ...(filter.stableId && { stableId: filter.stableId }),
+      };
+
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/v1/Pigs`,
         {
-          params: filter,
+          params,
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
-      console.log(response.data.data);
-      setPigs(response.data.data.items);
+
+      const sortedPigs = response.data.data.sort((a, b) => {
+        if (a.status === "alive" && b.status !== "alive") return -1;
+        if (a.status !== "alive" && b.status === "alive") return 1;
+        return 0;
+      });
+
+      setPigs(sortedPigs);
+      setFilteredPigs(sortedPigs);
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      message.error("Không thể tải dữ liệu");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Fetch areas và stables
-  const fetchAreas = async () => {
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/v1/areas`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-      console.log(response);
-      setAreas(response.data.data.items);
-    } catch (error) {
-      console.log(error);
-      message.error("Không thể tải danh sách khu vực");
     }
   };
 
@@ -116,158 +197,188 @@ const PigsManagement = () => {
           },
         }
       );
-      console.log(response);
       setStables(response.data.data.items);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       message.error("Không thể tải danh sách chuồng");
     }
   };
 
-  useEffect(() => {
-    const loadData = async () => {
-      await fetchPigs();
-      if (!areas.length) {
-        await fetchAreas();
-      }
-      if (filter.areaId) {
-        await fetchStablesByArea(filter.areaId);
-      }
-    };
-    loadData();
-  }, [
-    filter.pageIndex,
-    filter.pageSize,
-    filter.search,
-    filter.areaId,
-    filter.stableId,
-  ]);
-
-  // Xử lý thêm/sửa
-  const handleSubmit = async (values) => {
+  const fetchPigsByArea = async (areaId) => {
+    setLoading(true);
     try {
-      if (editingPig) {
-        await axios.put(
-          `${import.meta.env.VITE_API_URL}/api/v1/pigs/${editingPig.id}`,
-          values,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-        message.success("Cập nhật thông tin heo thành công");
-      } else {
-        await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/v1/pigs`,
-          values,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-        message.success("Thêm heo mới thành công");
-      }
-      setIsModalVisible(false);
-      form.resetFields();
-      setEditingPig(null);
-      fetchPigs();
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/pigs/area/${areaId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      const sortedPigs = response.data.data.sort((a, b) => {
+        if (a.status === "alive" && b.status !== "alive") return -1;
+        if (a.status !== "alive" && b.status === "alive") return 1;
+        return 0;
+      });
+
+      setPigs(sortedPigs);
+      setFilteredPigs(sortedPigs);
     } catch (error) {
-      message.error("Có lỗi xảy ra");
+      console.error(error);
+      message.error("Không thể tải dữ liệu heo theo khu vực");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Xử lý xóa
-  const handleDelete = (id) => {
-    Modal.confirm({
-      title: "Xác nhận xóa",
-      content: "Bạn có chắc chắn muốn xóa heo này?",
-      okText: "Xóa",
-      cancelText: "Hủy",
-      okButtonProps: { danger: true },
-      onOk: async () => {
-        try {
-          await axios.delete(
-            `${import.meta.env.VITE_API_URL}/api/v1/pigs/${id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
-          message.success("Xóa heo thành công");
-          fetchPigs();
-        } catch (error) {
-          message.error("Có lỗi xảy ra khi xóa");
+  const fetchPigsByStable = async (stableId) => {
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/pigs/house/${stableId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
-      },
-    });
+      );
+
+      const sortedPigs = response.data.data.sort((a, b) => {
+        if (a.status === "alive" && b.status !== "alive") return -1;
+        if (a.status !== "alive" && b.status === "alive") return 1;
+        return 0;
+      });
+
+      setPigs(sortedPigs);
+      setFilteredPigs(sortedPigs);
+    } catch (error) {
+      console.error(error);
+      message.error("Không thể tải dữ liệu heo theo chuồng");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Xử lý sửa
-  const handleEdit = (record) => {
-    setEditingPig(record);
-    form.setFieldsValue({
-      ...record,
-      importDate: dayjs(record.importDate),
-    });
-    setIsModalVisible(true);
-  };
-
-  // Xử lý tìm kiếm
-  const handleSearch = (value) => {
-    setFilter({
-      ...filter,
-      search: value,
-      pageIndex: 1, // Reset về trang 1 khi tìm kiếm
-    });
-  };
-
-  // Xử lý chọn khu vực
   const handleAreaChange = async (value) => {
-    setFilter({
-      ...filter,
-      areaId: value,
-      stableId: undefined, // Reset chuồng khi đổi khu vực
+    setFilter((prev) => ({
+      ...prev,
+      areaId: value || null,
+      stableId: null,
       pageIndex: 1,
-    });
-    await fetchStablesByArea(value);
-    await fetchPigs();
+    }));
+
+    if (value) {
+      await fetchStablesByArea(value);
+      await fetchPigsByArea(value);
+    } else {
+      setStables([]);
+      fetchPigs();
+    }
   };
 
-  // Xử lý chọn chuồng
   const handleStableChange = async (value) => {
-    setFilter({
-      ...filter,
-      stableId: value,
+    setFilter((prev) => ({
+      ...prev,
+      stableId: value || null,
       pageIndex: 1,
+    }));
+
+    if (value) {
+      await fetchPigsByStable(value);
+    } else if (filter.areaId) {
+      await fetchPigsByArea(filter.areaId);
+    } else {
+      fetchPigs();
+    }
+  };
+
+  const fetchAreas = async () => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/areas`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      setAreas(response.data.data.items);
+    } catch (error) {
+      console.error(error);
+      message.error("Không thể tải danh sách khu vực");
+    }
+  };
+
+  useEffect(() => {
+    fetchAreas();
+  }, []);
+
+  useEffect(() => {
+    fetchPigs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSearch = (value) => {
+    setFilter((prev) => ({
+      ...prev,
+      search: value,
+    }));
+
+    if (!value.trim()) {
+      setFilteredPigs(pigs);
+      return;
+    }
+
+    const filtered = pigs.filter((pig) =>
+      pig.id.toString().toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredPigs(filtered);
+  };
+
+  const handleReset = () => {
+    setFilter({
+      pageIndex: 1,
+      pageSize: 10,
+      search: "",
+      areaId: null,
+      stableId: null,
     });
-    await fetchPigs();
+
+    const searchInput = document.querySelector(
+      'input[placeholder="Tìm theo mã heo"]'
+    );
+    if (searchInput) {
+      searchInput.value = "";
+    }
+
+    setFilteredPigs(pigs);
+    setStables([]);
+    fetchPigs();
+  };
+
+  const handleTableChange = (pagination, filters, sorter) => {
+    setSortedInfo(sorter);
+
+    let sortedData = [...filteredPigs];
+
+    if (sorter.columnKey === "id" && sorter.order) {
+      sortedData.sort((a, b) => {
+        if (sorter.order === "ascend") {
+          return a.id - b.id;
+        } else {
+          return b.id - a.id;
+        }
+      });
+    }
+
+    setFilteredPigs(sortedData);
   };
 
   return (
     <div style={{ padding: "24px" }}>
       <Card>
-        <div
-          style={{
-            marginBottom: 16,
-            display: "flex",
-            justifyContent: "space-between",
-          }}
-        >
+        <div style={{ marginBottom: 16 }}>
           <Title level={3}>Quản lý heo</Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingPig(null);
-              form.resetFields();
-              setIsModalVisible(true);
-            }}
-          >
-            Thêm heo mới
-          </Button>
         </div>
 
         <Space style={{ marginBottom: 16 }}>
@@ -276,12 +387,15 @@ const PigsManagement = () => {
             prefix={<SearchOutlined />}
             onChange={(e) => handleSearch(e.target.value)}
             style={{ width: 200 }}
+            allowClear
+            value={filter.search}
           />
           <Select
             placeholder="Chọn khu vực"
             style={{ width: 200 }}
             onChange={handleAreaChange}
             allowClear
+            value={filter.areaId}
           >
             {areas.map((area) => (
               <Option key={area.id} value={area.id}>
@@ -295,6 +409,7 @@ const PigsManagement = () => {
             onChange={handleStableChange}
             disabled={!filter.areaId}
             allowClear
+            value={filter.stableId}
           >
             {stables.map((stable) => (
               <Option key={stable.id} value={stable.id}>
@@ -303,100 +418,30 @@ const PigsManagement = () => {
             ))}
           </Select>
           <Button
+            icon={<ReloadOutlined />}
+            onClick={handleReset}
             type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsModalVisible(true)}
           >
-            Thêm mới
+            Đặt lại
           </Button>
         </Space>
 
         <Table
           columns={columns}
-          dataSource={pigs}
+          dataSource={filteredPigs}
           rowKey="id"
           loading={loading}
+          expandable={{
+            expandedRowRender,
+            expandRowByClick: true,
+          }}
+          onChange={handleTableChange}
           pagination={{
-            total: pigs.length,
+            total: filteredPigs.length,
             pageSize: filter.pageSize,
             onChange: (page) => setFilter({ ...filter, pageIndex: page }),
           }}
         />
-
-        <Modal
-          title={editingPig ? "Cập nhật thông tin heo" : "Thêm heo mới"}
-          open={isModalVisible}
-          onCancel={() => {
-            setIsModalVisible(false);
-            form.resetFields();
-            setEditingPig(null);
-          }}
-          footer={null}
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleSubmit}
-            initialValues={editingPig}
-          >
-            <Form.Item
-              name="pigId"
-              label="Mã heo"
-              rules={[{ required: true, message: "Vui lòng nhập mã heo" }]}
-            >
-              <Input />
-            </Form.Item>
-
-            <Form.Item
-              name="area"
-              label="Khu vực"
-              rules={[{ required: true, message: "Vui lòng chọn khu vực" }]}
-            >
-              <Select placeholder="Chọn khu vực">
-                <Option value="Khu A">Khu A</Option>
-                <Option value="Khu B">Khu B</Option>
-                <Option value="Khu C">Khu C</Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="house"
-              label="Chuồng"
-              rules={[{ required: true, message: "Vui lòng chọn chuồng" }]}
-            >
-              <Select placeholder="Chọn chuồng">
-                <Option value="Chuồng A">Chuồng A</Option>
-                <Option value="Chuồng B">Chuồng B</Option>
-                <Option value="Chuồng C">Chuồng C</Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="importDate"
-              label="Ngày nhập"
-              rules={[{ required: true, message: "Vui lòng chọn ngày nhập" }]}
-            >
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item>
-              <Space style={{ float: "right" }}>
-                <Button
-                  onClick={() => {
-                    setIsModalVisible(false);
-                    form.resetFields();
-                    setEditingPig(null);
-                  }}
-                >
-                  Hủy
-                </Button>
-                <Button type="primary" htmlType="submit">
-                  {editingPig ? "Cập nhật" : "Thêm mới"}
-                </Button>
-              </Space>
-            </Form.Item>
-          </Form>
-        </Modal>
       </Card>
     </div>
   );

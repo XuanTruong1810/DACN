@@ -8,7 +8,7 @@ namespace Application.Interfaces
 {
     public interface IPigIntakeService
     {
-        Task<BasePagination<PigInTakeModelView>> GetAllAsync(int pageIndex, int pageSize, string filter);
+        Task<List<PigInTakeModelView>> GetAllAsync(int pageIndex, int pageSize, string filter);
         Task<PigInTakeModelView> GetPigIntakeByIdAsync(string id);
         Task<PigInTakeModelView> InsertIntakeAsync(PigIntakeInsertDTO dTO);
         Task<PigDeliveryModel> UpdateIntakeAsync(string id, PigIntakeUpdateDTO model);

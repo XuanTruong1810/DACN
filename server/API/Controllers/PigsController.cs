@@ -21,8 +21,8 @@ namespace API.Controllers
         [Authorize]
         public async Task<IActionResult> GetAllAsync([FromQuery] PigFilterDTO filter)
         {
-            BasePagination<PigModelView> pigs = await pigService.GetAllAsync(filter);
-            return Ok(BaseResponse<BasePagination<PigModelView>>.OkResponse(pigs));
+            List<PigInfoModelView> pigs = await pigService.GetAllAsync(filter);
+            return Ok(BaseResponse<List<PigInfoModelView>>.OkResponse(pigs));
         }
 
         [HttpPost]
@@ -45,16 +45,16 @@ namespace API.Controllers
         [Authorize]
         public async Task<IActionResult> GetPigsByAreaAsync(string areaId)
         {
-            List<PigModelView> pigs = await pigService.GetPigsByAreaAsync(areaId);
-            return Ok(BaseResponse<List<PigModelView>>.OkResponse(pigs));
+            List<PigInfoModelView> pigs = await pigService.GetPigsByAreaAsync(areaId);
+            return Ok(BaseResponse<List<PigInfoModelView>>.OkResponse(pigs));
         }
 
         [HttpGet("house/{houseId}")]
         [Authorize]
         public async Task<IActionResult> GetPigsByHouseAsync(string houseId)
         {
-            List<PigModelView> pigs = await pigService.GetPigsByHouseAsync(houseId);
-            return Ok(BaseResponse<List<PigModelView>>.OkResponse(pigs));
+            List<PigInfoModelView> pigs = await pigService.GetPigsByHouseAsync(houseId);
+            return Ok(BaseResponse<List<PigInfoModelView>>.OkResponse(pigs));
         }
 
         [HttpPost("{id}/cancel")]

@@ -9,11 +9,11 @@ namespace Application.Interfaces
 {
     public interface IPigService
     {
-        Task<BasePagination<PigModelView>> GetAllAsync(PigFilterDTO filter);
+        Task<List<PigInfoModelView>> GetAllAsync(PigFilterDTO filter);
         Task<PigModelView> CreateAsync(PigDTO dto);
         Task<PigModelView> GetByIdAsync(string id);
-        Task<List<PigModelView>> GetPigsByAreaAsync(string areaId);
-        Task<List<PigModelView>> GetPigsByHouseAsync(string houseId);
+        Task<List<PigInfoModelView>> GetPigsByAreaAsync(string areaId);
+        Task<List<PigInfoModelView>> GetPigsByHouseAsync(string houseId);
 
         Task<PigCancelModelView> CancelPigAsync(string id, PigCancelDTO dto);
 

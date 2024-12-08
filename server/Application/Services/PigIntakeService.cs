@@ -12,12 +12,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 namespace Application.Services
 {
-    public class PigIntakeService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor httpContextAccessor) : IPigIntakeService
+    public class PigIntakeService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor httpContextAccessor, IEmailService emailService) : IPigIntakeService
     {
         private readonly IUnitOfWork unitOfWork = unitOfWork;
         private readonly IMapper mapper = mapper;
         private readonly IHttpContextAccessor httpContextAccessor = httpContextAccessor;
-        public async Task<BasePagination<PigInTakeModelView>> GetAllAsync(int pageIndex, int pageSize, string? filter)
+        private readonly IEmailService emailService = emailService;
+        public async Task<List<PigInTakeModelView>> GetAllAsync(int pageIndex, int pageSize, string? filter)
         {
             IQueryable<PigIntakes>? pigIntakes = unitOfWork.GetRepository<PigIntakes>().GetEntities;
             if (!string.IsNullOrWhiteSpace(filter))
@@ -36,12 +37,31 @@ namespace Application.Services
                 }
             }
             int totalCount = await pigIntakes.CountAsync();
-            BasePagination<PigIntakes> basePagination = await unitOfWork.GetRepository<PigIntakes>().GetPagination(pigIntakes, pageIndex, pageSize);
 
-            List<PigInTakeModelView>? pigIntakeModels = mapper.Map<List<PigInTakeModelView>>(basePagination.Items.ToList());
+            List<PigInTakeModelView>? result = await pigIntakes
+                .Select(x => new PigInTakeModelView
+                {
+                    Id = x.Id,
+                    SuppliersId = x.SuppliersId,
+                    SuppliersName = x.Suppliers.Name,
+                    UnitPrice = x.UnitPrice ?? 0,
+                    Deposit = x.Deposit ?? 0,
+                    ExpectedQuantity = x.ExpectedQuantity,
+                    AcceptedQuantity = x.AcceptedQuantity.GetValueOrDefault(),
+                    RejectedQuantity = x.RejectedQuantity.GetValueOrDefault(),
+                    ApprovedTime = x.ApprovedTime.GetValueOrDefault(),
+                    DeliveryDate = x.DeliveryDate.GetValueOrDefault(),
+                    StokeDate = x.StokeDate.GetValueOrDefault(),
+                    CreatedTime = x.CreatedTime.GetValueOrDefault(),
+                    CreateBy = x.CreateBy,
+                    CreateByName = unitOfWork.GetRepository<ApplicationUser>().GetEntities
+                        .Where(u => u.Id == x.CreateBy)
+                        .Select(u => u.FullName)
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
 
-            BasePagination<PigInTakeModelView>? paginationResult = new(pigIntakeModels, pageSize, pageIndex, totalCount);
-            return paginationResult;
+            return result;
         }
         public async Task<PigInTakeModelView> GetPigIntakeByIdAsync(string id)
         {
@@ -145,13 +165,162 @@ namespace Application.Services
             mapper.Map(model, pigIntake);
 
             pigIntake.ApprovedTime = DateTimeOffset.UtcNow;
+            pigIntake.DeliveryDate = null;
+            pigIntake.ExpectedReceiveDate = model.ExpectedReceiveDate;
 
             await unitOfWork.GetRepository<PigIntakes>().UpdateAsync(pigIntake);
             await unitOfWork.SaveAsync();
+            string emailBody = $@"
+                <html>
+                <head>
+                    <style>
+                        body {{
+                            font-family: Arial, sans-serif;
+                            line-height: 1.6;
+                            color: #333;
+                            max-width: 800px;
+                            margin: 0 auto;
+                            padding: 20px;
+                        }}
+                        .header {{
+                            text-align: center;
+                            margin-bottom: 30px;
+                        }}
+                        .title {{
+                            color: #1a5f7a;
+                            font-size: 24px;
+                            font-weight: bold;
+                            text-transform: uppercase;
+                            margin-bottom: 10px;
+                        }}
+                        .document-id {{
+                            font-size: 16px;
+                            color: #666;
+                        }}
+                        .content {{
+                            background: #fff;
+                            padding: 30px;
+                            border: 1px solid #ddd;
+                            border-radius: 5px;
+                        }}
+                        .section {{
+                            margin-bottom: 25px;
+                        }}
+                        .section-title {{
+                            font-weight: bold;
+                            color: #1a5f7a;
+                            border-bottom: 2px solid #1a5f7a;
+                            padding-bottom: 5px;
+                            margin-bottom: 15px;
+                        }}
+                        .details-grid {{
+                            display: grid;
+                            grid-template-columns: repeat(2, 1fr);
+                            gap: 15px;
+                        }}
+                        .details-item {{
+                            padding: 8px;
+                            background: #f9f9f9;
+                            border-radius: 4px;
+                        }}
+                        .details-label {{
+                            color: #666;
+                            font-size: 14px;
+                        }}
+                        .details-value {{
+                            font-weight: bold;
+                            color: #333;
+                            font-size: 16px;
+                        }}
+                        .footer {{
+                            margin-top: 30px;
+                            text-align: center;
+                            color: #666;
+                            font-size: 14px;
+                        }}
+                        .company-info {{
+                            margin-top: 20px;
+                            padding-top: 20px;
+                            border-top: 1px solid #ddd;
+                            text-align: center;
+                            font-size: 12px;
+                            color: #999;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class='header'>
+                        <div class='title'>Phiếu Yêu Cầu Nhập Heo</div>
+                        <div class='document-id'>Mã phiếu: {pigIntake.Id}</div>
+                    </div>
+                    
+                    <div class='content'>
+                        <div class='section'>
+                            <div class='section-title'>Thông Tin Chung</div>
+                            <div class='details-grid'>
+                                <div class='details-item'>
+                                    <div class='details-label'>Ngày lập phiếu</div>
+                                    <div class='details-value'>{DateTimeOffset.Now:dd/MM/yyyy}</div>
+                                </div>
+                                <div class='details-item'>
+                                    <div class='details-label'>Trạng thái</div>
+                                    <div class='details-value'>Đã phê duyệt</div>
+                                </div>
+                                <div class='details-item'>
+                                    <div class='details-label'>Ngày dự kiến giao</div>
+                                    <div class='details-value'>{pigIntake.ExpectedReceiveDate:dd/MM/yyyy}</div>
+                                </div>
+                            </div>
+                        </div>
 
+                        <div class='section'>
+                            <div class='section-title'>Chi Tiết Đơn Hàng</div>
+                            <div class='details-grid'>
+                                <div class='details-item'>
+                                    <div class='details-label'>Số lượng dự kiến</div>
+                                    <div class='details-value'>{pigIntake.ExpectedQuantity:N0} con</div>
+                                </div>
+                                <div class='details-item'>
+                                    <div class='details-label'>Đơn giá</div>
+                                    <div class='details-value'>{pigIntake.UnitPrice:N0} VNĐ/con</div>
+                                </div>
+                                <div class='details-item'>
+                                    <div class='details-label'>Tiền cọc</div>
+                                    <div class='details-value'>{pigIntake.Deposit:N0} VNĐ</div>
+                                </div>
+                                <div class='details-item'>
+                                    <div class='details-label'>Tổng tiền</div>
+                                    <div class='details-value'>{pigIntake.ExpectedQuantity * pigIntake.UnitPrice:N0} VNĐ</div>
+                                </div>
+                            </div>
+                        </div>
 
-            /// i want to send email to supplier
+                        <div class='section'>
+                            <div class='section-title'>Ghi Chú</div>
+                            <p>Vui lòng kiểm tra kỹ thông tin trên phiếu yêu cầu. Nếu có bất kỳ thắc mắc nào, xin vui lòng liên hệ với chúng tôi để được giải đáp.</p>
+                        </div>
+                    </div>
 
+                    <div class='footer'>
+                        <p>Phiếu này được tạo tự động từ hệ thống Pig Management.</p>
+                        <p>Vui lòng không trả lời email này.</p>
+                    </div>
+
+                    <div class='company-info'>
+                        <p>© 2024 Pig Management. All rights reserved.</p>
+                        <p>Địa chỉ: 227/13/10 Phạm Đăng Giảng - Bình Hưng Hòa - Bình Tân - TP.HCM</p>
+                        <p>Hotline: 0971758902 | Email: truongtamcobra@gmail.com</p>
+                    </div>
+                </body>
+                </html>";
+
+            Suppliers? supplier = await unitOfWork.GetRepository<Suppliers>().GetByIdAsync(pigIntake.SuppliersId)
+            ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy nhà cung cấp");
+            await emailService.SendEmailAsync(
+                supplier.Email,
+                "Yêu cầu nhập heo",
+                emailBody
+            );
 
             return mapper.Map<PigInTakeModelView>(pigIntake);
 

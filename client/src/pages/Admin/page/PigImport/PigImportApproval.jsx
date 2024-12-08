@@ -9,27 +9,17 @@ import {
   Space,
   Card,
   Typography,
-  Select,
   Badge,
-  InputNumber,
   Tooltip,
-  Dropdown,
   Row,
   Col,
-  Statistic,
   DatePicker,
-  Collapse,
 } from "antd";
 import {
   CheckOutlined,
   CloseOutlined,
   EyeOutlined,
-  MoreOutlined,
-  FilePdfOutlined,
-  FileExcelOutlined,
   DashboardOutlined,
-  FilterOutlined,
-  ReloadOutlined,
   SearchOutlined,
   CalendarOutlined,
 } from "@ant-design/icons";
@@ -37,13 +27,10 @@ import ViewDetailsModal from "./components/ViewDetailsModal";
 import dayjs from "dayjs";
 import axios from "axios";
 import ApproveRequestModal from "./components/ApproveRequestModal";
-import { Text } from "recharts";
 
 const { Title } = Typography;
 const { TextArea } = Input;
-const { Option } = Select;
 const { RangePicker } = DatePicker;
-const { Panel } = Collapse;
 
 const PigImportApproval = () => {
   const [importRequests, setImportRequests] = useState([]);
@@ -54,19 +41,15 @@ const PigImportApproval = () => {
   const [form] = Form.useForm();
   const [approveModalVisible, setApproveModalVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
-  const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState(null);
-  const [dateRange, setDateRange] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [filteredData, setFilteredData] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [filters, setFilters] = useState({
     search: "",
     status: null,
     dateRange: null,
   });
 
-  // Giả lập danh sách nhà cung cấp
-
-  // Thêm hàm fetchRequests để lấy danh sách yêu cầu
   const fetchRequests = async () => {
     try {
       setLoading(true);
@@ -79,17 +62,17 @@ const PigImportApproval = () => {
         }
       );
 
-      // Kiểm tra và đảm bảo response.data.data.items tồn tại
-      const items = response.data?.data?.items || [];
+      console.log("API RESPONSE data");
+      console.log(response.data);
+      const items = response.data?.data || [];
 
-      // Format lại data cho phù hợp với UI
       const formattedRequests = items.map((request) => ({
         id: request.id,
         requestCode: request.id,
         supplier: request.suppliersName,
         requestDate: request.createdTime,
         quantity: request.expectedQuantity,
-        pigType: "Heo thịt", // Mặc định
+        requester: request.createByName,
         status: request.approvedTime
           ? "approved"
           : request.rejectedTime
@@ -110,17 +93,14 @@ const PigImportApproval = () => {
     }
   };
 
-  // Sửa useEffect đ gọi API thật
   useEffect(() => {
     fetchRequests();
   }, []);
 
-  // Thêm useEffect để load danh sách nhà cung cấp khi component mount
   useEffect(() => {
     fetchSuppliers();
   }, []);
 
-  // Thêm hàm fetch suppliers
   const fetchSuppliers = async () => {
     try {
       const response = await axios.get(
@@ -138,6 +118,7 @@ const PigImportApproval = () => {
         label: supplier.name,
         address: supplier.address,
         phone: supplier.phone,
+        email: supplier.email,
       }));
 
       setSuppliers(formattedSuppliers);
@@ -163,34 +144,147 @@ const PigImportApproval = () => {
       dataIndex: "requestCode",
       key: "requestCode",
       width: 120,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm mã yêu cầu"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => confirm()}
+            style={{
+              width: 188,
+              marginBottom: 8,
+              display: "block",
+              height: "32px",
+              lineHeight: "32px",
+              padding: "4px 11px",
+            }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              icon={<SearchOutlined />}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Tìm
+            </Button>
+            <Button
+              onClick={() => clearFilters()}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Đặt lại
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) =>
+        record.requestCode.toLowerCase().includes(value.toLowerCase()),
     },
     {
       title: "Ngày yêu cầu",
       dataIndex: "requestDate",
       key: "requestDate",
-      width: 120,
+      width: 150,
       render: (date) => dayjs(date).format("DD/MM/YYYY"),
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <RangePicker
+            value={selectedKeys[0]}
+            onChange={(dates) => {
+              setSelectedKeys(dates ? [dates] : []);
+            }}
+            onPressEnter={() => confirm()}
+            format="DD/MM/YYYY"
+            style={{
+              marginBottom: 8,
+              width: 250,
+            }}
+            ranges={{
+              "Hôm nay": [dayjs(), dayjs()],
+              "7 ngày qua": [dayjs().subtract(7, "days"), dayjs()],
+              "30 ngày qua": [dayjs().subtract(30, "days"), dayjs()],
+              "Tháng này": [dayjs().startOf("month"), dayjs().endOf("month")],
+            }}
+          />
+          <div>
+            <Space>
+              <Button
+                type="primary"
+                onClick={() => confirm()}
+                size="small"
+                style={{ width: 90 }}
+              >
+                Lọc
+              </Button>
+              <Button
+                onClick={() => {
+                  clearFilters();
+                  confirm();
+                }}
+                size="small"
+                style={{ width: 90 }}
+              >
+                Đặt lại
+              </Button>
+            </Space>
+          </div>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <CalendarOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) => {
+        if (!value || value.length !== 2) return true;
+        const recordDate = dayjs(record.requestDate).startOf("day");
+        const startDate = dayjs(value[0]).startOf("day");
+        const endDate = dayjs(value[1]).endOf("day");
+        return (
+          (recordDate.isAfter(startDate) && recordDate.isBefore(endDate)) ||
+          recordDate.isSame(startDate) ||
+          recordDate.isSame(endDate)
+        );
+      },
       sorter: (a, b) =>
         dayjs(a.requestDate).unix() - dayjs(b.requestDate).unix(),
       defaultSortOrder: "descend",
+    },
+    {
+      title: "Người yêu cầu",
+      dataIndex: "requester",
+      key: "requester",
+      width: 150,
+      render: (requester) => requester || "N/A",
     },
     {
       title: "Nhà cung cấp",
       dataIndex: "supplier",
       key: "supplier",
       width: 150,
-      render: (supplier) => {
-        if (!supplier) {
-          return <Badge status="default" text="Chưa xác nhận" />;
-        }
-        return supplier;
-      },
-    },
-    {
-      title: "Loại heo",
-      dataIndex: "pigType",
-      key: "pigType",
-      width: 120,
+      filters: suppliers.map((supplier) => ({
+        text: supplier.label,
+        value: supplier.label,
+      })),
+      onFilter: (value, record) => record.supplier === value,
+      render: (supplier) =>
+        supplier || <Badge status="default" text="Chưa xác nhận" />,
     },
     {
       title: "Số lượng",
@@ -205,6 +299,12 @@ const PigImportApproval = () => {
       dataIndex: "status",
       key: "status",
       width: 120,
+      filters: [
+        { text: "Chờ duyệt", value: "pending" },
+        { text: "Đã duyệt", value: "approved" },
+        { text: "Từ chối", value: "rejected" },
+      ],
+      onFilter: (value, record) => record.status === value,
       render: (status) => getStatusBadge(status),
     },
     {
@@ -249,12 +349,6 @@ const PigImportApproval = () => {
     },
   ];
 
-  const handleView = (record) => {
-    setSelectedRequest(record);
-    setIsViewModalVisible(true);
-  };
-
-  // Sửa lại hàm handleApprove để xử lý chấp nhận yêu cầu
   const handleApprove = (record) => {
     setSelectedRecord(record);
     setApproveModalVisible(true);
@@ -262,6 +356,10 @@ const PigImportApproval = () => {
 
   const handleApproveSubmit = async (values) => {
     try {
+      const formattedDate = values.expectedReceiveDate
+        ? dayjs(values.expectedReceiveDate).toISOString()
+        : null;
+
       const response = await axios.patch(
         `${import.meta.env.VITE_API_URL}/api/v1/PigIntakes/Accept?id=${
           selectedRecord.id
@@ -271,6 +369,7 @@ const PigImportApproval = () => {
           unitPrice: values.unitPrice,
           deposit: values.deposit,
           note: values.note || "",
+          expectedReceiveDate: formattedDate,
         },
         {
           headers: {
@@ -291,7 +390,6 @@ const PigImportApproval = () => {
     }
   };
 
-  // Sửa lại hàm handleReject để gọi API từ chối
   const handleReject = (record) => {
     Modal.confirm({
       title: "Xác nhận từ chối",
@@ -337,44 +435,8 @@ const PigImportApproval = () => {
       okButtonProps: { danger: true },
     });
   };
-
-  const handleExportPDF = (record) => {
-    console.log(record);
-    message.info("Tính năng đang được phát triển");
-  };
-
-  const handleExportExcel = (record) => {
-    console.log(record);
-    message.info("Tính năng đang được phát triển");
-  };
-
-  const handleSearch = (value) => {
-    setSearchText(value);
-    // Thêm logic search
-  };
-
-  const handleStatusFilter = (value) => {
-    setStatusFilter(value);
-    // Thêm logic filter by status
-  };
-
-  const handleDateRange = (dates) => {
-    setDateRange(dates);
-    // Thêm logic filter by date
-  };
-
-  const handleReset = () => {
-    setSearchText("");
-    setStatusFilter(null);
-    setDateRange(null);
-    fetchRequests();
-  };
-
-  // Hàm xử lý filter data
   const filterData = useCallback(() => {
     let result = [...importRequests];
-
-    // Filter by search text
     if (filters.search) {
       result = result.filter(
         (item) =>
@@ -385,12 +447,10 @@ const PigImportApproval = () => {
       );
     }
 
-    // Filter by status
     if (filters.status) {
       result = result.filter((item) => item.status === filters.status);
     }
 
-    // Filter by date range
     if (filters.dateRange && filters.dateRange[0] && filters.dateRange[1]) {
       result = result.filter((item) => {
         const itemDate = dayjs(item.requestDate);
@@ -404,188 +464,99 @@ const PigImportApproval = () => {
     setFilteredData(result);
   }, [importRequests, filters]);
 
-  // Update filtered data when filters or data change
   useEffect(() => {
     filterData();
   }, [filterData, importRequests, filters]);
 
   return (
     <div className="pig-import-approval">
-      <Card className="stats-card">
-        <Row gutter={[16, 16]}>
+      <Card
+        className="stats-card"
+        style={{ marginBottom: 16, borderRadius: "12px" }}
+      >
+        <Row gutter={[24, 24]}>
           <Col xs={24} sm={12} md={6}>
-            <Statistic
-              title={
-                <Space>
-                  <DashboardOutlined />
-                  <span>Tổng yêu cầu</span>
-                </Space>
-              }
-              value={importRequests.length}
-              className="custom-statistic"
-            />
+            <div className="statistic-card total">
+              <div className="statistic-icon">
+                <DashboardOutlined />
+              </div>
+              <div className="statistic-content">
+                <div className="statistic-title">Tổng số yêu cầu</div>
+                <div className="statistic-value">{importRequests.length}</div>
+              </div>
+            </div>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Statistic
-              title={
-                <Space>
-                  <FilterOutlined />
-                  <span>Chờ duyệt</span>
-                </Space>
-              }
-              value={
-                importRequests.filter((r) => r.status === "pending").length
-              }
-              valueStyle={{ color: "#faad14" }}
-              className="custom-statistic"
-            />
+            <div className="statistic-card pending">
+              <div className="statistic-icon">
+                <CloseOutlined />
+              </div>
+              <div className="statistic-content">
+                <div className="statistic-title">Chờ duyệt</div>
+                <div className="statistic-value">
+                  {
+                    importRequests.filter((req) => req.status === "pending")
+                      .length
+                  }
+                </div>
+              </div>
+            </div>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Statistic
-              title={
-                <Space>
-                  <CheckOutlined />
-                  <span>Đã duyệt</span>
-                </Space>
-              }
-              value={
-                importRequests.filter((r) => r.status === "approved").length
-              }
-              valueStyle={{ color: "#52c41a" }}
-              className="custom-statistic"
-            />
+            <div className="statistic-card approved">
+              <div className="statistic-icon">
+                <CheckOutlined />
+              </div>
+              <div className="statistic-content">
+                <div className="statistic-title">Đã duyệt</div>
+                <div className="statistic-value">
+                  {
+                    importRequests.filter((req) => req.status === "approved")
+                      .length
+                  }
+                </div>
+              </div>
+            </div>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Statistic
-              title={
-                <Space>
-                  <CloseOutlined />
-                  <span>Đã từ chối</span>
-                </Space>
-              }
-              value={
-                importRequests.filter((r) => r.status === "rejected").length
-              }
-              valueStyle={{ color: "#ff4d4f" }}
-              className="custom-statistic"
-            />
+            <div className="statistic-card rejected">
+              <div className="statistic-icon">
+                <CloseOutlined />
+              </div>
+              <div className="statistic-content">
+                <div className="statistic-title">Từ chối</div>
+                <div className="statistic-value">
+                  {
+                    importRequests.filter((req) => req.status === "rejected")
+                      .length
+                  }
+                </div>
+              </div>
+            </div>
           </Col>
         </Row>
       </Card>
 
       <Card className="main-card">
         <div className="card-header">
-          <div className="header-left">
-            <Title level={4}>Danh sách yêu cầu nhập heo</Title>
-            <Text type="secondary">
-              Quản lý và theo dõi các yêu cầu nhập heo
-            </Text>
-          </div>
+          <Title level={4}>Danh sách yêu cầu nhập heo</Title>
         </div>
 
-        <Card className="filter-card">
-          <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} md={7}>
-              <div className="filter-item">
-                <Input
-                  placeholder="Tìm kiếm yêu cầu..."
-                  prefix={<SearchOutlined className="search-icon" />}
-                  value={filters.search}
-                  onChange={(e) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      search: e.target.value,
-                    }))
-                  }
-                  allowClear
-                  className="search-input"
-                />
-              </div>
-            </Col>
-
-            <Col xs={24} md={7}>
-              <div className="filter-item">
-                <Select
-                  allowClear
-                  style={{ width: "100%" }}
-                  placeholder={
-                    <Space>
-                      <FilterOutlined />
-                      <span>Trạng thái</span>
-                    </Space>
-                  }
-                  value={filters.status}
-                  onChange={(value) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      status: value,
-                    }))
-                  }
-                  className="status-select"
-                  dropdownClassName="status-dropdown"
-                >
-                  <Option value="pending">
-                    <Badge status="warning" text="Chờ duyệt" />
-                  </Option>
-                  <Option value="approved">
-                    <Badge status="success" text="Đã duyệt" />
-                  </Option>
-                  <Option value="rejected">
-                    <Badge status="error" text="Đã từ chối" />
-                  </Option>
-                </Select>
-              </div>
-            </Col>
-
-            <Col xs={24} md={7}>
-              <div className="filter-item">
-                <RangePicker
-                  style={{ width: "100%" }}
-                  value={filters.dateRange}
-                  onChange={(dates) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      dateRange: dates,
-                    }))
-                  }
-                  placeholder={["Từ ngày", "Đến ngày"]}
-                  className="date-picker"
-                  format="DD/MM/YYYY"
-                  suffixIcon={<CalendarOutlined />}
-                />
-              </div>
-            </Col>
-
-            <Col xs={24} md={3}>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => {
-                  setFilters({
-                    search: "",
-                    status: null,
-                    dateRange: null,
-                  });
-                  fetchRequests();
-                }}
-                className="reset-button"
-              />
-            </Col>
-          </Row>
-        </Card>
-
         <Table
-          columns={columns}
-          dataSource={filteredData}
+          columns={columns.filter((col) => col.dataIndex !== "pigType")}
+          dataSource={importRequests}
           rowKey="id"
           loading={loading}
           scroll={{ x: 1300 }}
+          rowClassName={(record) =>
+            record.status === "pending" ? "pending-row" : ""
+          }
           pagination={{
             showSizeChanger: true,
             showTotal: (total, range) =>
               `${range[0]}-${range[1]} của ${total} mục`,
             pageSize: 10,
           }}
-          className="data-table"
         />
 
         <ViewDetailsModal
@@ -612,7 +583,6 @@ const PigImportApproval = () => {
   );
 };
 
-// Thêm styles
 const style = document.createElement("style");
 style.textContent = `
   .pig-import-approval {
@@ -903,114 +873,144 @@ style.textContent = `
       padding: 16px;
     }
     
-    .filter-item {
+    .reset-button {
+      width: 100%;
+    }
+  }
+
+  .statistic-card {
+    padding: 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s ease;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .pending-row {
+    background-color: #fffbe6;
+    transition: all 0.3s;
+  }
+
+  .pending-row:hover {
+    background-color: #fff7cc !important;
+  }
+
+  .stats-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .statistic-card {
+    padding: 24px;
+    border-radius: 16px;
+    height: 100%;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .statistic-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  .statistic-card.total {
+    background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+    border-left: 5px solid #096dd9;
+  }
+
+  .statistic-card.pending {
+    background: linear-gradient(135deg, #ffc53d 0%, #faad14 100%);
+    border-left: 5px solid #faad14;
+  }
+
+  .statistic-card.approved {
+    background: linear-gradient(135deg, #73d13d 0%, #52c41a 100%);
+    border-left: 5px solid #52c41a;
+  }
+
+  .statistic-card.rejected {
+    background: linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%);
+    border-left: 5px solid #ff4d4f;
+  }
+
+  .statistic-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    backdrop-filter: blur(8px);
+  }
+
+  .statistic-content {
+    flex: 1;
+  }
+
+  .statistic-title {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 15px;
+    margin-bottom: 8px;
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .statistic-value {
+    color: white;
+    font-size: 28px;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  @media (max-width: 768px) {
+    .statistic-card {
       margin-bottom: 16px;
     }
   }
 
-  .filter-card {
-    margin-bottom: 24px;
-    border: 1px solid #f0f0f0;
-    border-radius: 8px;
-    background: #fff;
+  .statistic-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
 
-  .filter-item {
-    width: 100%;
+  .statistic-card:hover::before {
+    opacity: 1;
   }
 
-  .search-input {
-    height: 36px;
+  .statistic-card::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+    opacity: 0;
+    transform: rotate(30deg);
+    transition: opacity 0.3s ease;
   }
 
-  .search-input .ant-input {
-    height: 36px;
-    padding: 4px 11px 4px 40px;
-    border-radius: 6px;
-    border: 1px solid #d9d9d9;
-    transition: all 0.2s;
-  }
-
-  .search-input .ant-input:hover,
-  .status-select:hover .ant-select-selector,
-  .date-picker:hover {
-    border-color: #40a9ff !important;
-  }
-
-  .search-input .ant-input:focus,
-  .status-select .ant-select-focused .ant-select-selector,
-  .date-picker-focused {
-    border-color: #40a9ff !important;
-    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1) !important;
-  }
-
-  .search-icon {
-    color: #bfbfbf;
-    font-size: 14px;
-  }
-
-  .status-select .ant-select-selector {
-    height: 36px !important;
-    padding: 4px 11px !important;
-    border-radius: 6px !important;
-    display: flex;
-    align-items: center;
-  }
-
-  .status-dropdown .ant-select-item {
-    padding: 8px 12px;
-    min-height: 32px;
-    display: flex;
-    align-items: center;
-  }
-
-  .date-picker {
-    height: 36px;
-    border-radius: 6px;
-  }
-
-  .date-picker .ant-picker-input > input {
-    font-size: 14px;
-  }
-
-  .reset-button {
-    height: 36px;
-    width: 36px;
-    padding: 0;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #8c8c8c;
-    border: 1px solid #d9d9d9;
-    background: transparent;
-    transition: all 0.2s;
-  }
-
-  .reset-button:hover {
-    color: #40a9ff;
-    border-color: #40a9ff;
-    background: rgba(24, 144, 255, 0.1);
-  }
-
-  .ant-badge-status-dot {
-    width: 6px;
-    height: 6px;
-  }
-
-  .ant-badge-status-text {
-    font-size: 14px;
-    margin-left: 8px;
-  }
-
-  @media (max-width: 768px) {
-    .filter-card {
-      padding: 12px;
-    }
-    
-    .reset-button {
-      width: 100%;
-    }
+  .statistic-card:hover::after {
+    opacity: 1;
   }
 `;
 document.head.appendChild(style);

@@ -13,7 +13,6 @@ namespace API.Controllers
         private readonly ISupplierService supplierService = supplierService;
 
         [HttpGet]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Get([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10,
             [FromQuery] string? searchTerm = null,
             [FromQuery] string[]? typeSuppliers = null,
@@ -29,7 +28,6 @@ namespace API.Controllers
             return Ok(BaseResponse<BasePagination<SupplierModelView>>.OkResponse(data));
         }
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetById(string id)
         {
             SupplierModelView? data = await supplierService.GetSupplierByIdAsync(id);
