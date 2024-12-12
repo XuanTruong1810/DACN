@@ -6,6 +6,7 @@ public class FoodImportRequestModelView
 {
     public string Id { get; set; }
     public string CreatedById { get; set; }
+    public string CreatedByName { get; set; }
     public DateTimeOffset CreatedTime { get; set; }
     public string Note { get; set; }
     public string Status { get; set; }

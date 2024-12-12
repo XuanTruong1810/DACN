@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+/* eslint-disable no-unused-vars */
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   Table,
@@ -15,19 +16,18 @@ import {
   DatePicker,
   Tooltip,
   Form,
+  Alert,
+  Input,
 } from "antd";
 import {
-  EyeOutlined,
   ShopOutlined,
   WarningOutlined,
   DeleteOutlined,
-  ExclamationCircleFilled,
-  InfoCircleFilled,
-  PrinterOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import moment from "moment";
 import dayjs from "dayjs";
+import "./styles/FoodImportApproval.css";
 
 const { Text, Title } = Typography;
 const { Option } = Select;
@@ -66,7 +66,10 @@ const FoodImportApproval = () => {
   const [commonSupplier, setCommonSupplier] = useState(null);
   const [deliveryDates, setDeliveryDates] = useState({});
   const [approving, setApproving] = useState(false);
-  const [groupDeposits, setGroupDeposits] = useState({});
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmNote, setConfirmNote] = useState("");
+  const [itemNotes, setItemNotes] = useState({});
+  const [generalNote, setGeneralNote] = useState("");
 
   // Lấy token từ localStorage
   const token = localStorage.getItem("token");
@@ -82,8 +85,8 @@ const FoodImportApproval = () => {
     setLoading(true);
     try {
       const response = await axiosClient.get("/api/FoodImportRequest");
-      console.log(response.data.data.items);
-      setRequests(response.data.data.items);
+      console.log("response data ", response.data.data);
+      setRequests(response.data.data);
     } catch (error) {
       message.error("Lỗi khi tải danh sách phiếu đề xuất");
     }
@@ -113,6 +116,7 @@ const FoodImportApproval = () => {
         `/api/FoodImportRequest/${requestId}`
       );
       const requestData = response.data.data;
+      console.log("response", requestData);
 
       // Map data từ details của response
       const details = requestData.details.map((detail) => ({
@@ -153,82 +157,63 @@ const FoodImportApproval = () => {
     }));
   };
 
-  const handleApprove = async () => {
-    // Kiểm tra validate
+  // Hàm xử lý ghi chú trước khi gửi xuống server
+  const processNotes = () => {
     const groupedDetails = groupDetailsBySupplier();
-    const hasInvalidData = Object.values(groupedDetails.assigned).some(
-      (group) => {
-        // Kiểm tra ngày giao
-        if (!deliveryDates[group.supplierId]) {
-          message.error(
-            `Vui lòng chọn ngày giao cho nhà cung cấp ${group.supplierName}`
-          );
-          return true;
-        }
+    const processedNotes = {};
 
-        // Kiểm tra tiền cọc
-        if (!selectedDetails[`group_${group.supplierId}`]?.deposit) {
-          message.error(
-            `Vui lòng nhập tiền cọc cho nhà cung cấp ${group.supplierName}`
-          );
-          return true;
-        }
+    groupedDetails.unassigned.forEach((item) => {
+      // Nếu sản phẩm có ghi chú riêng thì ưu tiên ghi chú riêng
+      // Nếu không có ghi chú riêng thì sử dụng ghi chú tổng
+      processedNotes[item.id] =
+        itemNotes[item.id]?.trim() || generalNote.trim();
+    });
 
-        // Kiểm tra đơn giá
-        const hasInvalidPrice = group.items.some((item) => {
-          if (!selectedDetails[item.id]?.price) {
-            message.error(
-              `Vui lòng nhập đơn giá cho sản phẩm ${item.foodName}`
-            );
-            return true;
-          }
-          return false;
-        });
+    return processedNotes;
+  };
 
-        return hasInvalidPrice;
-      }
-    );
-
-    if (hasInvalidData) return;
-
+  // Cập nhật hàm handleApprove để sử dụng ghi chú đã xử lý
+  const handleApprove = async () => {
     try {
       setApproving(true);
-      const importRequests = Object.values(groupedDetails.assigned).map(
-        (group) => ({
-          requestId: selectedRequest.id,
-          supplierId: group.supplierId,
-          expectedDeliveryTime: deliveryDates[group.supplierId],
-          depositAmount: selectedDetails[`group_${group.supplierId}`].deposit,
-          note: `Phiếu nhập từ đề xuất ${selectedRequest.id}`,
-          details: group.items.map((item) => ({
-            foodId: item.foodId,
-            unitPrice: selectedDetails[item.id].price,
-            expectedQuantity: item.expectedQuantity,
-          })),
-        })
-      );
+      const groupedDetails = groupDetailsBySupplier();
+      const processedNotes = processNotes();
 
-      // Gọi API xét duyệt
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/FoodImport`,
-        importRequests,
+      // Tạo phiếu nhập cho từng nhà cung cấp
+      for (const group of Object.values(groupedDetails.assigned)) {
+        await handleCreateImport(group);
+      }
+
+      // Gửi thông tin các sản phẩm bị hủy kèm ghi chú
+      await axiosClient.post(
+        `/api/FoodImportRequest/${selectedRequest.id}/reject-items`,
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          params: {
-            requestId: selectedRequest.id,
-          },
+          rejectedItems: groupedDetails.unassigned.map((item) => ({
+            foodId: item.id,
+            note: processedNotes[item.id],
+          })),
         }
       );
 
-      message.success("Xét duyệt thành công");
-      setShowDetail(false);
-      getRequests();
+      // Cập nhật trạng thái phiếu đề xuất
+      const response = await axiosClient.put(
+        `/api/FoodImportRequest/${selectedRequest.id}/approve`,
+        null
+      );
+
+      if (response.status === 200) {
+        message.success("Xét duyệt phiếu đề xuất thành công");
+        setShowConfirmModal(false);
+        setShowDetail(false);
+        setItemNotes({});
+        setGeneralNote("");
+        getRequests(); // Refresh danh sách
+      }
     } catch (error) {
-      console.error("Error approving:", error);
+      console.error("Error approving request:", error);
       message.error(
-        error.response?.data?.message || "Có lỗi xảy ra khi xét duyệt"
+        error.response?.data?.message ||
+          "Có lỗi xảy ra khi xét duyệt phiếu đề xuất"
       );
     } finally {
       setApproving(false);
@@ -293,6 +278,9 @@ const FoodImportApproval = () => {
             supplierId: selectedSupplier,
             supplierName: supplier?.name || "",
             supplier: supplier,
+            supplierAddress: supplier?.address || "",
+            supplierPhone: supplier?.phone || "",
+            supplierEmail: supplier?.email || "",
             items: [],
           };
         }
@@ -373,10 +361,16 @@ const FoodImportApproval = () => {
 
   // Thêm handler cho việc thay đổi tiền cọc
   const handleGroupDepositChange = (supplierId, value) => {
-    const group = Object.values(groupedDetails.assigned).find(
-      (g) => g.supplierId === supplierId
+    console.log("Handling deposit change:", supplierId, value);
+
+    // Tính toán tổng tiền trực tiếp từ requestDetails và selectedDetails
+    const groupItems = requestDetails.filter(
+      (item) => selectedDetails[item.id]?.supplierId === supplierId
     );
-    const totalAmount = calculateGroupTotal(group.items);
+    const totalAmount = groupItems.reduce((sum, item) => {
+      const price = selectedDetails[item.id]?.price || 0;
+      return sum + price * item.expectedQuantity;
+    }, 0);
 
     if (value > totalAmount) {
       message.error(
@@ -385,13 +379,17 @@ const FoodImportApproval = () => {
       return;
     }
 
-    setSelectedDetails((prev) => ({
-      ...prev,
-      [`group_${supplierId}`]: {
-        ...prev[`group_${supplierId}`],
-        deposit: value,
-      },
-    }));
+    setSelectedDetails((prev) => {
+      const newState = {
+        ...prev,
+        [`group_${supplierId}`]: {
+          ...prev[`group_${supplierId}`],
+          deposit: value,
+        },
+      };
+      console.log("New state after deposit change:", newState);
+      return newState;
+    });
   };
 
   // Columns cho bảng chi tiết
@@ -417,6 +415,7 @@ const FoodImportApproval = () => {
       width: 120,
       render: (value) => `${value.toLocaleString()} kg`,
     },
+
     {
       title: "Đơn giá",
       width: 150,
@@ -516,363 +515,28 @@ const FoodImportApproval = () => {
           <Card
             key={group.supplierId}
             title={
-              <Space>
-                <ShopOutlined />
-                <Text strong>{group.supplierName}</Text>
-                <Tag color="success">{group.items.length} sản phẩm</Tag>
-              </Space>
-            }
-            style={{ marginBottom: 16 }}
-          >
-            <Row gutter={[16, 16]}>
-              <Col span={24}>
-                <Space direction="vertical" style={{ width: "100%" }}>
-                  <Row gutter={32} align="middle">
-                    <Col span={12}>
-                      <Form.Item
-                        label={<Text strong>Ngày giao dự kiến</Text>}
-                        required
-                        validateStatus={
-                          !deliveryDates[group.supplierId] ? "error" : ""
-                        }
-                        style={{ marginBottom: 0 }}
-                      >
-                        <DatePicker
-                          className="w-full"
-                          format="DD/MM/YYYY"
-                          value={deliveryDates[group.supplierId]}
-                          onChange={(date) =>
-                            setDeliveryDates((prev) => ({
-                              ...prev,
-                              [group.supplierId]: date,
-                            }))
-                          }
-                          disabledDate={(current) => {
-                            return current && current < moment().startOf("day");
-                          }}
-                          placeholder="Chọn ngày giao"
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Space>
-                        <Text strong>Tiền cọc:</Text>
-                        <Form.Item
-                          style={{ marginBottom: 0 }}
-                          validateStatus={
-                            !selectedDetails[`group_${group.supplierId}`]
-                              ?.deposit
-                              ? "error"
-                              : ""
-                          }
-                          required
-                        >
-                          <InputNumber
-                            style={{ width: 200 }}
-                            min={0}
-                            max={calculateGroupTotal(group.items)}
-                            value={
-                              selectedDetails[`group_${group.supplierId}`]
-                                ?.deposit
-                            }
-                            onChange={(value) =>
-                              handleGroupDepositChange(group.supplierId, value)
-                            }
-                            formatter={(value) =>
-                              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                            }
-                            parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-                            addonAfter="đ"
-                          />
-                        </Form.Item>
-                        <Text type="secondary">
-                          (Tối đa:{" "}
-                          {calculateGroupTotal(group.items).toLocaleString()}đ)
-                        </Text>
-                      </Space>
-                    </Col>
-                  </Row>
+              <Space direction="vertical">
+                <Space>
+                  <ShopOutlined />
+                  <Text strong>{group.supplierName}</Text>
+                  <Tag color="success">{group.items.length} sản phẩm</Tag>
                 </Space>
-              </Col>
-            </Row>
-
-            <Table
-              columns={detailColumns}
-              dataSource={group.items}
-              pagination={false}
-              rowKey="id"
-              bordered
-            />
-          </Card>
-        ))}
-
-        {/* Phần chưa chọn nhà cung cấp giữ nguyên */}
-        {groupedDetails.unassigned.length > 0 && (
-          <Card
-            title={
-              <Space>
-                <WarningOutlined style={{ color: "#faad14" }} />
-                <Text strong>Chưa chọn nhà cung cấp</Text>
-                <Tag color="warning">
-                  {groupedDetails.unassigned.length} sản phẩm
-                </Tag>
-              </Space>
-            }
-            style={{ marginBottom: 16 }}
-          >
-            <Table
-              columns={unassignedColumns}
-              dataSource={groupedDetails.unassigned}
-              pagination={false}
-              rowKey="id"
-              bordered
-            />
-          </Card>
-        )}
-      </div>
-    );
-  };
-
-  const calculateTotal = () => {
-    if (!Array.isArray(requestDetails)) return 0;
-
-    return requestDetails.reduce((sum, detail) => {
-      const price = selectedDetails[detail.id]?.price || 0;
-      return sum + price * detail.expectedQuantity;
-    }, 0);
-  };
-
-  const calculateTotalDeposit = () => {
-    if (!Array.isArray(requestDetails)) return 0;
-
-    return requestDetails.reduce((sum, detail) => {
-      return sum + (selectedDetails[detail.id]?.deposit || 0);
-    }, 0);
-  };
-
-  const isValidForApproval = () => {
-    const groupedDetails = groupDetailsBySupplier();
-
-    // Kiểm tra còn sản phẩm chưa chọn nhà cung cấp
-    if (groupedDetails.unassigned.length > 0) {
-      return false;
-    }
-
-    // Kiểm tra từng nhóm
-    return Object.values(groupedDetails.assigned).every((group) => {
-      // Kiểm tra đã chọn ngày giao
-      if (!deliveryDates[group.supplierId]) {
-        return false;
-      }
-
-      // Kiểm tra tất cả sản phẩm trong nhóm
-      return group.items.every((item) => {
-        const detail = selectedDetails[item.id];
-        // Kiểm tra đơn giá và tiền cọc
-        if (!detail?.price || detail.price <= 0) {
-          return false;
-        }
-        if (detail.deposit < 0) {
-          return false;
-        }
-        return true;
-      });
-    });
-  };
-
-  // Thêm styles
-  const styles = {
-    card: {
-      borderRadius: 8,
-      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: "bold",
-      marginBottom: 20,
-    },
-    table: {
-      ".ant-table-thead > tr > th": {
-        backgroundColor: "#f5f5f5",
-        fontWeight: "bold",
-      },
-    },
-    modal: {
-      ".ant-modal-header": {
-        borderBottom: "1px solid #f0f0f0",
-        padding: "16px 24px",
-      },
-      ".ant-modal-title": {
-        fontSize: 20,
-        fontWeight: "bold",
-      },
-      ".ant-modal-body": {
-        padding: "24px",
-      },
-    },
-    tag: {
-      fontSize: 14,
-      padding: "4px 12px",
-    },
-    button: {
-      height: 40,
-      padding: "0 20px",
-      fontSize: 16,
-    },
-    summary: {
-      backgroundColor: "#f5f5f5",
-      padding: "16px 24px",
-      borderRadius: 8,
-      marginBottom: 16,
-    },
-    supplierInfo: {
-      background: "#fafafa",
-      padding: "12px 24px",
-      borderRadius: 8,
-      marginBottom: 16,
-      border: "1px solid #f0f0f0",
-    },
-    infoLabel: {
-      color: "#8c8c8c",
-      marginBottom: 4,
-    },
-    infoValue: {
-      fontWeight: 500,
-    },
-  };
-
-  // Thêm vào đầu component, sau phần khai báo states
-  const requestColumns = [
-    {
-      title: "Mã phiếu",
-      dataIndex: "id",
-      key: "id",
-      width: 150,
-    },
-    {
-      title: "Ngày tạo",
-      dataIndex: "createdTime",
-      key: "createdTime",
-      width: 180,
-      render: (text) => new Date(text).toLocaleString(),
-    },
-    {
-      title: "Ghi chú",
-      dataIndex: "note",
-      key: "note",
-      width: 250,
-    },
-    {
-      title: "Trạng thái",
-      key: "status",
-      width: 150,
-      render: (_, record) => (
-        <Tag
-          color={record.status === "pending" ? "processing" : "success"}
-          style={styles.tag}
-        >
-          {record.status === "pending" ? "Đợi xét duyệt" : "Đã xét duyệt"}
-        </Tag>
-      ),
-    },
-    {
-      title: "Thao tác",
-      key: "action",
-      width: 200,
-      render: (_, record) => (
-        <Space>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => {
-              setSelectedRequest(record);
-              getRequestDetails(record.id);
-              setShowDetail(true);
-            }}
-          >
-            Chi tiết
-          </Button>
-          <Button
-            icon={<PrinterOutlined />}
-            onClick={() => handlePrintRequest(record)}
-          >
-            In phiếu
-          </Button>
-        </Space>
-      ),
-    },
-  ];
-
-  // Render Modal
-  const renderDetailModal = () => {
-    const groupedDetails = groupDetailsBySupplier();
-
-    return (
-      <Modal
-        title={
-          <Space>
-            <Title level={4} style={{ margin: 0 }}>
-              Chi tiết phiếu đề xuất #{selectedRequest?.id}
-            </Title>
-            <Tag
-              color={
-                selectedRequest?.status === "pending" ? "processing" : "success"
-              }
-            >
-              {selectedRequest?.status === "pending"
-                ? "Đợi xét duyệt"
-                : "Đã xét duyệt"}
-            </Tag>
-          </Space>
-        }
-        open={showDetail}
-        onCancel={() => setShowDetail(false)}
-        width={1400}
-        style={styles.modal}
-        footer={null}
-      >
-        {/* Thông tin chung */}
-        <div style={styles.summary}>
-          <Row gutter={24}>
-            <Col span={8}>
-              <Text type="secondary">Người tạo:</Text>
-              <div>
-                <Text strong>{selectedRequest?.createdBy}</Text>
-              </div>
-            </Col>
-            <Col span={8}>
-              <Text type="secondary">Ngày tạo:</Text>
-              <div>
-                <Text strong>
-                  {selectedRequest?.createdTime &&
-                    new Date(selectedRequest.createdTime).toLocaleString()}
+                <Text type="secondary">Địa chỉ: {group.supplierAddress}</Text>
+                <Text type="secondary">
+                  Số điện thoại: {group.supplierPhone}
                 </Text>
-              </div>
-            </Col>
-            <Col span={8}>
-              <Text type="secondary">Ghi chú:</Text>
-              <div>
-                <Text strong>{selectedRequest?.note}</Text>
-              </div>
-            </Col>
-          </Row>
-        </div>
-
-        {/* Render các nhóm đã chọn nhà cung cấp */}
-        {Object.values(groupedDetails.assigned).map((group) => (
-          <Card
-            key={group.supplierId}
-            title={
-              <Space>
-                <ShopOutlined />
-                <Text strong>{group.supplierName}</Text>
-                <Tag color="success">{group.items.length} sản phẩm</Tag>
+                <Text type="secondary">Email: {group.supplierEmail}</Text>
               </Space>
             }
             style={{ marginBottom: 16 }}
           >
-            <Row gutter={[16, 16]}>
+            <Row gutter={[16, 24]}>
               <Col span={24}>
-                <Space direction="vertical" style={{ width: "100%" }}>
+                <Space
+                  direction="vertical"
+                  size="large"
+                  style={{ width: "100%" }}
+                >
                   <Row gutter={32} align="middle">
                     <Col span={12}>
                       <Form.Item
@@ -881,7 +545,7 @@ const FoodImportApproval = () => {
                         validateStatus={
                           !deliveryDates[group.supplierId] ? "error" : ""
                         }
-                        style={{ marginBottom: 0 }}
+                        style={{ marginBottom: 24 }}
                       >
                         <DatePicker
                           className="w-full"
@@ -901,7 +565,7 @@ const FoodImportApproval = () => {
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Space>
+                      <Space style={{ marginBottom: 24 }}>
                         <Text strong>Tiền cọc:</Text>
                         <Form.Item
                           style={{ marginBottom: 0 }}
@@ -966,6 +630,539 @@ const FoodImportApproval = () => {
             }
             style={{ marginBottom: 16 }}
           >
+            <Alert
+              message="Lưu ý"
+              description="Những sản phẩm không được chọn nhà cung cấp sẽ bị hủy sau khi xét duyệt"
+              type="warning"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+            <Table
+              columns={unassignedColumns}
+              dataSource={groupedDetails.unassigned}
+              pagination={false}
+              rowKey="id"
+              bordered
+            />
+          </Card>
+        )}
+      </div>
+    );
+  };
+
+  const calculateTotal = () => {
+    if (!Array.isArray(requestDetails)) return 0;
+
+    return requestDetails.reduce((sum, detail) => {
+      const price = selectedDetails[detail.id]?.price || 0;
+      return sum + price * detail.expectedQuantity;
+    }, 0);
+  };
+
+  const calculateTotalDeposit = () => {
+    if (!Array.isArray(requestDetails)) return 0;
+
+    return requestDetails.reduce((sum, detail) => {
+      return sum + (selectedDetails[detail.id]?.deposit || 0);
+    }, 0);
+  };
+
+  const isValidForApproval = () => {
+    const groupedDetails = groupDetailsBySupplier();
+
+    // Kiểm tra từng nhóm đã chọn nhà cung cấp
+    return Object.values(groupedDetails.assigned).every((group) => {
+      // Kiểm tra đã chọn ngày giao
+      if (!deliveryDates[group.supplierId]) {
+        return false;
+      }
+
+      // Kiểm tra tất cả sản phẩm trong nhóm
+      return group.items.every((item) => {
+        const detail = selectedDetails[item.id];
+        // Kiểm tra đơn giá và tiền cọc
+        if (!detail?.price || detail.price <= 0) {
+          return false;
+        }
+        if (detail.deposit < 0) {
+          return false;
+        }
+        return true;
+      });
+    });
+  };
+
+  // Thêm styles
+  const styles = {
+    card: {
+      borderRadius: 8,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: "bold",
+      marginBottom: 20,
+    },
+    table: {
+      "& .ant-table-thead > tr > th": {
+        backgroundColor: "#f5f5f5",
+        fontWeight: "bold",
+      },
+    },
+    modal: {
+      ".ant-modal-header": {
+        borderBottom: "1px solid #f0f0f0",
+        padding: "16px 24px",
+      },
+      ".ant-modal-title": {
+        fontSize: 20,
+        fontWeight: "bold",
+      },
+      ".ant-modal-body": {
+        padding: "24px",
+      },
+    },
+    tag: {
+      fontSize: 14,
+      padding: "4px 12px",
+    },
+    button: {
+      height: 40,
+      padding: "0 20px",
+      fontSize: 16,
+    },
+    summary: {
+      backgroundColor: "#f5f5f5",
+      padding: "16px 24px",
+      borderRadius: 8,
+      marginBottom: 16,
+    },
+    supplierInfo: {
+      background: "#fafafa",
+      padding: "12px 24px",
+      borderRadius: 8,
+      marginBottom: 16,
+      border: "1px solid #f0f0f0",
+    },
+    infoLabel: {
+      color: "#8c8c8c",
+      marginBottom: 4,
+    },
+    infoValue: {
+      fontWeight: 500,
+    },
+  };
+
+  // Thêm vào đầu component, sau phần khai báo states
+  const requestColumns = [
+    {
+      title: "Mã phiếu",
+      dataIndex: "id",
+      key: "id",
+      width: 150,
+    },
+    {
+      title: "Ngày tạo",
+      dataIndex: "createdTime",
+      key: "createdTime",
+      width: 180,
+      render: (text) => new Date(text).toLocaleString(),
+    },
+    {
+      title: "Người yêu cầu",
+      dataIndex: "createdByName",
+      key: "createdByName",
+      width: 250,
+    },
+    {
+      title: "Ghi chú",
+      dataIndex: "note",
+      key: "note",
+      width: 250,
+    },
+    {
+      title: "Trạng thái",
+      key: "status",
+      width: 150,
+      render: (_, record) => (
+        <Tag
+          color={record.status === "pending" ? "processing" : "success"}
+          style={styles.tag}
+        >
+          {record.status === "pending" ? "Đợi xét duyệt" : "Đã xét duyệt"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      width: 120,
+      render: (_, record) => (
+        <Button
+          type="primary"
+          size="small"
+          onClick={() => handleViewDetail(record)}
+        >
+          Xét duyệt
+        </Button>
+      ),
+    },
+  ];
+
+  // Thêm hàm xử lý khi click nút xét duyệt
+  const handleApproveClick = () => {
+    const groupedDetails = groupDetailsBySupplier();
+
+    if (groupedDetails.unassigned.length > 0) {
+      setShowConfirmModal(true);
+    } else {
+      handleApprove();
+    }
+  };
+
+  // Hàm kiểm tra điều kiện enable nút xác nhận
+  const isValidForConfirm = () => {
+    const groupedDetails = groupDetailsBySupplier();
+
+    // Kiểm tra từng sản phẩm chưa chọn
+    const hasValidNotes = groupedDetails.unassigned.every((item) => {
+      // Nếu sản phẩm có ghi chú riêng thì kiểm tra ghi chú riêng
+      if (itemNotes[item.id]?.trim()) {
+        return true;
+      }
+      // Nếu không có ghi chú riêng thì kiểm tra có ghi chú tổng không
+      return generalNote.trim() !== "";
+    });
+
+    return hasValidNotes;
+  };
+
+  // Cập nhật render Modal
+  const renderConfirmModal = () => {
+    const groupedDetails = groupDetailsBySupplier();
+
+    const columns = [
+      {
+        title: "Tên sản phẩm",
+        dataIndex: "foodName",
+        key: "foodName",
+        width: "25%",
+      },
+      {
+        title: "Số lượng (kg)",
+        dataIndex: "expectedQuantity",
+        key: "expectedQuantity",
+        width: "15%",
+      },
+      {
+        title: "Người tạo",
+        dataIndex: "createdByName",
+        key: "createdByName",
+        width: "15%",
+      },
+      {
+        title: "Ghi chú",
+        key: "note",
+        width: "45%",
+        render: (_, record) => (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <Text strong style={{ marginBottom: 8 }}>
+              Ghi chú:
+            </Text>
+            <Input.TextArea
+              rows={2}
+              value={itemNotes[record.id] || ""}
+              onChange={(e) => {
+                setItemNotes((prev) => ({
+                  ...prev,
+                  [record.id]: e.target.value,
+                }));
+              }}
+              placeholder="Nhập ghi chú cho sản phẩm này..."
+            />
+          </div>
+        ),
+      },
+    ];
+
+    return (
+      <Modal
+        title={
+          <Space>
+            <WarningOutlined style={{ color: "#faad14" }} />
+            <Text strong>Xác nhận xét duyệt</Text>
+          </Space>
+        }
+        open={showConfirmModal}
+        onCancel={() => {
+          setShowConfirmModal(false);
+          setItemNotes({});
+          setGeneralNote("");
+        }}
+        width={1000}
+        footer={[
+          <Button
+            key="back"
+            onClick={() => {
+              setShowConfirmModal(false);
+              setItemNotes({});
+              setGeneralNote("");
+            }}
+          >
+            Quay lại
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            onClick={() => {
+              setShowConfirmModal(false);
+              handleApprove();
+            }}
+            disabled={!isValidForConfirm()} // Sử dụng hàm kiểm tra mới
+          >
+            Xác nhận xét duyệt
+          </Button>,
+        ]}
+      >
+        <Alert
+          message="Lưu ý quan trọng"
+          description={
+            <div>
+              <p>Các sản phẩm sau sẽ bị hủy do chưa chọn nhà cung cấp:</p>
+              <p>
+                - Tổng số sản phẩm bị hủy: {groupedDetails.unassigned.length}
+              </p>
+              <p>
+                - Vui lòng kiểm tra và ghi chú cho từng sản phẩm trước khi xác
+                nhận
+              </p>
+            </div>
+          }
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+
+        {/* Ghi chú tổng */}
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            Ghi chú tổng:
+          </Text>
+          <Input.TextArea
+            rows={4}
+            value={generalNote}
+            onChange={(e) => setGeneralNote(e.target.value)}
+            placeholder="Nhập ghi chú tổng cho việc hủy các sản phẩm..."
+            required
+          />
+        </div>
+
+        <Table
+          columns={columns}
+          dataSource={groupedDetails.unassigned}
+          pagination={false}
+          size="middle"
+          bordered
+          style={{ marginBottom: 16 }}
+          rowKey="id"
+        />
+
+        <Alert
+          message="Xác nhận"
+          description="Bạn có chắc chắn muốn tiếp tục xét duyệt? Các sản phẩm không được chọn sẽ bị hủy và không thể khôi phục."
+          type="error"
+          showIcon
+        />
+      </Modal>
+    );
+  };
+
+  // Modal xác nhận
+  const renderDetailModal = () => {
+    const groupedDetails = groupDetailsBySupplier();
+
+    return (
+      <Modal
+        title={
+          <Space>
+            <Title level={4} style={{ margin: 0 }}>
+              Chi tiết phiếu đề xuất #{selectedRequest?.id}
+            </Title>
+            <Tag
+              color={
+                selectedRequest?.status === "pending" ? "processing" : "success"
+              }
+            >
+              {selectedRequest?.status === "pending"
+                ? "Đợi xét duyệt"
+                : "Đã xét duyệt"}
+            </Tag>
+          </Space>
+        }
+        open={showDetail}
+        onCancel={() => setShowDetail(false)}
+        width={1400}
+        style={styles.modal}
+        footer={null}
+      >
+        {/* Thông tin chung */}
+        <div style={styles.summary}>
+          <Row gutter={24}>
+            <Col span={8}>
+              <Text type="secondary">Người yêu cầu:</Text>
+              <div>
+                <Text strong>{selectedRequest?.createdByName}</Text>
+              </div>
+            </Col>
+            <Col span={8}>
+              <Text type="secondary">Ngày yêu cầu:</Text>
+              <div>
+                <Text strong>
+                  {selectedRequest?.createdTime &&
+                    new Date(selectedRequest.createdTime).toLocaleString()}
+                </Text>
+              </div>
+            </Col>
+            <Col span={8}>
+              <Text type="secondary">Ghi chú:</Text>
+              <div>
+                <Text strong>{selectedRequest?.note}</Text>
+              </div>
+            </Col>
+          </Row>
+        </div>
+
+        {/* Render các nhóm đã chọn nhà cung cấp */}
+        {Object.values(groupedDetails.assigned).map((group) => (
+          <Card
+            key={group.supplierId}
+            title={
+              <Space direction="vertical">
+                <Space>
+                  <ShopOutlined />
+                  <Text strong>{group.supplierName}</Text>
+                  <Tag color="success">{group.items.length} sản phẩm</Tag>
+                </Space>
+                <Text type="secondary">Địa chỉ: {group.supplierAddress}</Text>
+                <Text type="secondary">
+                  Số điện thoại: {group.supplierPhone}
+                </Text>
+                <Text type="secondary">Email: {group.supplierEmail}</Text>
+              </Space>
+            }
+            style={{ marginBottom: 16 }}
+          >
+            <Row gutter={[16, 24]}>
+              <Col span={24}>
+                <Space
+                  direction="vertical"
+                  size="large"
+                  style={{ width: "100%" }}
+                >
+                  <Row gutter={32} align="middle">
+                    <Col span={12}>
+                      <Form.Item
+                        label={<Text strong>Ngày giao dự kiến</Text>}
+                        required
+                        validateStatus={
+                          !deliveryDates[group.supplierId] ? "error" : ""
+                        }
+                        style={{ marginBottom: 24 }}
+                      >
+                        <DatePicker
+                          className="w-full"
+                          format="DD/MM/YYYY"
+                          value={deliveryDates[group.supplierId]}
+                          onChange={(date) =>
+                            setDeliveryDates((prev) => ({
+                              ...prev,
+                              [group.supplierId]: date,
+                            }))
+                          }
+                          disabledDate={(current) => {
+                            return current && current < moment().startOf("day");
+                          }}
+                          placeholder="Chọn ngày giao"
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Space style={{ marginBottom: 24 }}>
+                        <Text strong>Tiền cọc:</Text>
+                        <Form.Item
+                          style={{ marginBottom: 0 }}
+                          validateStatus={
+                            !selectedDetails[`group_${group.supplierId}`]
+                              ?.deposit
+                              ? "error"
+                              : ""
+                          }
+                          required
+                        >
+                          <InputNumber
+                            style={{ width: 200 }}
+                            min={0}
+                            max={calculateGroupTotal(group.items)}
+                            value={
+                              selectedDetails[`group_${group.supplierId}`]
+                                ?.deposit
+                            }
+                            onChange={(value) =>
+                              handleGroupDepositChange(group.supplierId, value)
+                            }
+                            formatter={(value) =>
+                              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                            }
+                            parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                            addonAfter="đ"
+                            disabled={!isAllPricesEntered(group.items)}
+                          />
+                        </Form.Item>
+                        <Text type="secondary">
+                          {isAllPricesEntered(group.items)
+                            ? `(Tối đa: ${calculateGroupTotal(
+                                group.items
+                              ).toLocaleString()}đ)`
+                            : "(Vui lòng nhập đơn giá cho tất cả sản phẩm)"}
+                        </Text>
+                      </Space>
+                    </Col>
+                  </Row>
+                </Space>
+              </Col>
+            </Row>
+
+            <Table
+              columns={detailColumns}
+              dataSource={group.items}
+              pagination={false}
+              rowKey="id"
+              bordered
+            />
+          </Card>
+        ))}
+
+        {/* Render sản phẩm chưa chọn nhà cung cấp */}
+        {groupedDetails.unassigned.length > 0 && (
+          <Card
+            title={
+              <Space>
+                <WarningOutlined style={{ color: "#faad14" }} />
+                <Text strong>Chưa chọn nhà cung cấp</Text>
+                <Tag color="warning">
+                  {groupedDetails.unassigned.length} sản phẩm
+                </Tag>
+              </Space>
+            }
+            style={{ marginBottom: 16 }}
+          >
+            <Alert
+              message="Lưu ý"
+              description="Những sản phẩm không được chọn nhà cung cấp sẽ bị hủy sau khi xét duyệt"
+              type="warning"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
             <Table
               columns={unassignedColumns}
               dataSource={groupedDetails.unassigned}
@@ -994,27 +1191,22 @@ const FoodImportApproval = () => {
               Đóng
             </Button>
             {selectedRequest?.status === "pending" && (
-              <>
-                <Button danger onClick={handleReject}>
-                  Không chấp thuận
-                </Button>
-                <Tooltip
-                  title={
-                    !isValidForApproval()
-                      ? "Vui lòng kiểm tra: \n- Tất cả sản phẩm đã chọn nhà cung cấp\n- Đã nhập đơn giá và tiền cọc\n- Đã chọn ngày giao"
-                      : ""
-                  }
+              <Tooltip
+                title={
+                  !isValidForApproval()
+                    ? "Vui lòng kiểm tra: \n- Tất cả sản phẩm đã chọn nhà cung cấp\n- Đã nhập đơn giá và tiền cọc\n- Đã chọn ngày giao"
+                    : ""
+                }
+              >
+                <Button
+                  type="primary"
+                  onClick={handleApproveClick}
+                  disabled={!isValidForApproval()}
+                  loading={approving}
                 >
-                  <Button
-                    type="primary"
-                    onClick={handleApprove}
-                    disabled={!isValidForApproval()}
-                    loading={approving}
-                  >
-                    Xét duyệt
-                  </Button>
-                </Tooltip>
-              </>
+                  Xét duyệt
+                </Button>
+              </Tooltip>
             )}
           </Space>
         </div>
@@ -1072,7 +1264,7 @@ const FoodImportApproval = () => {
 
       if (response.status === 200) {
         message.success(`Tạo phiếu nhập cho ${group.supplierName} thành công`);
-        fetchData();
+        // fetchData();
       }
     } catch (error) {
       console.error("Error creating import:", error);
@@ -1138,7 +1330,7 @@ const FoodImportApproval = () => {
                 ? "Chờ duyệt"
                 : record.status === "Completed"
                 ? "Đã duyệt"
-                : "Đã từ chối"
+                : "ã từ chối"
             }</p>
             <p><strong>Ghi chú:</strong> ${record.note || "Không có"}</p>
           </div>
@@ -1192,6 +1384,14 @@ const FoodImportApproval = () => {
     printWindow.print();
   }, []);
 
+  // Thêm hàm kiểm tra đơn giá
+  const isAllPricesEntered = (items) => {
+    return items.every((item) => {
+      const detail = selectedDetails[item.id];
+      return detail?.price && detail.price > 0;
+    });
+  };
+
   return (
     <div className="food-import-approval">
       <Card
@@ -1214,6 +1414,7 @@ const FoodImportApproval = () => {
         />
       </Card>
       {renderDetailModal()}
+      {renderConfirmModal()}
     </div>
   );
 };

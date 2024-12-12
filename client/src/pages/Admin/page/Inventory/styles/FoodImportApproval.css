@@ -1,482 +1,511 @@
 /* src/pages/Admin/page/Inventory/FoodImportApproval/styles/index.css */
 .food-import-approval {
-    padding: 24px;
-    background: #f0f2f5;
-    min-height: 100vh;
+  padding: 24px;
+  background: #f0f2f5;
+  min-height: 100vh;
 }
 
 /* Page Header */
 .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 24px;
-    background: #fff;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  background: #fff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .header-title {
-    max-width: 600px;
+  max-width: 600px;
 }
 
 .header-title h3 {
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Statistics Cards */
 .statistics-row {
-    margin-bottom: 24px;
+  margin-bottom: 24px;
 }
 
 .statistics-row .ant-card {
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-    transition: all 0.3s ease;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
 }
 
 .statistics-row .ant-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .statistic-card {
-    padding: 24px;
+  padding: 24px;
 }
 
 .statistic-icon {
-    font-size: 24px;
-    padding: 12px;
-    border-radius: 12px;
-    margin-right: 12px;
+  font-size: 24px;
+  padding: 12px;
+  border-radius: 12px;
+  margin-right: 12px;
 }
 
 .statistic-icon.pending {
-    background: #e6f7ff;
-    color: #1890ff;
+  background: #e6f7ff;
+  color: #1890ff;
 }
 
 .statistic-icon.success {
-    background: #f6ffed;
-    color: #52c41a;
+  background: #f6ffed;
+  color: #52c41a;
 }
 
 .statistic-icon.primary {
-    background: #f0f5ff;
-    color: #2f54eb;
+  background: #f0f5ff;
+  color: #2f54eb;
 }
 
 .custom-statistic .ant-statistic-title {
-    margin-bottom: 16px;
-    font-size: 16px;
+  margin-bottom: 16px;
+  font-size: 16px;
 }
 
 .custom-statistic .ant-statistic-content {
-    font-size: 28px;
-    font-weight: 600;
+  font-size: 28px;
+  font-weight: 600;
 }
 
 /* Filter Card */
 .filter-card {
-    margin-bottom: 24px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .filter-card .ant-form-item {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .filter-card .ant-input-affix-wrapper {
-    border-radius: 8px;
+  border-radius: 8px;
 }
 
 /* Table Styles */
 .table-card {
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .custom-table .ant-table {
-    background: transparent;
+  background: transparent;
 }
 
 .custom-table .ant-table-thead > tr > th {
-    background: #fafafa;
-    font-weight: 600;
+  background: #fafafa;
+  font-weight: 600;
 }
 
 .custom-table .ant-table-row:hover {
-    background: #f5f5f5;
+  background: #f5f5f5;
 }
 
 /* Status Tags */
 .status-tag {
-    padding: 4px 8px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    width: fit-content;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
 }
 
 .status-tag.pending {
-    background: #e6f7ff;
-    color: #1890ff;
-    border: 1px solid #91d5ff;
+  background: #e6f7ff;
+  color: #1890ff;
+  border: 1px solid #91d5ff;
 }
 
 .status-tag.approved {
-    background: #f6ffed;
-    color: #52c41a;
-    border: 1px solid #b7eb8f;
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
 }
 
 .status-tag.rejected {
-    background: #fff1f0;
-    color: #f5222d;
-    border: 1px solid #ffa39e;
+  background: #fff1f0;
+  color: #f5222d;
+  border: 1px solid #ffa39e;
 }
 
 /* Modal Styles */
 .approve-modal .ant-modal-content,
 .reject-modal .ant-modal-content {
-    border-radius: 12px;
-    overflow: hidden;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .supplier-info {
-    background: #fafafa;
-    border: 1px solid #f0f0f0;
-    margin: 16px 0;
-    border-radius: 8px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  margin: 16px 0;
+  border-radius: 8px;
 }
 
 .product-card {
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
-    margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  margin-bottom: 16px;
 }
 
 .product-card .ant-card-head {
-    background: #fafafa;
-    border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .product-card .ant-input-number-group-addon {
-    color: #52c41a;
-    font-weight: 500;
+  color: #52c41a;
+  font-weight: 500;
 }
 
 /* Drawer Styles */
 .custom-drawer .ant-drawer-content-wrapper {
-    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
 }
 
 .drawer-header {
-    margin: -24px -24px 24px;
-    padding: 16px 24px;
-    background: #fff;
-    border-bottom: 1px solid #f0f0f0;
+  margin: -24px -24px 24px;
+  padding: 16px 24px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .food-import-approval {
-        padding: 16px;
-    }
+  .food-import-approval {
+    padding: 16px;
+  }
 
-    .page-header {
-        flex-direction: column;
-        gap: 16px;
-    }
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+  }
 
-    .header-title {
-        max-width: 100%;
-    }
+  .header-title {
+    max-width: 100%;
+  }
 
-    .statistics-row .ant-col {
-        margin-bottom: 16px;
-    }
+  .statistics-row .ant-col {
+    margin-bottom: 16px;
+  }
 }
 
 /* Thêm vào file CSS hiện có */
 .supplier-info {
-    margin-bottom: 24px;
+  margin-bottom: 24px;
 }
 
 .supplier-info .ant-descriptions-bordered .ant-descriptions-item-label {
-    background-color: #fafafa;
-    width: 120px;
+  background-color: #fafafa;
+  width: 120px;
 }
 
 .product-card {
-    margin-bottom: 16px;
-    transition: all 0.3s ease;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
 }
 
 .product-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .total-card {
-    background: #fafafa;
-    border: 1px solid #f0f0f0;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
 }
 
 .total-card .ant-statistic-content {
-    color: #52c41a;
-    font-size: 24px;
+  color: #52c41a;
+  font-size: 24px;
 }
 
 .ant-alert {
-    border-radius: 4px;
+  border-radius: 4px;
 }
 
 .ant-divider {
-    margin: 12px 0;
+  margin: 12px 0;
 }
 
 /* Responsive styles */
 @media (max-width: 768px) {
-
-    .ant-descriptions-bordered .ant-descriptions-item-label,
-    .ant-descriptions-bordered .ant-descriptions-item-content {
-        padding: 8px 12px;
-    }
+  .ant-descriptions-bordered .ant-descriptions-item-label,
+  .ant-descriptions-bordered .ant-descriptions-item-content {
+    padding: 8px 12px;
+  }
 }
 
 /* Action Buttons */
 .action-button {
-    transition: all 0.3s ease;
-    border-radius: 4px;
+  transition: all 0.3s ease;
+  border-radius: 4px;
 }
 
 .action-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Custom Dropdown Menu */
 .custom-dropdown .ant-dropdown-menu {
-    padding: 4px;
-    border-radius: 8px;
-    box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12),
-        0 6px 16px 0 rgba(0, 0, 0, 0.08),
-        0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  padding: 4px;
+  border-radius: 8px;
+  box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12),
+    0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
 }
 
 .custom-dropdown .ant-dropdown-menu-item {
-    padding: 8px 12px;
-    border-radius: 4px;
-    transition: all 0.3s;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: all 0.3s;
 }
 
 .custom-dropdown .ant-dropdown-menu-item:hover {
-    background: #f5f5f5;
+  background: #f5f5f5;
 }
 
 .custom-dropdown .ant-dropdown-menu-item .anticon {
-    font-size: 16px;
+  font-size: 16px;
 }
 
 /* History Modal */
 .history-modal .ant-modal-content {
-    border-radius: 12px;
-    overflow: hidden;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .history-modal .ant-timeline {
-    margin-top: 24px;
-    max-height: 400px;
-    overflow-y: auto;
-    padding-right: 16px;
+  margin-top: 24px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 16px;
 }
 
 .history-item {
-    padding: 8px 0;
+  padding: 8px 0;
 }
 
 .history-info {
-    margin-top: 8px;
-    padding-left: 24px;
+  margin-top: 8px;
+  padding-left: 24px;
 }
 
 /* Status Badge */
 .ant-badge-status-dot {
-    width: 8px;
-    height: 8px;
+  width: 8px;
+  height: 8px;
 }
 
 .ant-badge-status-text {
-    margin-left: 8px;
-    font-size: 14px;
+  margin-left: 8px;
+  font-size: 14px;
 }
 
 /* Tooltips */
 .ant-tooltip {
-    font-size: 13px;
+  font-size: 13px;
 }
 
 .ant-tooltip-inner {
-    border-radius: 4px;
-    padding: 6px 12px;
+  border-radius: 4px;
+  padding: 6px 12px;
 }
 
 /* Action Buttons Styling */
 .quick-actions {
-    display: flex;
-    gap: 8px;
+  display: flex;
+  gap: 8px;
 }
 
 .approve-button {
-    background: linear-gradient(45deg, #52c41a, #73d13d);
-    border: none;
-    border-radius: 6px;
-    padding: 4px 15px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 0 rgba(82, 196, 26, 0.1);
+  background: linear-gradient(45deg, #52c41a, #73d13d);
+  border: none;
+  border-radius: 6px;
+  padding: 4px 15px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 0 rgba(82, 196, 26, 0.1);
 }
 
 .approve-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(82, 196, 26, 0.2);
-    background: linear-gradient(45deg, #389e0d, #52c41a);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.2);
+  background: linear-gradient(45deg, #389e0d, #52c41a);
 }
 
 .approve-button:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 0 rgba(82, 196, 26, 0.1);
+  transform: translateY(0);
+  box-shadow: 0 2px 0 rgba(82, 196, 26, 0.1);
 }
 
 .reject-button {
-    background: linear-gradient(45deg, #ff4d4f, #ff7875);
-    border: none;
-    border-radius: 6px;
-    padding: 4px 15px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 0 rgba(255, 77, 79, 0.1);
+  background: linear-gradient(45deg, #ff4d4f, #ff7875);
+  border: none;
+  border-radius: 6px;
+  padding: 4px 15px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 0 rgba(255, 77, 79, 0.1);
 }
 
 .reject-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 77, 79, 0.2);
-    background: linear-gradient(45deg, #f5222d, #ff4d4f);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.2);
+  background: linear-gradient(45deg, #f5222d, #ff4d4f);
 }
 
 .reject-button:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 0 rgba(255, 77, 79, 0.1);
+  transform: translateY(0);
+  box-shadow: 0 2px 0 rgba(255, 77, 79, 0.1);
 }
 
 /* More Actions Button */
 .more-actions-button {
-    border-radius: 6px;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    background: #f5f5f5;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  background: #f5f5f5;
 }
 
 .more-actions-button:hover {
-    background: #e6e6e6;
-    transform: rotate(90deg);
+  background: #e6e6e6;
+  transform: rotate(90deg);
 }
 
 /* Custom Dropdown Menu */
 .custom-action-menu {
-    padding: 4px;
-    min-width: 200px;
-    border-radius: 8px;
-    box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12),
-        0 6px 16px 0 rgba(0, 0, 0, 0.08),
-        0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  padding: 4px;
+  min-width: 200px;
+  border-radius: 8px;
+  box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12),
+    0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
 }
 
 .custom-action-menu .ant-dropdown-menu-item-group-title {
-    color: #8c8c8c;
-    font-size: 12px;
-    padding: 8px 12px;
+  color: #8c8c8c;
+  font-size: 12px;
+  padding: 8px 12px;
 }
 
 .custom-action-menu .ant-dropdown-menu-item {
-    padding: 10px 12px;
-    border-radius: 4px;
-    margin: 2px 0;
+  padding: 10px 12px;
+  border-radius: 4px;
+  margin: 2px 0;
 }
 
 .custom-action-menu .ant-dropdown-menu-item:hover {
-    background: #f6ffed;
+  background: #f6ffed;
 }
 
 .custom-action-menu .ant-dropdown-menu-item.approve-menu-item:hover {
-    background: #f6ffed;
+  background: #f6ffed;
 }
 
-.custom-action-menu .ant-dropdown-menu-item.ant-dropdown-menu-item-danger:hover {
-    background: #fff1f0;
+.custom-action-menu
+  .ant-dropdown-menu-item.ant-dropdown-menu-item-danger:hover {
+  background: #fff1f0;
 }
 
 .approve-icon {
-    color: #52c41a;
+  color: #52c41a;
 }
 
 .reject-icon {
-    color: #ff4d4f;
+  color: #ff4d4f;
 }
 
 /* Tooltip Customization */
 .ant-tooltip {
-    font-size: 13px;
+  font-size: 13px;
 }
 
 .ant-tooltip-inner {
-    border-radius: 6px;
-    padding: 6px 12px;
-    box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  padding: 6px 12px;
+  box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12);
 }
 
 /* Animation for status changes */
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .action-space {
-    animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.3s ease;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .quick-actions {
-        flex-direction: column;
-        gap: 4px;
-    }
+  .quick-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
 
-    .approve-button,
-    .reject-button {
-        padding: 4px 8px;
-    }
+  .approve-button,
+  .reject-button {
+    padding: 4px 8px;
+  }
+}
+
+/* Thêm style cho DatePicker */
+.ant-picker {
+  width: 200px !important;
+  height: 32px !important;
+  padding: 4px 11px !important;
+  border-radius: 6px !important;
+}
+
+/* Đảm bảo input bên trong DatePicker cũng có chiều cao phù hợp */
+.ant-picker-input > input {
+  height: 24px !important;
+  font-size: 14px !important;
+}
+
+/* Khi hover và focus */
+.ant-picker:hover,
+.ant-picker-focused {
+  border-color: #40a9ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1) !important;
+}
+
+/* Nếu DatePicker nằm trong Form.Item */
+.ant-form-item .ant-picker {
+  width: 200px !important;
+}
+
+/* Đảm bảo style được áp dụng kể cả khi có className w-full */
+.w-full.ant-picker {
+  width: 200px !important;
 }

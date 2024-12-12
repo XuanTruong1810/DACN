@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   Table,
@@ -13,25 +13,17 @@ import {
   Layout,
   Row,
   Col,
-  Alert,
   Statistic,
   DatePicker,
-  Tooltip,
   InputNumber,
   Divider,
 } from "antd";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import {
-  SaveOutlined,
-  CalendarOutlined,
-  InfoCircleOutlined,
-  PlusOutlined,
-  DeleteOutlined,
-} from "@ant-design/icons";
+import { SaveOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { TextArea } = Input;
 
 const VaccinationForm = () => {

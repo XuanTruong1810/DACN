@@ -83,6 +83,30 @@ const ApproveRequestModal = ({
       cancelText="Hủy"
       className="approve-request-modal"
       centered
+      okButtonProps={{
+        style: {
+          backgroundColor: "#52c41a",
+          borderColor: "#52c41a",
+          padding: "0 32px",
+          height: "36px",
+          borderRadius: "6px",
+        },
+      }}
+      cancelButtonProps={{
+        style: {
+          padding: "0 32px",
+          height: "36px",
+          borderRadius: "6px",
+        },
+      }}
+      footer={(_, { OkBtn, CancelBtn }) => (
+        <div
+          style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}
+        >
+          <CancelBtn />
+          <OkBtn />
+        </div>
+      )}
     >
       <div className="modal-content">
         {/* Thông tin yêu cầu */}

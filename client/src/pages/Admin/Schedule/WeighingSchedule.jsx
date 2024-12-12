@@ -17,7 +17,11 @@ import {
   Tag,
   Alert,
 } from "antd";
-import { PlusOutlined, PrinterOutlined, SaveOutlined } from "@ant-design/icons";
+import {
+  PrinterOutlined,
+  SaveOutlined,
+  HistoryOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import axios from "axios";
@@ -347,10 +351,10 @@ const WeighingSchedule = () => {
             <Space>
               <Button
                 type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate("/weighing-plan/create")}
+                icon={<HistoryOutlined />}
+                onClick={() => navigate("/weighing-history")}
               >
-                Tạo kế hoạch cân
+                Lịch sử cân
               </Button>
             </Space>
           </Col>

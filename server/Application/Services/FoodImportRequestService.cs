@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Application.DTOs.FoodImportRequest;
 using Application.Interfaces;
 using Application.Models.FoodImportRequestModelView;
+using Application.Models.FoodModelView;
 using AutoMapper;
 using Core.Base;
 using Core.Entities;
@@ -249,21 +250,31 @@ namespace Application.Services
                 .FirstOrDefaultAsync(x => x.Id == id)
                 ?? throw new BaseException(StatusCodeHelper.BadRequest, ErrorCode.BadRequest,
                     "Không tìm thấy phiếu đề xuất");
-
-            return _mapper.Map<FoodImportRequestModelView>(request);
+            FoodImportRequestModelView? result = _mapper.Map<FoodImportRequestModelView>(request);
+            // result.CreatedById = request.CreatedById;
+            result.CreatedByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(x => x.Id == request.CreatedById)?.FullName;
+            // result.CreatedTime = request.CreatedTime.GetValueOrDefault();
+            return result;
         }
 
-        public async Task<BasePagination<FoodImportRequestModelView>> GetRequestsAsync(
+        public async Task<List<FoodImportRequestModelView>> GetRequestsAsync(
             string? search = null,
             string? status = null,
             DateTimeOffset? fromDate = null,
-            DateTimeOffset? toDate = null,
-            int pageNumber = 1,
-            int pageSize = 10)
+            DateTimeOffset? toDate = null)
         {
             IQueryable<FoodImportRequests> query = _unitOfWork.GetRepository<FoodImportRequests>()
                 .GetEntities
                 .Include(x => x.FoodImportRequestDetails)
+                    .ThenInclude(d => d.Foods)
+                        .ThenInclude(f => f.FoodTypes)
+                .Include(x => x.FoodImportRequestDetails)
+                    .ThenInclude(d => d.Foods)
+                        .ThenInclude(f => f.Areas)
+                .Include(x => x.FoodImportRequestDetails)
+                    .ThenInclude(d => d.Foods)
+                        .ThenInclude(f => f.FoodSuppliers)
+                            .ThenInclude(fs => fs.Suppliers)
                 .AsQueryable();
 
             // Apply filters
@@ -279,20 +290,38 @@ namespace Application.Services
             if (toDate.HasValue)
                 query = query.Where(x => x.CreatedTime <= toDate.Value);
 
-            // Get total count
-            int totalItems = await query.CountAsync();
+            // Execute query and manually map results
+            List<FoodImportRequests>? requests = await query.ToListAsync();
 
-            // Apply pagination
-            List<FoodImportRequests>? items = await query
-                .OrderByDescending(x => x.CreatedTime)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            return requests.Select(r => new FoodImportRequestModelView
+            {
+                Id = r.Id,
+                CreatedById = r.CreatedById,
+                CreatedByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(x => x.Id == r.CreatedById)?.FullName,
+                CreatedTime = r.CreatedTime.GetValueOrDefault(),
 
-            List<FoodImportRequestModelView>? modelViews = _mapper.Map<List<FoodImportRequestModelView>>(items);
-
-            return new BasePagination<FoodImportRequestModelView>(modelViews, totalItems, pageNumber, pageSize);
-
+                Note = r.Note,
+                Status = r.Status,
+                Details = r.FoodImportRequestDetails.Select(d => new FoodImportRequestDetailModelView
+                {
+                    Id = d.FoodId,
+                    FoodId = d.FoodId,
+                    ExpectedQuantity = d.ExpectedQuantity,
+                    Food = new FoodDetailModelView
+                    {
+                        Id = d.Foods.Id,
+                        Name = d.Foods.Name,
+                        Description = d.Foods.Description,
+                        FoodTypeName = d.Foods.FoodTypes?.FoodTypeName,
+                        AreaName = d.Foods.Areas?.Name,
+                        Suppliers = d.Foods.FoodSuppliers.Select(fs => new FoodSupplierModelView
+                        {
+                            SupplierId = fs.Suppliers.Id,
+                            SupplierName = fs.Suppliers.Name
+                        }).ToList()
+                    }
+                }).ToList()
+            }).ToList();
         }
 
         public async Task DeleteRequestAsync(string id)

@@ -308,7 +308,7 @@ namespace Application.Services
 
                     <div class='company-info'>
                         <p>© 2024 Pig Management. All rights reserved.</p>
-                        <p>Địa chỉ: 227/13/10 Phạm Đăng Giảng - Bình Hưng Hòa - Bình Tân - TP.HCM</p>
+                        <p>Số 2, đường N1, khu dân cư phục vụ tái định cư, khu phố Nhị Hòa, phường Hiệp Hòa, thành phố Biên Hòa, tỉnh Đồng Nai</p>
                         <p>Hotline: 0971758902 | Email: truongtamcobra@gmail.com</p>
                     </div>
                 </body>

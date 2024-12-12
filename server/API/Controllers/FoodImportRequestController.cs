@@ -9,7 +9,6 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,Manager")]
 public class FoodImportRequestController(IFoodImportRequestService foodImportRequestService) : ControllerBase
 {
     private readonly IFoodImportRequestService _foodImportRequestService = foodImportRequestService;
@@ -27,10 +26,10 @@ public class FoodImportRequestController(IFoodImportRequestService foodImportReq
         return Ok(BaseResponse<FoodImportRequestModelView>.OkResponse(result));
     }
     [HttpGet]
-    public async Task<IActionResult> GetRequestsAsync([FromQuery] string? search = null, [FromQuery] string? status = null, [FromQuery] DateTimeOffset? fromDate = null, [FromQuery] DateTimeOffset? toDate = null, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    public async Task<IActionResult> GetRequestsAsync([FromQuery] string? search = null, [FromQuery] string? status = null, [FromQuery] DateTimeOffset? fromDate = null, [FromQuery] DateTimeOffset? toDate = null)
     {
-        BasePagination<FoodImportRequestModelView> result = await _foodImportRequestService.GetRequestsAsync(search, status, fromDate, toDate, pageNumber, pageSize);
-        return Ok(BaseResponse<BasePagination<FoodImportRequestModelView>>.OkResponse(result));
+        List<FoodImportRequestModelView> result = await _foodImportRequestService.GetRequestsAsync(search, status, fromDate, toDate);
+        return Ok(BaseResponse<List<FoodImportRequestModelView>>.OkResponse(result));
     }
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateRequestAsync(string id, UpdateFoodImportRequestDto dto)

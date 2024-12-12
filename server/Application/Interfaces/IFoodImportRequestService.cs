@@ -11,13 +11,11 @@ namespace Application.Interfaces
         Task<FoodImportRequestModelView> CreateRequestAsync(CreateFoodImportRequestDto dto);
         Task<FoodImportRequestModelView> UpdateRequestAsync(string id, UpdateFoodImportRequestDto dto);
         Task<FoodImportRequestModelView> GetRequestByIdAsync(string id);
-        Task<BasePagination<FoodImportRequestModelView>> GetRequestsAsync(
+        Task<List<FoodImportRequestModelView>> GetRequestsAsync(
             string? search = null,
             string? status = null,
             DateTimeOffset? fromDate = null,
-            DateTimeOffset? toDate = null,
-            int pageNumber = 1,
-            int pageSize = 10
+            DateTimeOffset? toDate = null
         );
         Task<FoodImportRequestModelView> ApproveRequestAsync(string id, ApproveFoodImportRequestDto dto);
         Task DeleteRequestAsync(string id); // Xóa phiếu đề xuất

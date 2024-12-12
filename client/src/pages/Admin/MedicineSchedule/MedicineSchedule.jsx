@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+/* eslint-disable no-unused-vars */
+import { useState, useEffect } from "react";
 import {
   Calendar,
-  Badge,
   Modal,
   Card,
   Typography,
@@ -13,22 +13,15 @@ import {
   Tooltip,
   Table,
   message,
-  List,
   Divider,
-  Checkbox,
-  Input,
-  DatePicker,
-  Select,
 } from "antd";
 import {
-  PlusOutlined,
   CalendarOutlined,
   PrinterOutlined,
   MedicineBoxOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
-import locale from "dayjs/locale/vi";
 import "dayjs/locale/vi";
 import "./MedicineSchedule.css";
 import { useNavigate } from "react-router-dom";
@@ -236,7 +229,7 @@ const MedicineSchedule = () => {
               type="primary"
               icon={<PrinterOutlined />}
               onClick={() => window.print()}
-              disabled={!isToday}
+              // disabled={!isToday}
             >
               In phiếu
             </Button>,
@@ -252,15 +245,16 @@ const MedicineSchedule = () => {
             {/* Header */}
             <div style={{ textAlign: "center", marginBottom: "32px" }}>
               <Space direction="vertical" size={16} style={{ width: "100%" }}>
-                <img src="/logo.png" alt="Logo" style={{ height: "60px" }} />
                 <div>
                   <Title level={3} style={{ margin: 0, letterSpacing: "1px" }}>
-                    CÔNG TY TNHH CHĂN NUÔI ABC
+                    TRANG TRẠI CHĂN NUÔI HEO NTNPIGFARM
                   </Title>
                   <Text type="secondary" style={{ fontSize: "14px" }}>
-                    Địa chỉ: 123 Đường XYZ, Quận ABC, TP.HCM
+                    Địa chỉ: Số 4, đường N1, khu dân cư phục vụ tái định cư, khu
+                    phố Nhị Hòa, phường Hiệp Hòa, thành phố Biên Hòa, tỉnh Đồng
+                    Nai
                     <br />
-                    Điện thoại: (028) 1234 5678 - Email: info@abc.com
+                    Điện thoại: 0971758902 - Email: truongtamcobra@gmail.com
                   </Text>
                 </div>
               </Space>
@@ -270,7 +264,7 @@ const MedicineSchedule = () => {
 
             {/* Title */}
             <Title level={2} style={{ textAlign: "center", margin: "24px 0" }}>
-              PHIẾU TIÊM VACCINE
+              PHIẾU TIÊM CHỦNG
             </Title>
 
             {/* Info */}
@@ -407,27 +401,8 @@ const MedicineSchedule = () => {
             ))}
 
             {/* Signatures */}
-            <Row
-              justify="space-between"
-              style={{ marginTop: 48, textAlign: "center" }}
-            >
-              <Col span={8}>
-                <Text strong style={{ fontSize: "14px" }}>
-                  Người lập phiếu
-                </Text>
-                <div style={{ marginTop: 60 }}>
-                  <Text type="secondary">(Ký và ghi rõ họ tên)</Text>
-                </div>
-              </Col>
-              <Col span={8}>
-                <Text strong style={{ fontSize: "14px" }}>
-                  Người kiểm tra
-                </Text>
-                <div style={{ marginTop: 60 }}>
-                  <Text type="secondary">(Ký và ghi rõ họ tên)</Text>
-                </div>
-              </Col>
-              <Col span={8}>
+            <Row justify="end" style={{ marginTop: 48, textAlign: "center" }}>
+              <Col span={7}>
                 <Text strong style={{ fontSize: "14px" }}>
                   Người thực hiện
                 </Text>

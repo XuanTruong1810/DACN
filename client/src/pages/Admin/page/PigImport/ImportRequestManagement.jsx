@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/prop-types */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
@@ -22,6 +23,8 @@ import {
   Descriptions,
   Spin,
   Statistic,
+  Dropdown,
+  Menu,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -30,6 +33,9 @@ import {
   EyeOutlined,
   DollarOutlined,
   SearchOutlined,
+  PrinterOutlined,
+  EllipsisOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import axios from "axios";
@@ -111,13 +117,11 @@ const ImportRequestManagement = () => {
     },
   });
 
-  // eslint-disable-next-line no-unused-vars
   const [form] = Form.useForm();
   const [checkForm] = Form.useForm();
 
   const [suppliers, setSuppliers] = useState([]);
 
-  // eslint-disable-next-line no-unused-vars
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
 
@@ -126,7 +130,6 @@ const ImportRequestManagement = () => {
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [detailData, setDetailData] = useState(null);
 
-  // eslint-disable-next-line no-unused-vars
   const [allocationResult, setAllocationResult] = useState(null);
   const [isAllocationModalVisible, setIsAllocationModalVisible] =
     useState(false);
@@ -141,9 +144,26 @@ const ImportRequestManagement = () => {
     importedRequests: 0,
   });
 
+  const [sortedData, setSortedData] = useState([]);
+
   useEffect(() => {
     fetchAreaA();
   }, []);
+
+  useEffect(() => {
+    if (requests && requests.length > 0) {
+      const sorted = [...requests].sort((a, b) => {
+        const aIsApproved = a.approvedTime && !a.deliveryDate;
+        const bIsApproved = b.approvedTime && !b.deliveryDate;
+        if (aIsApproved && !bIsApproved) return -1;
+        if (!aIsApproved && bIsApproved) return 1;
+        return 0;
+      });
+      setSortedData(sorted);
+    } else {
+      setSortedData([]);
+    }
+  }, [requests]);
 
   const fetchAreaA = async () => {
     try {
@@ -300,7 +320,7 @@ const ImportRequestManagement = () => {
         title: "Mã phiếu",
         dataIndex: "id",
         key: "id",
-        width: 120,
+        width: 180,
         filterDropdown: ({
           setSelectedKeys,
           selectedKeys,
@@ -358,10 +378,12 @@ const ImportRequestManagement = () => {
         dataIndex: "supplier",
         key: "supplier",
         width: 200,
-        filters: suppliers.map((supplier) => ({
-          text: supplier.text,
-          value: supplier.text,
-        })),
+        filters: Array.from(new Set(requests.map((item) => item.supplier))).map(
+          (supplier) => ({
+            text: supplier || "N/A",
+            value: supplier,
+          })
+        ),
         filterMode: "tree",
         filterSearch: true,
         onFilter: (value, record) => {
@@ -440,22 +462,24 @@ const ImportRequestManagement = () => {
         key: "status",
         width: 150,
         filters: [
-          { text: "Chờ duyệt", value: "pending" },
           { text: "Đã xác nhận", value: "approved" },
           { text: "Đã giao", value: "delivered" },
+          { text: "Chờ duyệt", value: "pending" },
+          { text: "Đã nhập kho", value: "imported" },
         ],
+        filterMode: "menu",
         onFilter: (value, record) => {
           switch (value) {
+            case "approved":
+              return record.approvedTime && !record.deliveryDate;
+            case "delivered":
+              return record.deliveryDate && !record.stokeDate;
             case "pending":
               return (
                 !record.approvedTime &&
                 !record.deliveryDate &&
                 !record.stokeDate
               );
-            case "approved":
-              return record.approvedTime && !record.deliveryDate;
-            case "delivered":
-              return record.deliveryDate && !record.stokeDate;
             case "imported":
               return record.stokeDate;
             default:
@@ -463,51 +487,95 @@ const ImportRequestManagement = () => {
           }
         },
         render: (_, record) => {
+          if (record.approvedTime && !record.deliveryDate) {
+            return <Tag color="warning">Đã xác nhận</Tag>;
+          }
+          if (record.deliveryDate && !record.stokeDate) {
+            return <Tag color="processing">Đã giao</Tag>;
+          }
+          if (
+            !record.approvedTime &&
+            !record.deliveryDate &&
+            !record.stokeDate
+          ) {
+            return <Tag color="default">Chờ duyệt</Tag>;
+          }
           if (record.stokeDate) {
             return <Tag color="success">Đã nhập kho</Tag>;
           }
-          if (record.deliveryDate) {
-            return <Tag color="processing">Đã giao</Tag>;
-          }
-          if (record.approvedTime) {
-            return <Tag color="warning">Đã xác nhận</Tag>;
-          }
-          return <Tag color="default">Chờ duyệt</Tag>;
         },
+        sorter: (a, b) => {
+          const getPriority = (record) => {
+            if (record.approvedTime && !record.deliveryDate) return 1;
+            if (record.deliveryDate && !record.stokeDate) return 2;
+            if (
+              !record.approvedTime &&
+              !record.deliveryDate &&
+              !record.stokeDate
+            )
+              return 3;
+            if (record.stokeDate) return 4;
+            return 5;
+          };
+          return getPriority(a) - getPriority(b);
+        },
+        defaultSortOrder: "ascend",
       },
       {
         title: "Thao tác",
         key: "action",
         fixed: "right",
-        width: 200,
+        width: 80,
         render: (_, record) => {
-          const canCheck = record.approvedTime && !record.deliveryDate;
-          const canImport = record.deliveryDate && !record.stokeDate;
+          const menuItems = [];
+
+          // Thêm nút kiểm tra
+          if (record.approvedTime && !record.deliveryDate) {
+            menuItems.push({
+              key: "check",
+              icon: <CheckCircleOutlined />,
+              label: "Kiểm tra",
+              onClick: () => handleCheck(record),
+            });
+          }
+
+          // Thêm nút nhập kho
+          if (record.deliveryDate && !record.stokeDate) {
+            menuItems.push({
+              key: "import",
+              icon: <ImportOutlined />,
+              label: "Nhập kho",
+              onClick: () => handleImport(record),
+            });
+          }
+
+          // Luôn thêm nút xem chi tiết
+          menuItems.push({
+            key: "view",
+            icon: <EyeOutlined />,
+            label: "Xem chi tiết",
+            onClick: () => handleViewDetail(record),
+          });
 
           return (
-            <Space>
-              {canCheck && (
-                <ActionButton
-                  config={ACTION_CONFIG.check}
-                  onClick={() => handleCheck(record)}
-                />
-              )}
-
-              {canImport && (
-                <ActionButton
-                  config={ACTION_CONFIG.import}
-                  onClick={() => handleImport(record)}
-                />
-              )}
-
-              <Tooltip title="Xem chi tiết">
-                <Button
-                  type="text"
-                  icon={<EyeOutlined />}
-                  onClick={() => handleViewDetail(record)}
-                />
-              </Tooltip>
-            </Space>
+            <Dropdown
+              menu={{ items: menuItems }}
+              trigger={["click"]}
+              placement="bottomRight"
+            >
+              <MoreOutlined
+                style={{
+                  fontSize: "20px",
+                  cursor: "pointer",
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  transition: "background 0.3s",
+                  "&:hover": {
+                    backgroundColor: "rgba(0, 0, 0, 0.04)",
+                  },
+                }}
+              />
+            </Dropdown>
           );
         },
       },
@@ -786,7 +854,8 @@ const ImportRequestManagement = () => {
       title={
         <Space>
           <EyeOutlined style={{ color: "#1890ff" }} />
-          <Text strong>Chi tiết yêu cầu nhập heo</Text>
+          <Text strong>Chi tiết phiếu nhập heo</Text>
+          <Text type="secondary">| Mã phiếu: {detailData?.id}</Text>
         </Space>
       }
       open={isViewModalVisible}
@@ -795,90 +864,203 @@ const ImportRequestManagement = () => {
         setDetailData(null);
       }}
       footer={[
-        <Button key="close" onClick={() => setIsViewModalVisible(false)}>
+        <Button
+          key="close"
+          onClick={() => setIsViewModalVisible(false)}
+          size="small"
+          style={{
+            fontSize: "13px",
+            padding: "4px 15px",
+          }}
+        >
           Đóng
         </Button>,
       ]}
       width={800}
     >
       {detailData ? (
-        <Descriptions bordered column={1}>
-          <Descriptions.Item label="Mã yêu cầu">
-            {detailData.id || "N/A"}
-          </Descriptions.Item>
+        <Row gutter={[24, 24]}>
+          {/* Thông tin cơ bản */}
+          <Col span={24}>
+            <Card title="Thông tin cơ bản" bordered={false}>
+              <Row gutter={[16, 16]}>
+                <Col span={12}>
+                  <Descriptions column={1} size="small">
+                    <Descriptions.Item label="Trạng thái">
+                      {getStatusTag({
+                        approvedTime: detailData.approvedTime,
+                        deliveryDate: detailData.deliveryDate,
+                        stokeDate: detailData.stokeDate,
+                      })}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Người tạo">
+                      <Text>{detailData.createByName}</Text>
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Col>
+                <Col span={12}>
+                  <Descriptions column={1} size="small">
+                    <Descriptions.Item label="Ngày tạo">
+                      {dayjs(detailData.createTime).format("DD/MM/YYYY HH:mm")}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Ngày giao hàng">
+                      {detailData.deliveryDate
+                        ? dayjs(detailData.deliveryDate).format(
+                            "DD/MM/YYYY HH:mm"
+                          )
+                        : "Chưa giao hàng"}
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
 
-          <Descriptions.Item label="Nhà cung cấp">
-            {detailData.suppliersName || "N/A"}
-          </Descriptions.Item>
+          {/* Thông tin nhà cung cấp */}
+          <Col span={24}>
+            <Card title="Thông tin nhà cung cấp" bordered={false}>
+              <Row gutter={[16, 16]}>
+                <Col span={24}>
+                  <Descriptions column={1} size="small">
+                    <Descriptions.Item label="Nhà cung cấp">
+                      <Text strong>{detailData.suppliersName}</Text>
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
 
-          <Descriptions.Item label="Số lượng dự kiến">
-            {detailData.expectedQuantity || 0} con
-          </Descriptions.Item>
+          {/* Chi tiết nhập heo */}
+          <Col span={24}>
+            <Card title="Chi tiết nhập heo" bordered={false}>
+              <Row gutter={[16, 16]}>
+                <Col span={12}>
+                  <Descriptions column={1} size="small">
+                    <Descriptions.Item label="Số lượng dự kiến">
+                      <Text strong>{detailData.expectedQuantity} con</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Đơn giá">
+                      <Text type="success">
+                        {detailData.unitPrice?.toLocaleString("vi-VN")} VNĐ/con
+                      </Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Tiền cọc">
+                      <Text>
+                        {detailData.deposit?.toLocaleString("vi-VN")} VNĐ
+                      </Text>
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Col>
+                <Col span={12}>
+                  {detailData.deliveryDate && (
+                    <Descriptions column={1} size="small">
+                      <Descriptions.Item label="Số lượng nhận">
+                        <Text>{detailData.receivedQuantity} con</Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Số lượng chấp nhận">
+                        <Text type="success">
+                          {detailData.acceptedQuantity} con
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Số lượng từ chối">
+                        <Text type="danger">
+                          {detailData.rejectedQuantity} con
+                        </Text>
+                      </Descriptions.Item>
+                    </Descriptions>
+                  )}
+                </Col>
+              </Row>
 
-          <Descriptions.Item label="Đơn giá">
-            {detailData.unitPrice?.toLocaleString("vi-VN")} VNĐ/con
-          </Descriptions.Item>
+              {/* Thông tin tài chính */}
+              {detailData.approvedTime && (
+                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                  <Col span={24}>
+                    <Card className="payment-info-card">
+                      <Row gutter={16} justify="space-between">
+                        <Col span={8}>
+                          <Statistic
+                            title={
+                              <Text
+                                type="secondary"
+                                style={{ fontSize: "12px" }}
+                              >
+                                Tổng tiền dự kiến
+                              </Text>
+                            }
+                            value={
+                              detailData.unitPrice * detailData.expectedQuantity
+                            }
+                            formatter={(value) => (
+                              <Text style={{ fontSize: "14px" }}>
+                                {value?.toLocaleString("vi-VN")} VNĐ
+                              </Text>
+                            )}
+                            valueStyle={{ color: "#1890ff", fontSize: "14px" }}
+                          />
+                        </Col>
+                        <Col span={8}>
+                          <Statistic
+                            title={
+                              <Text
+                                type="secondary"
+                                style={{ fontSize: "12px" }}
+                              >
+                                Tổng tiền thực tế
+                              </Text>
+                            }
+                            value={detailData.totalPrice}
+                            formatter={(value) => (
+                              <Text
+                                style={{ fontSize: "14px", color: "#52c41a" }}
+                              >
+                                {value?.toLocaleString("vi-VN")} VNĐ
+                              </Text>
+                            )}
+                            valueStyle={{ color: "#52c41a", fontSize: "14px" }}
+                          />
+                        </Col>
+                        <Col span={8}>
+                          <Statistic
+                            title={
+                              <Text
+                                type="secondary"
+                                style={{ fontSize: "12px" }}
+                              >
+                                Còn lại phải trả
+                              </Text>
+                            }
+                            value={detailData.remainingAmount?.toLocaleString(
+                              "vi-VN"
+                            )}
+                            formatter={(value) => (
+                              <Text
+                                style={{ fontSize: "14px", color: "#f5222d" }}
+                              >
+                                {value} VNĐ
+                              </Text>
+                            )}
+                            valueStyle={{ color: "#f5222d", fontSize: "14px" }}
+                          />
+                        </Col>
+                      </Row>
+                    </Card>
+                  </Col>
+                </Row>
+              )}
+            </Card>
+          </Col>
 
-          <Descriptions.Item label="Tiền cọc">
-            {detailData.deposit?.toLocaleString("vi-VN")} VNĐ
-          </Descriptions.Item>
-
-          <Descriptions.Item label="Trạng thái">
-            {getStatusTag({
-              approvedTime: detailData.approvedTime,
-              deliveryDate: detailData.deliveryDate,
-              stokeDate: detailData.stokeDate,
-            })}
-          </Descriptions.Item>
-
-          {detailData.approvedTime && (
-            <Descriptions.Item label="Thời gian xác nhận">
-              {dayjs(detailData.approvedTime).format("DD/MM/YYYY HH:mm:ss")}
-            </Descriptions.Item>
-          )}
-
-          {detailData.deliveryDate && (
-            <>
-              <Descriptions.Item label="Thời gian giao hàng">
-                {dayjs(detailData.deliveryDate).format("DD/MM/YYYY HH:mm:ss")}
-              </Descriptions.Item>
-              <Descriptions.Item label="Số lượng nhận">
-                {detailData.receivedQuantity || 0} con
-              </Descriptions.Item>
-              <Descriptions.Item label="Số lượng chấp nhận">
-                {detailData.acceptedQuantity || 0} con
-              </Descriptions.Item>
-              <Descriptions.Item label="Số lượng từ chối">
-                {detailData.rejectedQuantity || 0} con
-              </Descriptions.Item>
-            </>
-          )}
-
-          {detailData.stokeDate && (
-            <>
-              <Descriptions.Item label="Thời gian nhập kho">
-                {dayjs(detailData.stokeDate).format("DD/MM/YYYY HH:mm:ss")}
-              </Descriptions.Item>
-              <Descriptions.Item label="Khu vực">
-                {detailData.areasName || "N/A"}
-              </Descriptions.Item>
-            </>
-          )}
-
-          <Descriptions.Item label="Người tạo">
-            {detailData.createByName || "N/A"}
-          </Descriptions.Item>
-
-          <Descriptions.Item label="Thời gian tạo">
-            {dayjs(detailData.createTime).format("DD/MM/YYYY HH:mm:ss")}
-          </Descriptions.Item>
-
+          {/* Ghi chú */}
           {detailData.note && (
-            <Descriptions.Item label="Ghi chú">
-              {detailData.note}
-            </Descriptions.Item>
+            <Col span={24}>
+              <Card title="Ghi chú" bordered={false}>
+                <Text>{detailData.note}</Text>
+              </Card>
+            </Col>
           )}
-        </Descriptions>
+        </Row>
       ) : (
         <div style={{ textAlign: "center", padding: "20px" }}>
           <Spin size="large" />
@@ -1057,19 +1239,24 @@ const ImportRequestManagement = () => {
       open={isAllocatedListVisible}
       onCancel={() => setIsAllocatedListVisible(false)}
       width={800}
-      footer={[
-        <Button
-          key="print"
-          type="primary"
-          icon={<FilePdfOutlined />}
-          onClick={handlePrintList}
+      footer={(_, { OkBtn, CancelBtn }) => (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "8px",
+          }}
         >
-          In danh sách
-        </Button>,
-        <Button key="close" onClick={() => setIsAllocatedListVisible(false)}>
-          Đóng
-        </Button>,
-      ]}
+          <Button
+            type="primary"
+            icon={<PrinterOutlined />}
+            onClick={handlePrintList}
+          >
+            In danh sách
+          </Button>
+          <Button onClick={() => setIsAllocatedListVisible(false)}>Đóng</Button>
+        </div>
+      )}
     >
       <Alert
         message="Phân bổ heo thành công"
@@ -1108,7 +1295,13 @@ const ImportRequestManagement = () => {
 
   const renderCheckModal = () => (
     <Modal
-      title="Kiểm tra giao hàng"
+      title={
+        <Space>
+          <CheckCircleOutlined style={{ color: "#1890ff" }} />
+          <Text strong>Kiểm tra giao hàng</Text>
+          <Text type="secondary">| Mã phiếu: {selectedRequest?.id}</Text>
+        </Space>
+      }
       open={isCheckModalVisible}
       onOk={checkForm.submit}
       onCancel={() => {
@@ -1116,16 +1309,91 @@ const ImportRequestManagement = () => {
         checkForm.resetFields();
       }}
       confirmLoading={loading}
-      okText="Xác nhận giao hàng và nhập kho"
+      okText="Xác nhận"
       cancelText="Hủy"
+      width={800}
+      footer={(_, { OkBtn, CancelBtn }) => (
+        <div
+          style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}
+        >
+          <CancelBtn />
+          <OkBtn />
+        </div>
+      )}
     >
-      <Alert
-        message="Lưu ý"
-        description="Khi xác nhận, hệ thống sẽ tự động ghi nhận giao hàng và nhập kho."
-        type="info"
-        showIcon
-        style={{ marginBottom: 16 }}
-      />
+      <Card
+        className="payment-info-card"
+        title={
+          <Space>
+            <DollarOutlined style={{ color: "#1890ff" }} />
+            <Text strong>Thông tin thanh toán</Text>
+          </Space>
+        }
+        style={{ marginBottom: 24 }}
+      >
+        <Row gutter={[16, 16]} justify="space-between">
+          <Col span={6}>
+            <Statistic
+              title={
+                <Text type="secondary" style={{ fontSize: "13px" }}>
+                  Đơn giá
+                </Text>
+              }
+              value={selectedRequest?.pricePerPig || 0}
+              precision={0}
+              suffix="VNĐ/con"
+              valueStyle={{ color: "#1890ff", fontSize: "16px" }}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title={
+                <Text type="secondary" style={{ fontSize: "13px" }}>
+                  Tiền cọc
+                </Text>
+              }
+              value={selectedRequest?.deposit || 0}
+              precision={0}
+              suffix="VNĐ"
+              valueStyle={{ color: "#52c41a", fontSize: "16px" }}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title={
+                <Text type="secondary" style={{ fontSize: "13px" }}>
+                  Tổng tiền
+                </Text>
+              }
+              value={
+                (selectedRequest?.pricePerPig || 0) *
+                (selectedRequest?.quantity || 0)
+              }
+              precision={0}
+              suffix="VNĐ"
+              valueStyle={{ color: "#ff4d4f", fontSize: "16px" }}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title={
+                <Text type="secondary" style={{ fontSize: "13px" }}>
+                  Còn phải trả
+                </Text>
+              }
+              value={
+                (selectedRequest?.pricePerPig || 0) *
+                  (selectedRequest?.quantity || 0) -
+                (selectedRequest?.deposit || 0)
+              }
+              precision={0}
+              suffix="VNĐ"
+              valueStyle={{ color: "#fa8c16", fontSize: "16px" }}
+            />
+          </Col>
+        </Row>
+      </Card>
+
       <Form
         form={checkForm}
         layout="vertical"
@@ -1148,7 +1416,6 @@ const ImportRequestManagement = () => {
                 style={{ width: "100%" }}
                 placeholder="Nhập số lượng nhận"
                 onChange={(value) => {
-                  // Tự động cập nhật số lượng chấp nhận không vượt quá số lượng nhận
                   const acceptedQuantity =
                     checkForm.getFieldValue("acceptedQuantity");
                   if (acceptedQuantity > value) {
@@ -1302,17 +1569,17 @@ const ImportRequestManagement = () => {
 
         <Table
           columns={columns}
-          dataSource={requests}
-          rowKey="id"
+          dataSource={sortedData}
           loading={loading}
-          scroll={{ x: 1300 }}
-          pagination={{
-            ...tableParams.pagination,
-            total: requests.length,
-            showSizeChanger: true,
-            showTotal: (total) => `Tổng số ${total} phiếu`,
-          }}
           onChange={handleTableChange}
+          pagination={tableParams.pagination}
+          scroll={{ x: 1200 }}
+          rowKey="id"
+          rowClassName={(record) => {
+            return record.approvedTime && !record.deliveryDate
+              ? "highlight-approved-row"
+              : "";
+          }}
         />
 
         {renderCheckModal()}
@@ -1382,6 +1649,65 @@ style.textContent = `
       background: #f5f5f5;
       color: #8c8c8c;
     }
+  }
+
+  .payment-info-card {
+    background: #fafafa;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+
+  .payment-info-card .ant-card-head {
+    border-bottom: 1px solid #f0f0f0;
+    min-height: 40px;
+    padding: 0 16px;
+  }
+
+  .payment-info-card .ant-card-head-title {
+    padding: 8px 0;
+  }
+
+  .payment-info-card .ant-card-body {
+    padding: 16px;
+  }
+
+  .payment-info-card .ant-statistic-title {
+    margin-bottom: 4px;
+  }
+
+  .payment-info-card .ant-statistic-content {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .highlight-approved-row {
+    background-color: #fff1e6 !important;
+    position: relative;
+    border-left: 4px solid #ffbb96 !important;
+    box-shadow: 0 1px 4px rgba(255, 187, 150, 0.1);
+  }
+
+  .highlight-approved-row td {
+    background-color: #fff1e6 !important;
+    border-bottom: 1px solid #ffbb96 !important;
+  }
+
+  .highlight-approved-row:hover td {
+    background-color: #ffe7ba !important;
+  }
+
+  .highlight-approved-row .ant-tag-warning {
+    background-color: #fa8c16;
+    color: white;
+    border: none;
+    font-weight: 500;
+  }
+
+  .ant-table-tbody > tr.highlight-approved-row > td {
+    background-color: #fff1e6 !important;
+  }
+
+  .ant-table-tbody > tr.highlight-approved-row:hover > td {
+    background-color: #ffe7ba !important;
   }
 `;
 
