@@ -44,7 +44,7 @@ public class FoodImportRequestController(IFoodImportRequestService foodImportReq
         return Ok(BaseResponse<object>.OkResponse("Xóa phiếu đề xuất thành công"));
     }
     [HttpPost("approve/{id}")]
-    public async Task<IActionResult> ApproveRequestAsync(string id, ApproveFoodImportRequestDto dto)
+    public async Task<IActionResult> ApproveRequestAsync(string id, FoodImportRequestDTO dto)
     {
         FoodImportRequestModelView? result = await _foodImportRequestService.ApproveRequestAsync(id, dto);
         return Ok(BaseResponse<FoodImportRequestModelView>.OkResponse(result));

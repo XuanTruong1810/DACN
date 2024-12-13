@@ -63,7 +63,7 @@ function App() {
               path="inventory/food-categories"
               element={<FoodCategoriesPage />}
             />
-
+            <Route path="inventory/food-imports" element={<FoodImportList />} />
             <Route path="restore" element={<Restore />} />
             <Route path="Areas" element={<AreasPage />} />
             <Route path="Houses" element={<HousesPage />} />

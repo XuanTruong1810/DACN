@@ -34,8 +34,29 @@ public class UpdateFoodImportRequestDetailDto
 }
 
 
-public class ApproveFoodImportRequestDto
+public class FoodImportRequestDTO
 {
-    [Required]
-    public string Status { get; set; } // approved, rejected
+    public List<FoodImportAcceptDTO> Accepts { get; set; }
+    public List<FoodRejectDTO> Rejects { get; set; }
+}
+
+public class FoodImportAcceptDTO
+{
+    public DateTimeOffset ExpectedDeliveryTime { get; set; }
+    public decimal Deposit { get; set; }
+    public string SupplierId { get; set; }
+    public List<FoodImportDetailDTO> Details { get; set; }
+}
+
+public class FoodImportDetailDTO
+{
+    public string FoodId { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal ExpectedQuantity { get; set; }
+}
+
+public class FoodRejectDTO
+{
+    public string FoodId { get; set; }
+    public string Reason { get; set; }
 }

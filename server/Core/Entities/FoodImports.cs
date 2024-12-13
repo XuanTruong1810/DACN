@@ -16,6 +16,8 @@ public class FoodImports : BaseEntity
 
     public string CreatedById { get; set; }
 
+    public string Receiver { get; set; }
+
     public DateTimeOffset? DeliveredTime { get; set; }
     public string Status { get; set; } = "pending"; // pending, delivered, completed
     public string? Note { get; set; }

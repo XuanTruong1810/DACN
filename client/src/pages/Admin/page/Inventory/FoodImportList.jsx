@@ -1,36 +1,30 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 import {
   Card,
   Table,
   Space,
   Button,
   Typography,
-  Badge,
-  Form,
   Input,
   DatePicker,
   Row,
   Col,
   message,
-  Tooltip,
   Tag,
-  Select,
-  Drawer,
   Statistic,
   Modal,
   Descriptions,
   InputNumber,
   Alert,
+  Divider,
+  Tooltip,
 } from "antd";
 import {
   ShoppingCartOutlined,
-  CalendarOutlined,
-  CheckCircleOutlined,
   EyeOutlined,
-  FilterOutlined,
-  ReloadOutlined,
   SearchOutlined,
   DollarOutlined,
-  FileDoneOutlined,
   ClockCircleOutlined,
   InboxOutlined,
   PrinterOutlined,
@@ -41,6 +35,7 @@ import moment from "moment";
 import dayjs from "dayjs";
 
 const { Text } = Typography;
+const { RangePicker } = DatePicker;
 
 const FoodImportList = () => {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -49,13 +44,10 @@ const FoodImportList = () => {
   const [loading, setLoading] = useState(false);
   const [foodImports, setFoodImports] = useState([]);
   const [selectedImport, setSelectedImport] = useState(null);
-  const [showViewDetail, setShowViewDetail] = useState(false);
-  const [searchText, setSearchText] = useState("");
   const [filters, setFilters] = useState({
     status: "all",
     dateRange: [],
   });
-  const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [deliveryDetails, setDeliveryDetails] = useState([]);
@@ -94,43 +86,228 @@ const FoodImportList = () => {
       dataIndex: "id",
       key: "id",
       width: 150,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm mã phiếu"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => confirm()}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              icon={<SearchOutlined />}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Tìm
+            </Button>
+            <Button
+              onClick={() => clearFilters()}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Xóa
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) =>
+        record.id.toString().toLowerCase().includes(value.toLowerCase()),
     },
     {
       title: "Nhà cung cấp",
       dataIndex: "supplierName",
       key: "supplierName",
       width: 200,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm nhà cung cấp"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => confirm()}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              icon={<SearchOutlined />}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Tìm
+            </Button>
+            <Button
+              onClick={() => clearFilters()}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Xóa
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) =>
+        record.supplierName.toLowerCase().includes(value.toLowerCase()),
     },
     {
       title: "Ngày tạo",
       dataIndex: "createTime",
       key: "createTime",
       width: 180,
-      render: (date) => (date ? moment(date).format("DD/MM/YYYY HH:mm") : ""),
-    },
-    {
-      title: "Người tạo",
-      dataIndex: "createByName",
-      key: "createByName",
-      width: 150,
+      render: (text) => moment(text).format("DD/MM/YYYY HH:mm"),
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8, width: 320 }}>
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <RangePicker
+              value={selectedKeys[0]}
+              onChange={(dates) => {
+                setSelectedKeys(dates ? [dates] : []);
+              }}
+              style={{ width: "100%", marginBottom: 8 }}
+              format="DD/MM/YYYY"
+            />
+            <Space wrap style={{ width: "100%" }}>
+              <Button
+                size="small"
+                onClick={() => {
+                  const today = moment();
+                  setSelectedKeys([[today.startOf("day"), today.endOf("day")]]);
+                }}
+              >
+                Hôm nay
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const yesterday = moment().subtract(1, "days");
+                  setSelectedKeys([
+                    [yesterday.startOf("day"), yesterday.endOf("day")],
+                  ]);
+                }}
+              >
+                Hôm qua
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const startOfWeek = moment().startOf("week");
+                  const endOfWeek = moment().endOf("week");
+                  setSelectedKeys([[startOfWeek, endOfWeek]]);
+                }}
+              >
+                Tuần này
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const startOfMonth = moment().startOf("month");
+                  const endOfMonth = moment().endOf("month");
+                  setSelectedKeys([[startOfMonth, endOfMonth]]);
+                }}
+              >
+                Tháng này
+              </Button>
+            </Space>
+            <Divider style={{ margin: "8px 0" }} />
+            <Space style={{ width: "100%", justifyContent: "flex-end" }}>
+              <Button
+                type="primary"
+                onClick={() => confirm()}
+                size="small"
+                style={{ width: 90 }}
+              >
+                Lọc
+              </Button>
+              <Button
+                onClick={() => clearFilters()}
+                size="small"
+                style={{ width: 90 }}
+              >
+                Xóa
+              </Button>
+            </Space>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) => {
+        if (!value || value.length !== 2) return true;
+        const recordDate = moment(record.createTime);
+        const [startDate, endDate] = value;
+        return recordDate.isBetween(startDate, endDate, "day", "[]");
+      },
     },
     {
       title: "Trạng thái",
-      dataIndex: "status",
       key: "status",
       width: 150,
-      render: (status) => {
-        const statusConfig = {
-          pending: { color: "warning", text: "Chờ nhận hàng" },
-          delivered: { color: "success", text: "Đã nhận hàng" },
-          stocked: { color: "success", text: "Đã nhập kho" },
-        };
-        return (
-          <Tag color={statusConfig[status]?.color || "default"}>
-            {statusConfig[status]?.text || status}
-          </Tag>
-        );
-      },
+      render: (_, record) => (
+        <Tag
+          color={
+            record.status === "pending"
+              ? "warning"
+              : record.status === "delivered"
+              ? "processing"
+              : record.status === "stocked"
+              ? "success"
+              : "default"
+          }
+        >
+          {record.status === "pending"
+            ? "Chờ nhận hàng"
+            : record.status === "delivered"
+            ? "Đã nhận hàng"
+            : record.status === "stocked"
+            ? "Đã nhập kho"
+            : record.status}
+        </Tag>
+      ),
+      filters: [
+        { text: "Chờ nhận hàng", value: "pending" },
+        { text: "Đã nhận hàng", value: "delivered" },
+        { text: "Đã nhập kho", value: "stocked" },
+      ],
+      defaultFilteredValue: ["pending"],
+      onFilter: (value, record) => record.status === value,
+    },
+    {
+      title: "Người nhận",
+      dataIndex: "receivedByName",
+      key: "receivedByName",
+      width: 150,
     },
     {
       title: "Đặt cọc",
@@ -142,38 +319,68 @@ const FoodImportList = () => {
     {
       title: "Thao tác",
       key: "action",
-      width: 200,
+      width: 120,
+      align: "center",
       render: (_, record) => (
-        <Space>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => handleViewDetail(record)}
-          >
-            Chi tiết
-          </Button>
-          <Button
-            icon={<PrinterOutlined />}
-            onClick={() => handlePrintImport(record)}
-          >
-            In phiếu
-          </Button>
+        <Space size={4}>
+          <Tooltip title="Chi tiết">
+            <Button
+              type="text"
+              icon={<EyeOutlined style={{ fontSize: "16px" }} />}
+              size="middle"
+              onClick={() => handleViewDetail(record)}
+              style={{
+                color: "#1890ff",
+                padding: "4px 8px",
+                height: "auto",
+              }}
+            />
+          </Tooltip>
+
+          <Tooltip title="In phiếu">
+            <Button
+              type="text"
+              icon={<PrinterOutlined style={{ fontSize: "16px" }} />}
+              size="middle"
+              onClick={() => handlePrintImport(record)}
+              style={{
+                color: "#52c41a",
+                padding: "4px 8px",
+                height: "auto",
+              }}
+            />
+          </Tooltip>
+
           {record.status === "pending" && (
-            <Button
-              type="primary"
-              icon={<ShoppingCartOutlined />}
-              onClick={() => handleDelivery(record)}
-            >
-              Giao hàng
-            </Button>
+            <Tooltip title="Giao hàng">
+              <Button
+                type="text"
+                icon={<ShoppingCartOutlined style={{ fontSize: "16px" }} />}
+                size="middle"
+                onClick={() => handleDelivery(record)}
+                style={{
+                  color: "#faad14",
+                  padding: "4px 8px",
+                  height: "auto",
+                }}
+              />
+            </Tooltip>
           )}
+
           {record.status === "delivered" && (
-            <Button
-              type="primary"
-              icon={<InboxOutlined />}
-              onClick={() => handleStock(record.id)}
-            >
-              Nhập kho
-            </Button>
+            <Tooltip title="Nhập kho">
+              <Button
+                type="text"
+                icon={<InboxOutlined style={{ fontSize: "16px" }} />}
+                size="middle"
+                onClick={() => handleStock(record.id)}
+                style={{
+                  color: "#1890ff",
+                  padding: "4px 8px",
+                  height: "auto",
+                }}
+              />
+            </Tooltip>
           )}
         </Space>
       ),
@@ -197,21 +404,8 @@ const FoodImportList = () => {
     }
   };
 
-  const handleSearch = (value) => {
-    setSearchText(value);
-  };
-
   const handleFilterChange = (values) => {
     setFilters((prev) => ({ ...prev, ...values }));
-  };
-
-  const resetFilters = () => {
-    setFilters({
-      status: "all",
-      dateRange: [],
-    });
-    setSearchText("");
-    getFoodImports();
   };
 
   const handleDelivery = (record) => {
@@ -426,7 +620,7 @@ const FoodImportList = () => {
           <div class="info">
             <p><strong>Mã phiếu:</strong> ${record.id}</p>
             <p><strong>Nhà cung cấp:</strong> ${record.supplierName}</p>
-            <p><strong>Người tạo:</strong> ${record.createByName}</p>
+            <p><strong>Người nhận:</strong> ${record.createByName}</p>
             <p><strong>Ngày tạo:</strong> ${moment(record.createTime).format(
               "DD/MM/YYYY HH:mm"
             )}</p>
@@ -506,8 +700,8 @@ const FoodImportList = () => {
         <Descriptions.Item label="Ngày tạo">
           {moment(selectedImport?.createTime).format("DD/MM/YYYY HH:mm")}
         </Descriptions.Item>
-        <Descriptions.Item label="Người tạo">
-          {selectedImport?.createByName}
+        <Descriptions.Item label="Người nhận">
+          {selectedImport?.receivedByName}
         </Descriptions.Item>
         <Descriptions.Item label="Trạng thái">
           <Tag
@@ -596,32 +790,6 @@ const FoodImportList = () => {
       </Row>
 
       <Card className="main-table-card">
-        <Space
-          style={{
-            marginBottom: 16,
-            justifyContent: "space-between",
-            width: "100%",
-          }}
-        >
-          <Space>
-            <Input.Search
-              placeholder="Tìm kiếm theo mã phiếu, nhà cung cấp..."
-              allowClear
-              onSearch={handleSearch}
-              style={{ width: 300 }}
-            />
-            <Button
-              icon={<FilterOutlined />}
-              onClick={() => setFilterDrawerVisible(true)}
-            >
-              Bộ lọc
-            </Button>
-            <Button icon={<ReloadOutlined />} onClick={resetFilters}>
-              Làm mới
-            </Button>
-          </Space>
-        </Space>
-
         <Table
           columns={columns}
           dataSource={foodImports}
@@ -630,6 +798,8 @@ const FoodImportList = () => {
           pagination={{
             pageSize: 10,
             showTotal: (total) => `Tổng ${total} phiếu nhập`,
+            showSizeChanger: true,
+            showQuickJumper: true,
           }}
         />
       </Card>
@@ -663,8 +833,8 @@ const FoodImportList = () => {
                         "DD/MM/YYYY HH:mm"
                       )}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Người tạo">
-                      {selectedDelivery.createByName}
+                    <Descriptions.Item label="Người nhận">
+                      {selectedDelivery.receivedByName}
                     </Descriptions.Item>
                   </Descriptions>
                 </Col>

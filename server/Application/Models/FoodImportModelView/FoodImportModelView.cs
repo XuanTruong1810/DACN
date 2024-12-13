@@ -13,6 +13,8 @@ namespace Application.Models.FoodImportModelView
         public DateTimeOffset CreateTime { get; set; }
         public string CreateBy { get; set; }
         public string CreateByName { get; set; }
+        public string ReceivedBy { get; set; }
+        public string ReceivedByName { get; set; }
         public DateTimeOffset ExpectedDeliveryTime { get; set; }
         public DateTimeOffset? DeliveredTime { get; set; }
         public DateTimeOffset? StockTime { get; set; }

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -34,6 +35,9 @@ import {
   FileDoneOutlined,
   ClockCircleOutlined,
   MedicineBoxOutlined,
+  SearchOutlined,
+  CalendarOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import moment from "moment";
@@ -41,6 +45,7 @@ import "./styles/MedicineRequestApproval.css";
 
 const { Text, Title } = Typography;
 const API_URL = import.meta.env.VITE_API_URL;
+const { RangePicker } = DatePicker;
 
 const MedicineRequestApproval = () => {
   const [loading, setLoading] = useState(false);
@@ -51,13 +56,17 @@ const MedicineRequestApproval = () => {
   const [approving, setApproving] = useState(false);
   const [suppliers, setSuppliers] = useState([]);
   const [selectedDetails, setSelectedDetails] = useState({});
-  const [commonSupplier, setCommonSupplier] = useState(null);
   const [deliveryDates, setDeliveryDates] = useState({});
   const [selectedSupplierInfo, setSelectedSupplierInfo] = useState({});
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
   const [rejectDetails, setRejectDetails] = useState({});
   const [showViewDetail, setShowViewDetail] = useState(false);
+  const [filters, setFilters] = useState({
+    id: "",
+    dateRange: [],
+    status: null,
+  });
 
   useEffect(() => {
     getRequests();
@@ -72,7 +81,6 @@ const MedicineRequestApproval = () => {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-      console.log(response.data.data);
       setRequests(response.data.data);
     } catch (error) {
       message.error("Lỗi khi tải danh sách phiếu đề xuất");
@@ -215,20 +223,159 @@ const MedicineRequestApproval = () => {
     }
   };
 
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const getPresetRanges = () => ({
+    "Hôm nay": [moment().startOf("day"), moment().endOf("day")],
+    "Hôm qua": [
+      moment().subtract(1, "days").startOf("day"),
+      moment().subtract(1, "days").endOf("day"),
+    ],
+    "7 ngày qua": [
+      moment().subtract(6, "days").startOf("day"),
+      moment().endOf("day"),
+    ],
+    "30 ngày qua": [
+      moment().subtract(29, "days").startOf("day"),
+      moment().endOf("day"),
+    ],
+    "Tháng này": [moment().startOf("month"), moment().endOf("month")],
+    "Tháng trước": [
+      moment().subtract(1, "month").startOf("month"),
+      moment().subtract(1, "month").endOf("month"),
+    ],
+  });
+
   const requestColumns = [
     {
       title: "Mã phiếu",
       dataIndex: "id",
       key: "id",
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Nhập mã phiếu"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => {
+              confirm();
+              handleFilterChange("id", selectedKeys[0]);
+            }}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => {
+                confirm();
+                handleFilterChange("id", selectedKeys[0]);
+              }}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Tìm
+            </Button>
+            <Button
+              onClick={() => {
+                clearFilters();
+                handleFilterChange("id", "");
+              }}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Xóa
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
     },
     {
       title: "Ngày tạo",
       dataIndex: "createdTime",
       key: "createdTime",
       render: (date) => moment(date).format("DD/MM/YYYY HH:mm"),
+      filterDropdown: ({ setSelectedKeys, confirm, clearFilters }) => (
+        <div style={{ padding: 16, maxWidth: 400 }}>
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <RangePicker
+              value={filters.dateRange}
+              onChange={(dates) => {
+                setSelectedKeys(dates);
+                handleFilterChange("dateRange", dates);
+              }}
+              style={{ width: "100%" }}
+              ranges={getPresetRanges()}
+              format="DD/MM/YYYY"
+              allowClear
+            />
+            <Space
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                width: "100%",
+              }}
+            >
+              <Button
+                type="primary"
+                onClick={() => {
+                  confirm();
+                }}
+                size="small"
+              >
+                Áp dụng
+              </Button>
+              <Button
+                onClick={() => {
+                  clearFilters();
+                  handleFilterChange("dateRange", []);
+                }}
+                size="small"
+              >
+                Xóa bộ lọc
+              </Button>
+            </Space>
+            <Divider style={{ margin: "8px 0" }} />
+            <Space wrap>
+              {Object.entries(getPresetRanges()).map(([label, [startDate]]) => (
+                <Tag
+                  key={label}
+                  color="blue"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    const range = getPresetRanges()[label];
+                    setSelectedKeys(range);
+                    handleFilterChange("dateRange", range);
+                    confirm();
+                  }}
+                >
+                  {label}
+                </Tag>
+              ))}
+            </Space>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <CalendarOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
     },
     {
-      title: "Người tạo",
+      title: "Người yêu cầu",
       dataIndex: "createdBy",
       key: "createdBy",
     },
@@ -247,6 +394,18 @@ const MedicineRequestApproval = () => {
           </Tag>
         );
       },
+      filters: [
+        { text: "Chờ duyệt", value: "Pending" },
+        { text: "Đã duyệt", value: "Completed" },
+      ],
+      onFilter: (value, record) => record.status === value,
+      filterMultiple: false,
+    },
+    {
+      title: "Ghi chú",
+      dataIndex: "note",
+      key: "note",
+      render: (note) => note || "Không có ghi chú",
     },
     {
       title: "Thao tác",
@@ -293,26 +452,6 @@ const MedicineRequestApproval = () => {
       render: (quantity, record) => `${quantity} ${record.unit}`,
     },
     {
-      title: "Nhà cung cấp",
-      key: "supplier",
-      render: (_, record) => (
-        <Select
-          style={{ width: "100%" }}
-          value={selectedDetails[record.medicineId]?.supplierId}
-          onChange={(value) =>
-            handleDetailChange(record.medicineId, "supplierId", value)
-          }
-          placeholder="Chọn nhà cung cấp"
-        >
-          {record.medicine.suppliers.map((sup) => (
-            <Select.Option key={sup.id} value={sup.id}>
-              {sup.name}
-            </Select.Option>
-          ))}
-        </Select>
-      ),
-    },
-    {
       title: "Đơn giá / đơn vị",
       key: "price",
       width: 200,
@@ -326,6 +465,7 @@ const MedicineRequestApproval = () => {
           <InputNumber
             className="w-full"
             min={0}
+            style={{ marginTop: 28 }}
             value={selectedDetails[record.medicineId]?.price}
             onChange={(value) =>
               handleDetailChange(record.medicineId, "price", value)
@@ -441,12 +581,22 @@ const MedicineRequestApproval = () => {
     return grouped;
   };
 
+  const isAllPricesEntered = (supplierId, items) => {
+    return items.every(
+      (item) =>
+        selectedDetails[item.medicineId]?.price &&
+        selectedDetails[item.medicineId]?.price > 0
+    );
+  };
+
   const renderSupplierGroup = (supplier, items) => {
     const totalAmount = items.reduce(
       (total, item) =>
         total + (selectedDetails[item.medicineId]?.price || 0) * item.quantity,
       0
     );
+
+    const allPricesEntered = isAllPricesEntered(supplier.supplierId, items);
 
     const handleGroupDepositChange = (supplierId, value) => {
       const groupItems = items.filter(
@@ -471,7 +621,6 @@ const MedicineRequestApproval = () => {
         return;
       }
 
-      // Lưu tiền cọc cho cả nhóm
       setSelectedDetails((prev) => ({
         ...prev,
         [`group_${supplierId}`]: {
@@ -490,7 +639,7 @@ const MedicineRequestApproval = () => {
             <Row gutter={[24, 24]}>
               <Col span={24}>
                 <div className="supplier-main-info">
-                  <Space size={24}>
+                  <Space size={24} align="start">
                     <Avatar
                       icon={<ShopOutlined />}
                       size={48}
@@ -499,118 +648,151 @@ const MedicineRequestApproval = () => {
                         boxShadow: "0 2px 8px rgba(24,144,255,0.15)",
                       }}
                     />
-                    <div className="supplier-info">
-                      <Title level={4} style={{ margin: 0 }}>
+                    <div className="supplier-info" style={{ width: "100%" }}>
+                      <Title level={4} style={{ margin: 0, marginBottom: 16 }}>
                         {supplier.supplierName}
                       </Title>
-                      <Space split={<Divider type="vertical" />}>
-                        <Space>
-                          <Text>Tổng tiền:</Text>
-                          <Text
-                            strong
-                            style={{ fontSize: 16, color: "#1890ff" }}
-                          >
-                            {totalAmount.toLocaleString()}đ
-                          </Text>
-                        </Space>
-                        <Space>
-                          <Text>Tiền cọc: </Text>
-                          <Form.Item
-                            style={{ marginBottom: 0 }}
-                            validateStatus={
-                              !selectedDetails[`group_${supplier.supplierId}`]
-                                ?.deposit
-                                ? "error"
-                                : ""
-                            }
-                            required
-                          >
-                            <InputNumber
-                              style={{ width: 200 }}
-                              min={0}
-                              max={totalAmount}
-                              value={
-                                selectedDetails[`group_${supplier.supplierId}`]
-                                  ?.deposit
+                      <Row justify="space-between" align="middle">
+                        <Col>
+                          <Space align="start">
+                            <Text>Tiền cọc: </Text>
+                            <Tooltip
+                              title={
+                                !allPricesEntered
+                                  ? "Vui lòng nhập đơn giá cho tất cả sản phẩm trước khi nhập tiền cọc"
+                                  : ""
                               }
-                              onChange={(value) =>
-                                handleGroupDepositChange(
-                                  supplier.supplierId,
-                                  value
-                                )
-                              }
-                              formatter={(value) =>
-                                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                              }
-                              parser={(value) =>
-                                value.replace(/\$\s?|(,*)/g, "")
-                              }
-                              addonAfter="đ"
-                            />
-                          </Form.Item>
-                        </Space>
+                            >
+                              <div>
+                                <Form.Item
+                                  style={{ marginBottom: 0 }}
+                                  validateStatus={
+                                    !selectedDetails[
+                                      `group_${supplier.supplierId}`
+                                    ]?.deposit
+                                      ? "error"
+                                      : ""
+                                  }
+                                  required
+                                >
+                                  <InputNumber
+                                    style={{ width: 200 }}
+                                    min={0}
+                                    max={totalAmount}
+                                    value={
+                                      selectedDetails[
+                                        `group_${supplier.supplierId}`
+                                      ]?.deposit
+                                    }
+                                    onChange={(value) =>
+                                      handleGroupDepositChange(
+                                        supplier.supplierId,
+                                        value
+                                      )
+                                    }
+                                    formatter={(value) =>
+                                      `${value}`.replace(
+                                        /\B(?=(\d{3})+(?!\d))/g,
+                                        ","
+                                      )
+                                    }
+                                    parser={(value) =>
+                                      value.replace(/\$\s?|(,*)/g, "")
+                                    }
+                                    addonAfter="đ"
+                                    disabled={!allPricesEntered}
+                                  />
+                                </Form.Item>
+                              </div>
+                            </Tooltip>
+                          </Space>
+                        </Col>
+                        <Col>
+                          <Space>
+                            <Text>Tổng tiền:</Text>
+                            <Text
+                              strong
+                              style={{ fontSize: 16, color: "#1890ff" }}
+                            >
+                              {totalAmount.toLocaleString()}đ
+                            </Text>
+                          </Space>
+                        </Col>
+                      </Row>
+                      <div style={{ marginTop: 8 }}>
                         <Tag color="blue">{items.length} sản phẩm</Tag>
-                      </Space>
+                      </div>
                     </div>
                   </Space>
                 </div>
               </Col>
               <Col span={24}>
-                <div className="supplier-controls">
-                  <Row gutter={32} align="middle">
-                    <Col span={6}>
-                      <Form.Item
-                        label={<Text strong>Ngày giao dự kiến</Text>}
-                        required
-                        validateStatus={
-                          !deliveryDates[supplier.supplierId] ? "error" : ""
-                        }
-                        style={{ marginBottom: 0 }}
-                      >
-                        <DatePicker
-                          className="w-full"
-                          format="DD/MM/YYYY"
-                          value={
-                            deliveryDates[supplier.supplierId]
-                              ? moment(deliveryDates[supplier.supplierId])
-                              : null
-                          }
-                          onChange={(date) => {
-                            setDeliveryDates((prev) => ({
-                              ...prev,
-                              [supplier.supplierId]: date,
-                            }));
-                          }}
-                          placeholder="Chọn ngày giao"
-                        />
-                      </Form.Item>
+                <Row gutter={32}>
+                  <Col span={8}>
+                    <Form.Item
+                      label={<Text strong>Ngày giao dự kiến</Text>}
+                      required
+                      validateStatus={
+                        !deliveryDates[supplier.supplierId] ? "error" : ""
+                      }
+                      style={{ marginBottom: 16 }}
+                    >
+                      <DatePicker
+                        className="w-full"
+                        format="DD/MM/YYYY"
+                        value={deliveryDates[supplier.supplierId]}
+                        onChange={(date) => {
+                          setDeliveryDates((prev) => ({
+                            ...prev,
+                            [supplier.supplierId]: date,
+                          }));
+                        }}
+                        placeholder="Chọn ngày giao"
+                        disabledDate={(current) => {
+                          // Không cho phép chọn ngày trong quá khứ
+                          return current && current < moment().startOf("day");
+                        }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Divider orientation="left">
+                  <Space>
+                    <InfoCircleOutlined />
+                    <Text strong>Thông tin nhà cung cấp</Text>
+                  </Space>
+                </Divider>
+                <div className="supplier-info-details">
+                  <Row gutter={[32, 16]}>
+                    <Col span={24}>
+                      <Space>
+                        <EnvironmentOutlined />
+                        <Text strong>Địa chỉ:</Text>
+                        <Text>
+                          {selectedSupplierInfo[supplier.supplierId]?.address ||
+                            "Chưa có địa chỉ"}
+                        </Text>
+                      </Space>
                     </Col>
-                    <Col span={18}>
-                      <div className="supplier-info-details">
-                        <Space size="large">
-                          <Space>
-                            <EnvironmentOutlined />
-                            <Text>
-                              {selectedSupplierInfo[supplier.supplierId]
-                                ?.address || "Chưa có địa chỉ"}
-                            </Text>
-                          </Space>
-                          <Space>
-                            <PhoneOutlined />
-                            <Text>
-                              {selectedSupplierInfo[supplier.supplierId]
-                                ?.phone || "Chưa có SĐT"}
-                            </Text>
-                          </Space>
-                          <Space>
-                            <MailOutlined />
-                            <Text>
-                              {selectedSupplierInfo[supplier.supplierId]
-                                ?.email || "Chưa có email"}
-                            </Text>
-                          </Space>
-                        </Space>
-                      </div>
+                    <Col span={24}>
+                      <Space>
+                        <PhoneOutlined />
+                        <Text strong>Số điện thoại:</Text>
+                        <Text>
+                          {selectedSupplierInfo[supplier.supplierId]?.phone ||
+                            "Chưa có SĐT"}
+                        </Text>
+                      </Space>
+                    </Col>
+                    <Col span={24}>
+                      <Space>
+                        <MailOutlined />
+                        <Text strong>Email:</Text>
+                        <Text>
+                          {selectedSupplierInfo[supplier.supplierId]?.email ||
+                            "Chưa có email"}
+                        </Text>
+                      </Space>
                     </Col>
                   </Row>
                 </div>
@@ -688,7 +870,7 @@ const MedicineRequestApproval = () => {
                 </Tag>
               </Col>
               <Col span={12}>
-                <Text strong>Người tạo:</Text> {selectedRequest.createdBy}
+                <Text strong>Người yêu cầu:</Text> {selectedRequest.createdBy}
               </Col>
               <Col span={12}>
                 <Text strong>Ngày tạo:</Text>{" "}
@@ -840,7 +1022,7 @@ const MedicineRequestApproval = () => {
               </Tag>
             </Col>
             <Col span={12}>
-              <Text strong>Người tạo:</Text> {selectedRequest.createdBy}
+              <Text strong>Người yêu cầu:</Text> {selectedRequest.createdBy}
             </Col>
             <Col span={12}>
               <Text strong>Ngày tạo:</Text>{" "}
@@ -909,6 +1091,40 @@ const MedicineRequestApproval = () => {
     </Modal>
   );
 
+  const getFilteredRequests = () => {
+    return requests.filter((request) => {
+      // Lọc theo mã phiếu
+      if (
+        filters.id &&
+        !request.id.toLowerCase().includes(filters.id.toLowerCase())
+      ) {
+        return false;
+      }
+
+      // Lọc theo khoảng thời gian
+      if (filters.dateRange && filters.dateRange.length === 2) {
+        const requestDate = moment(request.createdTime);
+        if (
+          !requestDate.isBetween(
+            filters.dateRange[0],
+            filters.dateRange[1],
+            "day",
+            "[]"
+          )
+        ) {
+          return false;
+        }
+      }
+
+      // Lọc theo trạng thái
+      if (filters.status && request.status !== filters.status) {
+        return false;
+      }
+
+      return true;
+    });
+  };
+
   return (
     <div className="medicine-request-page" style={{ padding: "24px" }}>
       <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -962,7 +1178,7 @@ const MedicineRequestApproval = () => {
         </Title>
         <Table
           columns={requestColumns}
-          dataSource={requests}
+          dataSource={getFilteredRequests()}
           loading={loading}
           rowKey="id"
           pagination={{

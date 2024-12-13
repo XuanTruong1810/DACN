@@ -12,6 +12,9 @@ namespace Application.Models.MedicineImportModelView
 
         public string CreateBy { get; set; }
         public string CreateByName { get; set; }
+
+        public string ReceivedBy { get; set; }
+        public string ReceivedByName { get; set; }
         public DateTimeOffset? DeliveryTime { get; set; }
 
         public DateTimeOffset? StockTime { get; set; }

@@ -93,6 +93,8 @@ namespace Application.Services
                 TotalPrice = medicineImport.TotalAmount.GetValueOrDefault(),
                 TotalReceivedQuantity = medicineImport.ReceivedAmount.GetValueOrDefault(),
                 CreateByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(medicineImport.CreatedBy).Result?.FullName,
+                ReceivedBy = medicineImport.Receiver,
+                ReceivedByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(medicineImport.Receiver).Result?.FullName,
                 ExpectedDeliveryTime = medicineImport.ExpectedDeliveryTime,
                 Deposit = medicineImport.Deposit,
                 Details = medicineImport.MedicineImportDetails.Select(mi => new MedicineImportDetailModelView
@@ -122,6 +124,8 @@ namespace Application.Services
                 CreateTime = mi.CreatedTime.GetValueOrDefault(),
                 CreateBy = mi.CreatedBy,
                 CreateByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(mi.CreatedBy).Result?.FullName,
+                ReceivedBy = mi.Receiver,
+                ReceivedByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(mi.Receiver).Result?.FullName,
                 ExpectedDeliveryTime = mi.ExpectedDeliveryTime,
                 Deposit = mi.Deposit,
                 Details = mi.MedicineImportDetails.Select(mi => new MedicineImportDetailModelView

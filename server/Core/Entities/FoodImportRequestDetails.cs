@@ -15,6 +15,10 @@ public class FoodImportRequestDetails
 
     [ForeignKey("FoodImportRequests")]
     public string FoodImportRequestId { get; set; }
+    public string Status { get; set; } = "pending"; // pending,rejected
+    public string? Note { get; set; }
     public virtual FoodImportRequests FoodImportRequests { get; set; }
+
+
 
 }

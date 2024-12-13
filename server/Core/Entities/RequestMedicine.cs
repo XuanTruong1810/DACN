@@ -18,7 +18,6 @@ namespace Core.Entities
         public DateTimeOffset RequestDate { get; set; }
         public string? Note { get; set; }
         public RequestStatus Status { get; set; }
-        public string? RejectReason { get; set; } // Lý do từ chối nếu có
 
         // Navigation properties
         [InverseProperty("RequestMedicine")]

@@ -1,10 +1,10 @@
+/* eslint-disable no-unused-vars */
 import {
   Card,
   Table,
   Space,
   Button,
   Typography,
-  Badge,
   Form,
   Input,
   DatePicker,
@@ -13,27 +13,19 @@ import {
   message,
   Tooltip,
   Tag,
-  Select,
-  Drawer,
   Statistic,
   Modal,
   Descriptions,
   InputNumber,
-  Alert,
 } from "antd";
 import {
-  ShoppingCartOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
   EyeOutlined,
-  FilterOutlined,
-  ReloadOutlined,
-  DeleteOutlined,
   SearchOutlined,
   DollarOutlined,
   FileDoneOutlined,
   ClockCircleOutlined,
-  MedicineBoxOutlined,
   InboxOutlined,
   PrinterOutlined,
 } from "@ant-design/icons";
@@ -43,6 +35,7 @@ import moment from "moment";
 import dayjs from "dayjs";
 
 const { Text, Title } = Typography;
+const { RangePicker } = DatePicker;
 
 const MedicineImportList = () => {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -63,6 +56,7 @@ const MedicineImportList = () => {
   const [deliveryDetails, setDeliveryDetails] = useState([]);
   const [selectedDelivery, setSelectedDelivery] = useState(null);
   const [deliveryDate, setDeliveryDate] = useState(moment());
+  const [totalAmount, setTotalAmount] = useState(0);
 
   const columns = [
     {
@@ -70,12 +64,96 @@ const MedicineImportList = () => {
       dataIndex: "id",
       key: "id",
       width: 150,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Nhập mã phiếu"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => confirm()}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              icon={<SearchOutlined />}
+              size="small"
+            >
+              Tìm
+            </Button>
+            <Button
+              onClick={() => {
+                clearFilters();
+                confirm();
+              }}
+              size="small"
+            >
+              Xóa
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) =>
+        record.id.toLowerCase().includes(value.toLowerCase()),
     },
     {
       title: "Nhà cung cấp",
       dataIndex: "supplierName",
       key: "supplierName",
       width: 200,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm nhà cung cấp"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => confirm()}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              icon={<SearchOutlined />}
+              size="small"
+            >
+              Tìm
+            </Button>
+            <Button
+              onClick={() => {
+                clearFilters();
+                confirm();
+              }}
+              size="small"
+            >
+              Xóa
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) =>
+        record.supplierName.toLowerCase().includes(value.toLowerCase()),
     },
     {
       title: "Ngày tạo",
@@ -83,11 +161,49 @@ const MedicineImportList = () => {
       key: "createTime",
       width: 180,
       render: (date) => moment(date).format("DD/MM/YYYY HH:mm"),
+      filterDropdown: ({ setSelectedKeys, confirm, clearFilters }) => (
+        <div style={{ padding: 8 }}>
+          <RangePicker
+            onChange={(dates) => {
+              setSelectedKeys(dates);
+            }}
+            style={{ marginBottom: 8 }}
+          />
+          <div>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              icon={<SearchOutlined />}
+              size="small"
+              style={{ marginRight: 8 }}
+            >
+              Tìm
+            </Button>
+            <Button
+              onClick={() => {
+                clearFilters();
+                confirm();
+              }}
+              size="small"
+            >
+              Xóa
+            </Button>
+          </div>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <CalendarOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) => {
+        if (!value || value.length !== 2) return true;
+        const recordDate = moment(record.createTime);
+        return recordDate.isBetween(value[0], value[1], "day", "[]");
+      },
     },
     {
-      title: "Người tạo",
-      dataIndex: "createByName",
-      key: "createByName",
+      title: "Người nhận",
+      dataIndex: "receivedByName",
+      key: "receivedByName",
       width: 150,
     },
     {
@@ -98,7 +214,6 @@ const MedicineImportList = () => {
       render: (status) => {
         const statusConfig = {
           Pending: { color: "warning", text: "Chờ nhận hàng" },
-          Completed: { color: "success", text: "Đã nhận hàng" },
           Stocked: { color: "success", text: "Đã nhập kho" },
         };
         return (
@@ -107,6 +222,11 @@ const MedicineImportList = () => {
           </Tag>
         );
       },
+      filters: [
+        { text: "Chờ nhận hàng", value: "Pending" },
+        { text: "Đã nhập kho", value: "Stocked" },
+      ],
+      onFilter: (value, record) => record.status === value,
     },
     {
       title: "Ngày nhận dự kiến",
@@ -116,48 +236,42 @@ const MedicineImportList = () => {
       render: (date) => moment(date).format("DD/MM/YYYY"),
     },
     {
-      title: "Đặt cọc",
-      dataIndex: "deposit",
-      key: "deposit",
-      width: 150,
-      render: (value) => `${value.toLocaleString()}đ`,
-    },
-    {
       title: "Thao tác",
       key: "action",
-      width: 250,
+      width: 200,
       render: (_, record) => (
         <Space>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => {
-              getImportDetails(record.id);
-              setShowViewDetail(true);
-            }}
-          >
-            Chi tiết
-          </Button>
+          <Tooltip title="Xem chi tiết">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              onClick={() => {
+                getImportDetails(record.id);
+                setShowViewDetail(true);
+              }}
+            />
+          </Tooltip>
 
-          {record.status === "Pending" && !record.isStocked && (
+          {record.status === "Pending" && (
             <>
-              <Button
-                type="default"
-                icon={<PrinterOutlined />}
-                onClick={() => {
-                  getImportDetails(record.id).then(() => {
-                    handlePrintDelivery(record, record.details);
-                  });
-                }}
-              >
-                In phiếu trống
-              </Button>
-              <Button
-                type="primary"
-                icon={<ShoppingCartOutlined />}
-                onClick={() => handleDelivery(record)}
-              >
-                Nhập số liệu
-              </Button>
+              <Tooltip title="In phiếu trống">
+                <Button
+                  type="text"
+                  icon={<PrinterOutlined />}
+                  onClick={() => {
+                    getImportDetails(record.id).then(() => {
+                      handlePrintDelivery(record, record.details);
+                    });
+                  }}
+                />
+              </Tooltip>
+              <Tooltip title="Nhập số liệu">
+                <Button
+                  type="text"
+                  icon={<InboxOutlined />}
+                  onClick={() => handleDelivery(record)}
+                />
+              </Tooltip>
             </>
           )}
         </Space>
@@ -417,16 +531,40 @@ const MedicineImportList = () => {
     </Modal>
   );
 
+  const calculateTotal = (details) => {
+    return details.reduce(
+      (sum, item) => sum + item.receivedQuantity * item.unitPrice,
+      0
+    );
+  };
+
+  const handleQuantityChange = (index, value, field) => {
+    const newDetails = [...deliveryDetails];
+
+    if (field === "actualQuantity") {
+      newDetails[index].actualQuantity = value;
+      newDetails[index].receivedQuantity = Math.min(
+        value,
+        newDetails[index].expectedQuantity
+      );
+    } else if (field === "receivedQuantity") {
+      newDetails[index].receivedQuantity = value;
+    }
+
+    setDeliveryDetails(newDetails);
+    setTotalAmount(calculateTotal(newDetails));
+  };
+
   const handleDelivery = (record) => {
     setSelectedDelivery(record);
-    setDeliveryDetails(
-      record.details.map((detail) => ({
-        ...detail,
-        actualQuantity: detail.expectedQuantity,
-        receivedQuantity: detail.expectedQuantity,
-      }))
-    );
+    const initialDetails = record.details.map((detail) => ({
+      ...detail,
+      actualQuantity: detail.expectedQuantity,
+      receivedQuantity: detail.expectedQuantity,
+    }));
+    setDeliveryDetails(initialDetails);
     setDeliveryDate(moment());
+    setTotalAmount(calculateTotal(initialDetails));
     setShowDeliveryModal(true);
   };
 
@@ -461,14 +599,11 @@ const MedicineImportList = () => {
         }
       );
 
-      // 3. Hiển thị thông báo thành công và cập nhật UI
       message.success("Đã giao hàng và nhập kho thành công");
       setShowDeliveryModal(false);
-      setShowConfirmModal(true);
       getMedicineImports();
     } catch (error) {
       console.error("Lỗi:", error);
-      // Hiển thị thông báo lỗi chi tiết hơn
       if (error.response?.data?.message) {
         message.error(error.response.data.message);
       } else {
@@ -639,8 +774,145 @@ const MedicineImportList = () => {
     [deliveryDate]
   );
 
+  const renderDeliveryModal = () => (
+    <Modal
+      title="Nhập số liệu giao hàng"
+      open={showDeliveryModal}
+      onOk={handleDeliveryConfirm}
+      onCancel={() => setShowDeliveryModal(false)}
+      width={1000}
+    >
+      <Form layout="vertical">
+        <Row gutter={16} style={{ marginBottom: 24 }}>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic
+                title={<Text strong>Tiền đã cọc</Text>}
+                value={selectedDelivery?.deposit || 0}
+                precision={0}
+                suffix="đ"
+                valueStyle={{ color: "#52c41a" }}
+                formatter={(value) =>
+                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                }
+              />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic
+                title={<Text strong>Tổng tiền</Text>}
+                value={totalAmount}
+                precision={0}
+                suffix="đ"
+                valueStyle={{ color: "#1890ff" }}
+                formatter={(value) =>
+                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                }
+              />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic
+                title={<Text strong>Còn phải trả</Text>}
+                value={totalAmount - (selectedDelivery?.deposit || 0)}
+                precision={0}
+                suffix="đ"
+                valueStyle={{ color: "#ff4d4f" }}
+                formatter={(value) =>
+                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                }
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        <Form.Item label="Ngày nhận hàng" required>
+          <DatePicker
+            value={deliveryDate}
+            onChange={setDeliveryDate}
+            format="DD/MM/YYYY"
+            style={{ width: "100%" }}
+          />
+        </Form.Item>
+        <Table
+          dataSource={deliveryDetails}
+          columns={[
+            {
+              title: "Tên thuốc",
+              dataIndex: "medicineName",
+              key: "medicineName",
+            },
+            {
+              title: "Số lượng yêu cầu",
+              dataIndex: "expectedQuantity",
+              key: "expectedQuantity",
+            },
+            {
+              title: "Số lượng thực tế",
+              dataIndex: "actualQuantity",
+              key: "actualQuantity",
+              render: (_, record, index) => (
+                <InputNumber
+                  min={0}
+                  value={record.actualQuantity}
+                  onChange={(value) =>
+                    handleQuantityChange(index, value, "actualQuantity")
+                  }
+                />
+              ),
+            },
+            {
+              title: "Số lượng nhận",
+              dataIndex: "receivedQuantity",
+              key: "receivedQuantity",
+              render: (_, record, index) => (
+                <InputNumber
+                  min={0}
+                  max={record.actualQuantity}
+                  value={record.receivedQuantity}
+                  onChange={(value) =>
+                    handleQuantityChange(index, value, "receivedQuantity")
+                  }
+                />
+              ),
+            },
+            {
+              title: "Đơn giá",
+              dataIndex: "unitPrice",
+              key: "unitPrice",
+              render: (price) => `${price?.toLocaleString()}đ`,
+            },
+            {
+              title: "Thành tiền",
+              key: "total",
+              render: (_, record) =>
+                `${(
+                  record.receivedQuantity * record.unitPrice
+                )?.toLocaleString()}đ`,
+            },
+          ]}
+          pagination={false}
+          summary={(pageData) => {
+            return (
+              <Table.Summary.Row>
+                <Table.Summary.Cell index={0} colSpan={5}>
+                  <Text strong>Tổng cộng</Text>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={1}>
+                  <Text strong>{totalAmount.toLocaleString()}đ</Text>
+                </Table.Summary.Cell>
+              </Table.Summary.Row>
+            );
+          }}
+        />
+      </Form>
+    </Modal>
+  );
+
   return (
-    <div className="medicine-import-page" style={{ padding: "24px" }}>
+    <div style={{ padding: "24px" }}>
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
           <Card className="statistic-card">
@@ -655,9 +927,9 @@ const MedicineImportList = () => {
         <Col span={6}>
           <Card className="statistic-card">
             <Statistic
-              title={<Text strong>Đã nhận hàng</Text>}
+              title={<Text strong>Đã nhập kho</Text>}
               value={
-                medicineImports.filter((r) => r.status === "Completed").length
+                medicineImports.filter((r) => r.status === "Stocked").length
               }
               prefix={<CheckCircleOutlined />}
               valueStyle={{ color: "#52c41a", fontSize: 24 }}
@@ -679,48 +951,26 @@ const MedicineImportList = () => {
         <Col span={6}>
           <Card className="statistic-card">
             <Statistic
-              title={<Text strong>Tổng sản phẩm</Text>}
+              title={<Text strong>Tổng tiền đặt cọc</Text>}
               value={medicineImports.reduce(
-                (total, imp) => total + (imp.details?.length || 0),
+                (total, item) => total + (item.deposit || 0),
                 0
               )}
-              prefix={<MedicineBoxOutlined />}
+              prefix={<DollarOutlined />}
               valueStyle={{ color: "#eb2f96", fontSize: 24 }}
+              formatter={(value) => `${value.toLocaleString()}đ`}
             />
           </Card>
         </Col>
       </Row>
-
       <Card className="main-table-card">
-        <Space
-          style={{
-            marginBottom: 16,
-            justifyContent: "space-between",
-            width: "100%",
-          }}
-        >
-          <Space>
-            <Input.Search
-              placeholder="Tìm kiếm theo mã phiếu, nhà cung cấp..."
-              allowClear
-              onSearch={handleSearch}
-              style={{ width: 300 }}
-            />
-            <Button
-              icon={<FilterOutlined />}
-              onClick={() => setFilterDrawerVisible(true)}
-            >
-              Bộ lọc
-            </Button>
-            <Button icon={<ReloadOutlined />} onClick={resetFilters}>
-              Làm mới
-            </Button>
-          </Space>
-        </Space>
-
+        <Title level={4}>Danh sách phiếu nhập thuốc</Title>
         <Table
           columns={columns}
-          dataSource={medicineImports}
+          dataSource={[
+            ...medicineImports.filter((item) => item.status === "Pending"),
+            ...medicineImports.filter((item) => item.status !== "Pending"),
+          ]}
           loading={loading}
           rowKey="id"
           pagination={{
@@ -729,237 +979,8 @@ const MedicineImportList = () => {
           }}
         />
       </Card>
-
+      {renderDeliveryModal()}
       {renderDetailModal()}
-
-      <Drawer
-        title="Bộ lọc nâng cao"
-        placement="right"
-        onClose={() => setFilterDrawerVisible(false)}
-        open={filterDrawerVisible}
-        width={300}
-      >
-        <Form layout="vertical">
-          <Form.Item label="Trạng thái">
-            <Select
-              value={filters.status}
-              onChange={(value) => handleFilterChange({ status: value })}
-            >
-              <Select.Option value="all">Tất cả trạng thái</Select.Option>
-              <Select.Option value="Pending">
-                <Badge status="warning" text="Chờ nhận hàng" />
-              </Select.Option>
-              <Select.Option value="Completed">
-                <Badge status="success" text="Đã nhận hàng" />
-              </Select.Option>
-              <Select.Option value="Cancelled">
-                <Badge status="error" text="Đã hủy" />
-              </Select.Option>
-            </Select>
-          </Form.Item>
-          <Form.Item label="Khoảng thời gian">
-            <DatePicker.RangePicker
-              value={filters.dateRange}
-              onChange={(dates) => handleFilterChange({ dateRange: dates })}
-              style={{ width: "100%" }}
-            />
-          </Form.Item>
-        </Form>
-      </Drawer>
-
-      <Modal
-        title={
-          <Space>
-            <ShoppingCartOutlined style={{ color: "#52c41a" }} />
-            <span>Xác nhận giao hàng</span>
-          </Space>
-        }
-        open={showDeliveryModal}
-        onOk={handleDeliveryConfirm}
-        onCancel={() => setShowDeliveryModal(false)}
-        width={1000}
-        footer={[
-          <Button
-            key="print"
-            icon={<PrinterOutlined />}
-            onClick={() =>
-              handlePrintDelivery(selectedDelivery, deliveryDetails)
-            }
-          >
-            In phiếu giao hàng
-          </Button>,
-          <Button key="cancel" onClick={() => setShowDeliveryModal(false)}>
-            Hủy
-          </Button>,
-          <Button key="submit" type="primary" onClick={handleDeliveryConfirm}>
-            Xác nhận
-          </Button>,
-        ]}
-      >
-        {selectedDelivery && (
-          <>
-            <Descriptions bordered column={2}>
-              <Descriptions.Item label="Mã phiếu">
-                {selectedDelivery.id}
-              </Descriptions.Item>
-              <Descriptions.Item label="Nhà cung cấp">
-                {selectedDelivery.supplierName}
-              </Descriptions.Item>
-              <Descriptions.Item label="Ngày tạo">
-                {moment(selectedDelivery.createTime).format("DD/MM/YYYY HH:mm")}
-              </Descriptions.Item>
-              <Descriptions.Item label="Ngày dự kiến">
-                {moment(selectedDelivery.expectedDeliveryTime).format(
-                  "DD/MM/YYYY"
-                )}
-              </Descriptions.Item>
-              <Descriptions.Item label="Đặt cọc">
-                {selectedDelivery.deposit.toLocaleString()}đ
-              </Descriptions.Item>
-              <Descriptions.Item label="Ngày giao hàng">
-                <DatePicker
-                  value={deliveryDate}
-                  onChange={setDeliveryDate}
-                  format="DD/MM/YYYY"
-                  disabledDate={(current) =>
-                    current && current > moment().endOf("day")
-                  }
-                />
-              </Descriptions.Item>
-            </Descriptions>
-
-            <Table
-              style={{ marginTop: 16 }}
-              dataSource={deliveryDetails}
-              columns={[
-                {
-                  title: "Tên thuốc",
-                  dataIndex: "medicineName",
-                },
-                {
-                  title: "Số lượng yêu cầu",
-                  dataIndex: "expectedQuantity",
-                },
-                {
-                  title: "Số lượng thực tế",
-                  dataIndex: "actualQuantity",
-                  render: (_, record, index) => (
-                    <InputNumber
-                      min={0}
-                      value={record.actualQuantity}
-                      onChange={(value) => {
-                        const newDetails = [...deliveryDetails];
-                        newDetails[index].actualQuantity = value;
-                        setDeliveryDetails(newDetails);
-                      }}
-                    />
-                  ),
-                },
-                {
-                  title: "Số lượng nhận",
-                  dataIndex: "receivedQuantity",
-                  render: (_, record, index) => (
-                    <InputNumber
-                      min={0}
-                      max={record.actualQuantity}
-                      value={record.receivedQuantity}
-                      onChange={(value) => {
-                        const newDetails = [...deliveryDetails];
-                        newDetails[index].receivedQuantity = value;
-                        setDeliveryDetails(newDetails);
-                      }}
-                    />
-                  ),
-                },
-              ]}
-              pagination={false}
-            />
-          </>
-        )}
-      </Modal>
-
-      <Modal
-        title={
-          <Space>
-            <DollarOutlined style={{ color: "#52c41a" }} />
-            <span>Thông tin thanh toán</span>
-          </Space>
-        }
-        open={showConfirmModal}
-        onOk={() => setShowConfirmModal(false)}
-        onCancel={() => setShowConfirmModal(false)}
-        width={600}
-        footer={[
-          <Button
-            key="close"
-            type="primary"
-            onClick={() => setShowConfirmModal(false)}
-          >
-            Xác nhận
-          </Button>,
-        ]}
-      >
-        {selectedDelivery && (
-          <>
-            <Alert
-              message="Giao hàng thành công!"
-              description="Vui lòng kiểm tra thông tin thanh toán bên dưới"
-              type="success"
-              showIcon
-              style={{ marginBottom: 24 }}
-            />
-
-            <Card bordered={false}>
-              <Descriptions bordered column={1}>
-                <Descriptions.Item label={<Text strong>Tổng tiền hàng</Text>}>
-                  <Text type="warning" style={{ fontSize: 16 }}>
-                    {deliveryDetails
-                      .reduce(
-                        (sum, item) =>
-                          sum + item.receivedQuantity * item.unitPrice,
-                        0
-                      )
-                      .toLocaleString()}
-                    đ
-                  </Text>
-                </Descriptions.Item>
-
-                <Descriptions.Item label={<Text strong>Đã đặt cọc</Text>}>
-                  <Text type="success" style={{ fontSize: 16 }}>
-                    {selectedDelivery.deposit.toLocaleString()}đ
-                  </Text>
-                </Descriptions.Item>
-
-                <Descriptions.Item
-                  label={<Text strong>Còn phải thanh toán</Text>}
-                  className="payment-highlight"
-                >
-                  <Text
-                    type="danger"
-                    style={{ fontSize: 18, fontWeight: "bold" }}
-                  >
-                    {(
-                      deliveryDetails.reduce(
-                        (sum, item) =>
-                          sum + item.receivedQuantity * item.unitPrice,
-                        0
-                      ) - selectedDelivery.deposit
-                    ).toLocaleString()}
-                    đ
-                  </Text>
-                </Descriptions.Item>
-              </Descriptions>
-
-              <div style={{ marginTop: 24 }}>
-                <Text type="secondary">
-                  * Số tiền còn lại cần thanh toán cho nhà cung cấp{" "}
-                  <Text strong>{selectedDelivery.supplierName}</Text>
-                </Text>
-              </div>
-            </Card>
-          </>
-        )}
-      </Modal>
     </div>
   );
 };

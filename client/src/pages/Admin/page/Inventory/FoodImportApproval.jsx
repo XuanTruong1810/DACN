@@ -18,11 +18,13 @@ import {
   Form,
   Alert,
   Input,
+  Divider,
 } from "antd";
 import {
   ShopOutlined,
   WarningOutlined,
   DeleteOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import moment from "moment";
@@ -31,6 +33,7 @@ import "./styles/FoodImportApproval.css";
 
 const { Text, Title } = Typography;
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 // Tạo axios instance
 const axiosClient = axios.create({
@@ -81,16 +84,27 @@ const FoodImportApproval = () => {
   }, []);
 
   // API Calls
-  const getRequests = async () => {
-    setLoading(true);
+  const getRequests = async (search, status, fromDate, toDate) => {
     try {
-      const response = await axiosClient.get("/api/FoodImportRequest");
-      console.log("response data ", response.data.data);
-      setRequests(response.data.data);
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (search) params.append("search", search);
+      if (status) params.append("status", status);
+      if (fromDate) params.append("fromDate", fromDate.toISOString());
+      if (toDate) params.append("toDate", toDate.toISOString());
+
+      const response = await axiosClient.get(
+        `/api/FoodImportRequest?${params}`
+      );
+      if (response.status === 200) {
+        setRequests(response.data.data);
+      }
     } catch (error) {
-      message.error("Lỗi khi tải danh sách phiếu đề xuất");
+      console.error("Error fetching requests:", error);
+      message.error("Có lỗi xảy ra khi tải danh sách phiếu đề xuất");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const getSuppliers = async () => {
@@ -179,26 +193,28 @@ const FoodImportApproval = () => {
       const groupedDetails = groupDetailsBySupplier();
       const processedNotes = processNotes();
 
-      // Tạo phiếu nhập cho từng nhà cung cấp
-      for (const group of Object.values(groupedDetails.assigned)) {
-        await handleCreateImport(group);
-      }
-
-      // Gửi thông tin các sản phẩm bị hủy kèm ghi chú
-      await axiosClient.post(
-        `/api/FoodImportRequest/${selectedRequest.id}/reject-items`,
+      const response = await axiosClient.post(
+        `/api/FoodImportRequest/approve/${selectedRequest.id}`,
         {
-          rejectedItems: groupedDetails.unassigned.map((item) => ({
+          // Truyền data theo FoodImportRequestDTO
+          accepts: Object.values(groupedDetails.assigned).map((group) => ({
+            expectedDeliveryTime: deliveryDates[group.supplierId],
+            deposit: selectedDetails[`group_${group.supplierId}`]?.deposit || 0,
+            supplierId: group.supplierId,
+            details: group.items.map((item) => ({
+              foodId: item.id,
+              unitPrice: selectedDetails[item.id]?.price || 0,
+              expectedQuantity: item.expectedQuantity,
+            })),
+          })),
+          rejects: groupedDetails.unassigned.map((item) => ({
             foodId: item.id,
-            note: processedNotes[item.id],
+            reason:
+              processedNotes[item.id] ||
+              generalNote ||
+              "Không chọn nhà cung cấp",
           })),
         }
-      );
-
-      // Cập nhật trạng thái phiếu đề xuất
-      const response = await axiosClient.put(
-        `/api/FoodImportRequest/${selectedRequest.id}/approve`,
-        null
       );
 
       if (response.status === 200) {
@@ -753,26 +769,244 @@ const FoodImportApproval = () => {
     },
   };
 
-  // Thêm vào đầu component, sau phần khai báo states
+  // Sửa lại hàm filterByDate
+  const filterByDate = (value, record) => {
+    if (!value || !value[0]) return true;
+
+    const recordDate = moment(record.createdTime);
+    const [startDate, endDate] = value;
+
+    console.log("Filter values:", {
+      value,
+      recordDate: recordDate.format("YYYY-MM-DD HH:mm:ss"),
+      startDate: startDate.format("YYYY-MM-DD HH:mm:ss"),
+      endDate: endDate.format("YYYY-MM-DD HH:mm:ss"),
+      isInRange: recordDate.isBetween(startDate, endDate, "day", "[]"),
+    });
+
+    return recordDate.isBetween(startDate, endDate, "day", "[]");
+  };
+
+  // Cập nhật requestColumns với các bộ lọc
   const requestColumns = [
     {
       title: "Mã phiếu",
       dataIndex: "id",
       key: "id",
       width: 150,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm mã phiếu"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => confirm()}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              icon={<SearchOutlined />}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Tìm
+            </Button>
+            <Button
+              onClick={() => clearFilters()}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Xóa
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) =>
+        record.id.toLowerCase().includes(value.toLowerCase()),
     },
     {
       title: "Ngày tạo",
       dataIndex: "createdTime",
       key: "createdTime",
       width: 180,
-      render: (text) => new Date(text).toLocaleString(),
+      render: (text) => moment(text).format("DD/MM/YYYY HH:mm"),
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8, width: 320 }}>
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <DatePicker.RangePicker
+              value={selectedKeys[0]}
+              onChange={(dates, dateStrings) => {
+                setSelectedKeys(dates ? [dates] : []);
+              }}
+              style={{ width: "100%", marginBottom: 8 }}
+              format="DD/MM/YYYY"
+            />
+
+            {/* Thêm các nút tùy chọn nhanh */}
+            <Space wrap style={{ width: "100%" }}>
+              <Button
+                size="small"
+                onClick={() => {
+                  const today = moment();
+                  setSelectedKeys([[today.startOf("day"), today.endOf("day")]]);
+                }}
+              >
+                Hôm nay
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const yesterday = moment().subtract(1, "days");
+                  setSelectedKeys([
+                    [yesterday.startOf("day"), yesterday.endOf("day")],
+                  ]);
+                }}
+              >
+                Hôm qua
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const startOfWeek = moment().startOf("week");
+                  const endOfWeek = moment().endOf("week");
+                  setSelectedKeys([[startOfWeek, endOfWeek]]);
+                }}
+              >
+                Tuần này
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const lastWeekStart = moment()
+                    .subtract(1, "week")
+                    .startOf("week");
+                  const lastWeekEnd = moment()
+                    .subtract(1, "week")
+                    .endOf("week");
+                  setSelectedKeys([[lastWeekStart, lastWeekEnd]]);
+                }}
+              >
+                Tuần trước
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const startOfMonth = moment().startOf("month");
+                  const endOfMonth = moment().endOf("month");
+                  setSelectedKeys([[startOfMonth, endOfMonth]]);
+                }}
+              >
+                Tháng này
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const lastMonthStart = moment()
+                    .subtract(1, "month")
+                    .startOf("month");
+                  const lastMonthEnd = moment()
+                    .subtract(1, "month")
+                    .endOf("month");
+                  setSelectedKeys([[lastMonthStart, lastMonthEnd]]);
+                }}
+              >
+                Tháng trước
+              </Button>
+            </Space>
+
+            <Divider style={{ margin: "8px 0" }} />
+
+            <Space style={{ width: "100%", justifyContent: "flex-end" }}>
+              <Button
+                type="primary"
+                onClick={() => confirm()}
+                size="small"
+                style={{ width: 90 }}
+              >
+                Lọc
+              </Button>
+              <Button
+                onClick={() => {
+                  clearFilters();
+                  confirm();
+                }}
+                size="small"
+                style={{ width: 90 }}
+              >
+                Xóa
+              </Button>
+            </Space>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: filterByDate,
     },
     {
       title: "Người yêu cầu",
       dataIndex: "createdByName",
       key: "createdByName",
       width: 250,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm người yêu cầu"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => confirm()}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              icon={<SearchOutlined />}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Tìm
+            </Button>
+            <Button
+              onClick={() => clearFilters()}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Xóa
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) =>
+        record.createdByName.toLowerCase().includes(value.toLowerCase()),
     },
     {
       title: "Ghi chú",
@@ -785,13 +1019,15 @@ const FoodImportApproval = () => {
       key: "status",
       width: 150,
       render: (_, record) => (
-        <Tag
-          color={record.status === "pending" ? "processing" : "success"}
-          style={styles.tag}
-        >
+        <Tag color={record.status === "pending" ? "processing" : "success"}>
           {record.status === "pending" ? "Đợi xét duyệt" : "Đã xét duyệt"}
         </Tag>
       ),
+      filters: [
+        { text: "Đợi xét duyệt", value: "pending" },
+        { text: "Đã xét duyệt", value: "completed" },
+      ],
+      onFilter: (value, record) => record.status === value,
     },
     {
       title: "Thao tác",
@@ -802,8 +1038,10 @@ const FoodImportApproval = () => {
           type="primary"
           size="small"
           onClick={() => handleViewDetail(record)}
+          disabled={record.status === "completed"}
+          title={record.status === "completed" ? "Phiếu đã được xét duyệt" : ""}
         >
-          Xét duyệt
+          {record.status === "completed" ? "Đã duyệt" : "Xét duyệt"}
         </Button>
       ),
     },
@@ -843,7 +1081,7 @@ const FoodImportApproval = () => {
 
     const columns = [
       {
-        title: "Tên sản phẩm",
+        title: "Tên thức ăn",
         dataIndex: "foodName",
         key: "foodName",
         width: "25%",

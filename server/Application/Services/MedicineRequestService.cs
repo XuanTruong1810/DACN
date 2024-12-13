@@ -338,7 +338,7 @@ namespace server.Application.Services
             }
 
             request.Status = RequestStatus.Rejected;
-            request.RejectReason = reason;
+            // request.RejectReason = reason;
             await _unitOfWork.SaveAsync();
         }
     }

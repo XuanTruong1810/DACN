@@ -123,6 +123,15 @@ const Sidebar = () => {
                     </Link>
                   ),
                 },
+                {
+                  key: "importFoodsList",
+                  icon: <UnorderedListOutlined />,
+                  label: (
+                    <Link to="/admin/inventory/food-imports">
+                      Danh sách phiếu nhập
+                    </Link>
+                  ),
+                },
               ],
             },
             {

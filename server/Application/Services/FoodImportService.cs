@@ -197,6 +197,8 @@ namespace Application.Services
                 DepositAmount = import.DepositAmount.GetValueOrDefault(),
                 CreateTime = import.CreatedTime.GetValueOrDefault(),
                 CreateBy = import.CreatedById,
+                ReceivedBy = import.Receiver,
+                ReceivedByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(import.Receiver).Result?.FullName,
                 CreateByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(import.CreatedById).Result?.FullName,
                 DeliveredTime = import.DeliveredTime,
                 StockTime = import.StockedTime,
@@ -232,6 +234,8 @@ namespace Application.Services
                 CreateTime = import.CreatedTime.GetValueOrDefault(),
                 CreateBy = import.CreatedById,
                 CreateByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(import.CreatedById).Result?.FullName,
+                ReceivedBy = import.Receiver,
+                ReceivedByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(import.Receiver).Result?.FullName,
                 DeliveredTime = import.DeliveredTime,
                 StockTime = import.StockedTime,
                 Details = import.FoodImportDetails.Select(d => new FoodImportDetailModelView

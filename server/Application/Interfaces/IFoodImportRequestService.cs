@@ -17,7 +17,7 @@ namespace Application.Interfaces
             DateTimeOffset? fromDate = null,
             DateTimeOffset? toDate = null
         );
-        Task<FoodImportRequestModelView> ApproveRequestAsync(string id, ApproveFoodImportRequestDto dto);
+        Task<FoodImportRequestModelView> ApproveRequestAsync(string id, FoodImportRequestDTO dto);
         Task DeleteRequestAsync(string id); // Xóa phiếu đề xuất
     }
 }
