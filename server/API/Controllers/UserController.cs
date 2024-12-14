@@ -8,7 +8,6 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
 public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -21,8 +20,15 @@ public class UserController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAllUsers()
     {
-        var users = await _userService.GetAllUsersAsync();
+        List<UserDTO>? users = await _userService.GetAllUsersAsync();
         return Ok(BaseResponse<List<UserDTO>>.OkResponse(users));
+    }
+
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetProfile()
+    {
+        UserModelView? user = await _userService.Profile();
+        return Ok(BaseResponse<UserModelView>.OkResponse(user));
     }
 
     [HttpGet("{id}")]
@@ -44,6 +50,13 @@ public class UserController : ControllerBase
     {
         UserDTO? user = await _userService.UpdateUserAsync(id, dto);
         return Ok(BaseResponse<UserDTO>.OkResponse(user));
+    }
+
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile([FromForm] UserUpdateDTO dto)
+    {
+        UserModelView? user = await _userService.UpdateProfile(dto);
+        return Ok(BaseResponse<UserModelView>.OkResponse(user));
     }
 
     [HttpDelete("{id}")]

@@ -4,6 +4,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import axios from "axios";
 import { Form, message } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const LoginComponent = () => {
   const [loading, setLoading] = useState(false);
@@ -17,6 +18,7 @@ const LoginComponent = () => {
   const [form] = Form.useForm();
   const location = useLocation();
   const successMessage = location.state?.message;
+  const { updateUser } = useAuth();
 
   // Show success message if exists
   useEffect(() => {
@@ -46,7 +48,9 @@ const LoginComponent = () => {
       if (response.status === 200) {
         localStorage.setItem("token", response.data.data.accessToken);
         localStorage.setItem("refreshToken", response.data.data.refreshToken);
+        localStorage.setItem("avatar", response.data.data.user.avatar);
         message.success("Đăng nhập thành công!");
+        updateUser(response.data.data.user);
         if (response.data.data.user.roles[0] === "Admin") {
           navigate("/admin");
         } else if (response.data.data.user.roles[0] === "Dispatch") {

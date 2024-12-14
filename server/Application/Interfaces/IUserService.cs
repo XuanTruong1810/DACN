@@ -15,5 +15,7 @@ namespace Application.Interfaces
         Task UnlockUserAsync(string id);
         Task<List<string>> GetUserRolesAsync(string id);
         Task<bool> UpdateUserRolesAsync(string id, List<string> roles);
+        Task<UserModelView> Profile();
+        Task<UserModelView> UpdateProfile(UserUpdateDTO dto);
     }
 }

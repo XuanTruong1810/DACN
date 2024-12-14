@@ -148,6 +148,7 @@ namespace Application.Services
                     Email = user.Email,
                     FullName = user.FullName,
                     PhoneNumber = user.PhoneNumber,
+                    Avatar = user.Avatar,
                     Roles = roles.ToList(),
                     Permissions = permissions.Distinct().ToList()  // Loại bỏ các permission trùng lặp
                 }
@@ -170,7 +171,8 @@ namespace Application.Services
                 User = new UserInfo
                 {
                     Email = user.Email,
-                    Roles = roles.ToList()
+                    Roles = roles.ToList(),
+                    Avatar = user.Avatar
                 }
             };
         }

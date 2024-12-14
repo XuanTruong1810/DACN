@@ -176,9 +176,13 @@ const MedicineSchedule = () => {
       }, {});
     };
 
-    const allPigsGrouped = groupPigsByStable(
-      daySchedule.flatMap((s) => s.pigs)
-    );
+    const vaccineGroups = daySchedule.reduce((groups, schedule) => {
+      if (!groups[schedule.medicineName]) {
+        groups[schedule.medicineName] = [];
+      }
+      groups[schedule.medicineName].push(schedule);
+      return groups;
+    }, {});
 
     return (
       <>
@@ -292,128 +296,145 @@ const MedicineSchedule = () => {
               </Col>
               <Col span={12}>
                 <Text strong>Vaccine sử dụng: </Text>
-                <Text>{daySchedule[0]?.medicineName}</Text>
+                <div>
+                  {[
+                    ...new Set(
+                      daySchedule.map((schedule) => schedule.medicineName)
+                    ),
+                  ].map((medicineName, index) => (
+                    <Tag key={index} color="blue" style={{ marginRight: 8 }}>
+                      {medicineName}
+                    </Tag>
+                  ))}
+                </div>
               </Col>
             </Row>
 
             {/* Tables */}
-            {Object.entries(allPigsGrouped).map(([stableName, pigs]) => (
-              <div key={stableName} style={{ marginBottom: 32 }}>
-                <Title level={5} style={{ marginBottom: 16 }}>
-                  Chuồng: {stableName}
-                </Title>
-                <Table
-                  bordered
-                  size="middle"
-                  pagination={false}
-                  columns={[
-                    {
-                      title: "Mã heo",
-                      dataIndex: "pigId",
-                      width: "10%",
-                      render: (id) => (
-                        <Tag
-                          color="blue"
-                          style={{
-                            fontSize: "13px",
-                            padding: "4px 8px",
-                            margin: "0 auto",
-                            display: "flex",
-                            justifyContent: "center",
-                            width: "fit-content",
-                          }}
-                        >
-                          {id}
-                        </Tag>
-                      ),
-                    },
-                    {
-                      title: "Sức khỏe",
-                      width: "12%",
-                      render: () => (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "4px",
-                            padding: "8px 4px",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                            }}
-                          >
+            {Object.entries(vaccineGroups).map(([medicineName, schedules]) => (
+              <div key={medicineName} style={{ marginBottom: 32 }}>
+                <Title level={4}>Vaccine: {medicineName}</Title>
+                {Object.entries(
+                  groupPigsByStable(schedules.flatMap((s) => s.pigs))
+                ).map(([stableName, pigs]) => (
+                  <div key={stableName} style={{ marginBottom: 32 }}>
+                    <Title level={5} style={{ marginBottom: 16 }}>
+                      Chuồng: {stableName}
+                    </Title>
+                    <Table
+                      bordered
+                      size="middle"
+                      pagination={false}
+                      columns={[
+                        {
+                          title: "Mã heo",
+                          dataIndex: "pigId",
+                          width: "10%",
+                          render: (id) => (
+                            <Tag
+                              color="blue"
+                              style={{
+                                fontSize: "13px",
+                                padding: "4px 8px",
+                                margin: "0 auto",
+                                display: "flex",
+                                justifyContent: "center",
+                                width: "fit-content",
+                              }}
+                            >
+                              {id}
+                            </Tag>
+                          ),
+                        },
+                        {
+                          title: "Sức khỏe",
+                          width: "12%",
+                          render: () => (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "4px",
+                                padding: "8px 4px",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    border: "1.5px solid #000",
+                                    height: 16,
+                                    width: 16,
+                                    borderRadius: "3px",
+                                  }}
+                                ></div>
+                                <span>Khỏe</span>
+                              </div>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    border: "1.5px solid #000",
+                                    height: 16,
+                                    width: 16,
+                                    borderRadius: "3px",
+                                  }}
+                                ></div>
+                                <span>Yếu</span>
+                              </div>
+                            </div>
+                          ),
+                        },
+                        {
+                          title: "Tiêm",
+                          width: "8%",
+                          render: () => (
                             <div
                               style={{
                                 border: "1.5px solid #000",
-                                height: 16,
-                                width: 16,
+                                height: 24,
+                                width: 24,
+                                margin: "0 auto",
                                 borderRadius: "3px",
                               }}
                             ></div>
-                            <span>Khỏe</span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                            }}
-                          >
-                            <div
-                              style={{
-                                border: "1.5px solid #000",
-                                height: 16,
-                                width: 16,
-                                borderRadius: "3px",
-                              }}
-                            ></div>
-                            <span>Yếu</span>
-                          </div>
-                        </div>
-                      ),
-                    },
-                    {
-                      title: "Tiêm",
-                      width: "8%",
-                      render: () => (
-                        <div
-                          style={{
-                            border: "1.5px solid #000",
-                            height: 24,
-                            width: 24,
-                            margin: "0 auto",
-                            borderRadius: "3px",
-                          }}
-                        ></div>
-                      ),
-                    },
-                    {
-                      title: "Chuẩn đoán",
-                      width: "15%",
-                      render: () => <div style={{ height: 40 }}></div>,
-                    },
-                    {
-                      title: "Cách điều trị",
-                      width: "20%",
-                      render: () => <div style={{ height: 40 }}></div>,
-                    },
-                    {
-                      title: "Ngày khám lại",
-                      width: "15%",
-                      render: () => <div style={{ height: 40 }}></div>,
-                    },
-                    {
-                      title: "Thuốc sử dụng",
-                      width: "20%",
-                      render: () => <div style={{ height: 40 }}></div>,
-                    },
-                  ]}
-                  dataSource={pigs}
-                />
+                          ),
+                        },
+                        {
+                          title: "Chuẩn đoán",
+                          width: "15%",
+                          render: () => <div style={{ height: 40 }}></div>,
+                        },
+                        {
+                          title: "Cách điều trị",
+                          width: "20%",
+                          render: () => <div style={{ height: 40 }}></div>,
+                        },
+                        {
+                          title: "Ngày khám lại",
+                          width: "15%",
+                          render: () => <div style={{ height: 40 }}></div>,
+                        },
+                        {
+                          title: "Thuốc sử dụng",
+                          width: "20%",
+                          render: () => <div style={{ height: 40 }}></div>,
+                        },
+                      ]}
+                      dataSource={pigs}
+                    />
+                  </div>
+                ))}
               </div>
             ))}
 
@@ -494,7 +515,12 @@ const MedicineSchedule = () => {
 
         <Calendar
           locale={{ lang: { locale: "vi" } }}
-          dateCellRender={dateCellRender}
+          cellRender={(current, info) => {
+            if (info.type === "date") {
+              return dateCellRender(current);
+            }
+            return info.originNode;
+          }}
           value={selectedDate}
           onSelect={onSelect}
           className="medicine-calendar"

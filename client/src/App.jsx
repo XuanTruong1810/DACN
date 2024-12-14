@@ -50,15 +50,17 @@ import Unauthorized from "./pages/Error/Unauthorized";
 import WeighingSchedule from "./pages/Admin/Schedule/WeighingSchedule";
 import VaccinationHistory from "./pages/Admin/VaccinationHistory/VaccinationHistory";
 import DailyFoodHistory from "./pages/Admin/page/Exports/DailyFoodHistory";
+import HealthRecordHistory from "./pages/Admin/page/HealthRecordHistory";
+import { AuthProvider } from "./contexts/AuthContext";
 
 function App() {
   return (
-    <>
+    <AuthProvider>
       <GlobalStyle />
       <BrowserRouter>
         <Routes>
           <Route path="/Admin" element={<AdminLayout />}>
-            <Route index path="employees" element={<EmployeeManagement />} />
+            <Route path="employees" element={<EmployeeManagement />} />
             <Route path="suppliers" element={<SuppliersPage />} />
             <Route
               path="inventory/food-categories"
@@ -79,15 +81,21 @@ function App() {
               element={<MedicineImportList />}
             />
             <Route path="customers" element={<CustomerManagement />} />
-            <Route path="statistics">
-              <Route path="pigs" element={<PigStatistics />} />
-              <Route path="inventory" element={<InventoryStatistics />} />
-              <Route path="performance" element={<PerformanceStatistics />} />
-            </Route>
+
+            <Route path="statistics/pigs" element={<PigStatistics />} />
+            <Route
+              path="statistics/inventory"
+              element={<InventoryStatistics />}
+            />
+            <Route index element={<PerformanceStatistics />} />
 
             <Route
               path="health/vaccination-history"
               element={<VaccinationHistory />}
+            />
+            <Route
+              path="health/medical-history"
+              element={<HealthRecordHistory />}
             />
 
             {/* duyet phieu */}
@@ -164,6 +172,11 @@ function App() {
             />
             <Route path="health/create" element={<CreateHealthRecordPage />} />
             <Route
+              path="health/medical-history"
+              element={<HealthRecordHistory />}
+            />
+
+            <Route
               path="import-medicines/create"
               element={<MedicineRequestPage />}
             />
@@ -205,7 +218,7 @@ function App() {
           <Route path="/401" element={<Unauthorized />} />
         </Routes>
       </BrowserRouter>
-    </>
+    </AuthProvider>
   );
 }
 

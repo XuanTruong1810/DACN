@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -17,6 +19,7 @@ import {
   DatePicker,
   InputNumber,
   Divider,
+  Spin,
 } from "antd";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { SaveOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
@@ -34,6 +37,7 @@ const VaccinationForm = () => {
   const [pigData, setPigData] = useState([]);
   const [medicines, setMedicines] = useState([]);
   const [medicineLoading, setMedicineLoading] = useState(false);
+  const [vaccineInfo, setVaccineInfo] = useState(null);
 
   const vaccineId = searchParams.get("vaccineId");
   const date = searchParams.get("date");
@@ -41,6 +45,9 @@ const VaccinationForm = () => {
   useEffect(() => {
     fetchPigSchedule();
     fetchMedicines();
+    if (vaccineId) {
+      fetchVaccineInfo();
+    }
   }, [vaccineId, date]);
 
   const fetchPigSchedule = async () => {
@@ -98,6 +105,25 @@ const VaccinationForm = () => {
       message.error("Lỗi khi tải danh sách thuốc: " + error.message);
     } finally {
       setMedicineLoading(false);
+    }
+  };
+
+  const fetchVaccineInfo = async () => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/Medicine/${vaccineId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        setVaccineInfo(response.data.data);
+      }
+    } catch (error) {
+      message.error("Lỗi khi tải thông tin vaccine: " + error.message);
     }
   };
 
@@ -243,14 +269,6 @@ const VaccinationForm = () => {
     }
 
     setPigData(newData);
-  };
-
-  const hasMedicines = (record) => {
-    return (
-      record.medicines &&
-      record.medicines.length > 0 &&
-      record.medicines.some((med) => med.medicineId && med.quantity)
-    );
   };
 
   const canShowButton = () => {
@@ -449,9 +467,38 @@ const VaccinationForm = () => {
                       <Text strong>Ngày tiêm:</Text>{" "}
                       <Text>{dayjs(date).format("DD/MM/YYYY")}</Text>
                     </div>
-                    <div>
-                      <Text strong>Mã vaccine:</Text> <Text>{vaccineId}</Text>
-                    </div>
+                    {vaccineInfo ? (
+                      <>
+                        <div>
+                          <Text strong>Tên vaccine:</Text>{" "}
+                          <Text>{vaccineInfo.medicineName}</Text>
+                        </div>
+                        <div>
+                          <Text strong>Mã vaccine:</Text>{" "}
+                          <Tag color="blue">{vaccineInfo.id}</Tag>
+                        </div>
+                        {vaccineInfo.description && (
+                          <div>
+                            <Text strong>Mô tả:</Text>{" "}
+                            <Text>{vaccineInfo.description}</Text>
+                          </div>
+                        )}
+                        {vaccineInfo.usage && (
+                          <div>
+                            <Text strong>Cách dùng:</Text>{" "}
+                            <Text>{vaccineInfo.usage}</Text>
+                          </div>
+                        )}
+                        {vaccineInfo.unit && (
+                          <div>
+                            <Text strong>Đơn vị:</Text>{" "}
+                            <Text>{vaccineInfo.unit}</Text>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <Spin size="small" />
+                    )}
                   </Space>
                 </Card>
               </Col>

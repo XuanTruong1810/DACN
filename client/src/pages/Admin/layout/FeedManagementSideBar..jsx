@@ -12,14 +12,11 @@ import {
 import { Menu, Avatar, Dropdown, Space } from "antd";
 import { Header } from "antd/es/layout/layout";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const FeedManagementSideBar = () => {
   const navigate = useNavigate();
-  const currentUser = {
-    name: "Feed Manager",
-    avatar: null,
-    role: "Nhân viên dinh dưỡng",
-  };
+  const { currentUser } = useAuth();
 
   const userMenuItems = [
     { key: "profile", icon: <UserOutlined />, label: "Thông tin cá nhân" },
@@ -151,7 +148,7 @@ const FeedManagementSideBar = () => {
               style={{ backgroundColor: "#1890ff" }}
             />
             <span style={{ color: "#fff", padding: "0 8px" }}>
-              {currentUser.name}
+              {currentUser.fullName}
             </span>
             <span
               style={{
@@ -162,7 +159,15 @@ const FeedManagementSideBar = () => {
                 borderRadius: "10px",
               }}
             >
-              {currentUser.role}
+              {currentUser.roles[0] === "Admin"
+                ? "Quản trị viên"
+                : currentUser.roles[0] === "Veterinarian"
+                ? "Bác sĩ thú y"
+                : currentUser.roles[0] === "Dispatch"
+                ? "Điều phối heo"
+                : currentUser.roles[0] === "FeedManager"
+                ? "Nhân viên dinh dưỡng"
+                : currentUser.roles[0]}
             </span>
           </Space>
         </Dropdown>

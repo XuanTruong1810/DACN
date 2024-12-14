@@ -1,7 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from "react";
 import axiosInstance from "../../utils/axiosConfig";
 import {
-  Card,
   Row,
   Col,
   Avatar,
@@ -12,7 +12,6 @@ import {
   Input,
   Upload,
   message,
-  Divider,
   Space,
   Badge,
   Spin,
@@ -21,10 +20,8 @@ import {
 import {
   UserOutlined,
   EditOutlined,
-  LockOutlined,
   MailOutlined,
   PhoneOutlined,
-  IdcardOutlined,
   CameraOutlined,
   SafetyCertificateOutlined,
   CalendarOutlined,
@@ -33,7 +30,7 @@ import "./Profile.css";
 import moment from "moment";
 import ImgCrop from "antd-img-crop";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
 const Profile = () => {
   const [editMode, setEditMode] = useState(false);
@@ -41,11 +38,21 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [passwordForm] = Form.useForm();
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     fetchUserProfile();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
 
   const fetchUserProfile = async () => {
     try {
@@ -71,34 +78,22 @@ const Profile = () => {
     }
   };
 
-  const beforeUpload = (file) => {
+  const handleAvatarChange = ({ file }) => {
+    if (!file) return;
+
     const isImage = file.type.startsWith("image/");
     if (!isImage) {
       message.error("Chỉ được upload file ảnh!");
-      return false;
+      return;
     }
 
-    const isLt2M = file.size / 1024 / 1024 < 2;
-    if (!isLt2M) {
-      message.error("Ảnh phải nhỏ hơn 2MB!");
-      return false;
-    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result);
+    };
+    reader.readAsDataURL(file.originFileObj || file);
 
-    return true;
-  };
-
-  const handleAvatarChange = (info) => {
-    if (info.file) {
-      setAvatarFile(info.file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setUserInfo((prev) => ({
-          ...prev,
-          avatarUrl: e.target.result,
-        }));
-      };
-      reader.readAsDataURL(info.file.originFileObj);
-    }
+    setAvatarFile(file.originFileObj || file);
   };
 
   const handleEditMode = () => {
@@ -120,6 +115,7 @@ const Profile = () => {
 
   const onFinish = async (values) => {
     try {
+      setIsSaving(true);
       const formData = new FormData();
 
       formData.append("fullName", values.fullName);
@@ -127,11 +123,11 @@ const Profile = () => {
       formData.append("dateOfBirth", values.dateOfBirth?.format("YYYY-MM-DD"));
 
       if (avatarFile) {
-        formData.append("avatar", avatarFile.originFileObj);
+        formData.append("avatar", avatarFile);
       }
 
-      const response = await axiosInstance.patch(
-        `${import.meta.env.VITE_API_URL}/api/user/profile`,
+      const response = await axiosInstance.put(
+        `${import.meta.env.VITE_API_URL}/api/User/profile`,
         formData,
         {
           headers: {
@@ -139,15 +135,19 @@ const Profile = () => {
           },
         }
       );
+
       if (response.status === 200) {
         message.success("Cập nhật thông tin thành công!");
         setUserInfo(response.data.data);
         setEditMode(false);
         setAvatarFile(null);
+        setAvatarPreview(null);
       }
     } catch (error) {
       console.error("Error updating profile:", error);
       message.error("Không thể cập nhật thông tin!");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -251,10 +251,20 @@ const Profile = () => {
               {editMode && (
                 <Form.Item className="form-actions">
                   <Space size="middle">
-                    <Button type="primary" htmlType="submit">
-                      Lưu thay đi
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={isSaving}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
                     </Button>
-                    <Button onClick={() => setEditMode(false)}>Hủy</Button>
+                    <Button
+                      onClick={() => setEditMode(false)}
+                      disabled={isSaving}
+                    >
+                      Hủy
+                    </Button>
                   </Space>
                 </Form.Item>
               )}
@@ -388,7 +398,7 @@ const Profile = () => {
                         <ImgCrop rotate>
                           <Upload
                             showUploadList={false}
-                            beforeUpload={beforeUpload}
+                            beforeUpload={() => false}
                             onChange={handleAvatarChange}
                             accept="image/*"
                           >
@@ -404,7 +414,7 @@ const Profile = () => {
                   <Avatar
                     size={120}
                     icon={<UserOutlined />}
-                    src={userInfo?.avatar}
+                    src={avatarPreview || userInfo?.avatar}
                     className="user-avatar"
                   />
                 </Badge>
@@ -413,7 +423,7 @@ const Profile = () => {
                 {userInfo?.fullName}
               </Title>
               <Text style={{ color: "#64748b", fontSize: "15px" }}>
-                {userInfo?.role}
+                {roleMapping[userInfo?.role] || userInfo?.role}
               </Text>
             </div>
 
@@ -486,244 +496,12 @@ const Profile = () => {
   );
 };
 
-// EditProfileForm component
-const EditProfileForm = ({ userInfo, editMode, setEditMode }) => {
-  const [form] = Form.useForm();
-
-  const onFinish = (values) => {
-    console.log("Updated values:", values);
-    message.success("Cập nhật thông tin thành công!");
-    setEditMode(false);
-  };
-
-  return (
-    <div className="edit-profile-form">
-      <div className="form-header">
-        <Space size="middle" align="center">
-          <div>
-            <Title level={4} style={{ margin: 0 }}>
-              Thông tin cá nhân
-            </Title>
-            <Text type="secondary">Cập nhật thông tin cá nhân của bạn</Text>
-          </div>
-        </Space>
-        <Button
-          type={editMode ? "default" : "primary"}
-          icon={<EditOutlined />}
-          onClick={() => setEditMode(!editMode)}
-        >
-          {editMode ? "Hủy chỉnh sửa" : "Chỉnh sửa"}
-        </Button>
-      </div>
-
-      <Divider />
-
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={userInfo}
-        disabled={!editMode}
-        onFinish={handleUpdateProfile}
-        className="profile-form"
-      >
-        <Row gutter={[24, 0]}>
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="name"
-              label="Họ và tên"
-              rules={[{ required: true, message: "Vui lòng nhập họ tên!" }]}
-            >
-              <Input
-                prefix={<UserOutlined className="site-form-item-icon" />}
-                placeholder="Họ và tên"
-              />
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="email"
-              label="Email"
-              rules={[
-                { required: true, message: "Vui lòng nhập email!" },
-                { type: "email", message: "Email không hợp lệ!" },
-              ]}
-            >
-              <Input
-                prefix={<MailOutlined className="site-form-item-icon" />}
-                placeholder="Email"
-              />
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="phone"
-              label="Số điện thoại"
-              rules={[
-                { required: true, message: "Vui lòng nhập số điện thoại!" },
-                {
-                  pattern: /^[0-9]{10}$/,
-                  message: "Số điện thoại không hợp lệ!",
-                },
-              ]}
-            >
-              <Input
-                prefix={<PhoneOutlined className="site-form-item-icon" />}
-                placeholder="Số điện thoại"
-              />
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} md={12}>
-            <Form.Item name="department" label="Chức vụ">
-              <Input
-                prefix={<IdcardOutlined className="site-form-item-icon" />}
-                disabled
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        {editMode && (
-          <Form.Item className="form-actions">
-            <Space size="middle">
-              <Button type="primary" htmlType="submit">
-                Lưu thay đi
-              </Button>
-              <Button onClick={() => setEditMode(false)}>Hủy</Button>
-            </Space>
-          </Form.Item>
-        )}
-      </Form>
-    </div>
-  );
-};
-
-// SecurityForm component
-const SecurityForm = ({ form }) => {
-  const handlePasswordChange = (values) => {
-    console.log("Password change:", values);
-    message.success("Đổi mật khẩu thành công!");
-    form.resetFields();
-  };
-
-  return (
-    <div className="security-form">
-      <div className="form-header">
-        <div>
-          <Title level={4} style={{ margin: 0 }}>
-            Bảo mật tài khoản
-          </Title>
-          <Text type="secondary">Cập nhật mật khẩu và thiết lập bảo mật</Text>
-        </div>
-      </div>
-
-      <Divider />
-
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handlePasswordChange}
-        className="password-form"
-      >
-        <Row gutter={[24, 0]}>
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="currentPassword"
-              label="Mật khẩu hiện tại"
-              rules={[
-                { required: true, message: "Vui lòng nhập mật khẩu hiện tại!" },
-              ]}
-            >
-              <Input.Password
-                prefix={<LockOutlined className="site-form-item-icon" />}
-                placeholder="Mật khẩu hiện tại"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="newPassword"
-              label="Mt khẩu mới"
-              rules={[
-                { required: true, message: "Vui lòng nhập mật khẩu mới!" },
-                { min: 8, message: "Mật khẩu phải có ít nhất 8 ký tự!" },
-                {
-                  pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/,
-                  message: "Mật khẩu phải chứa chữ hoa, chữ thường và số!",
-                },
-              ]}
-            >
-              <Input.Password
-                prefix={<LockOutlined className="site-form-item-icon" />}
-                placeholder="Mật khẩu mới"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="confirmPassword"
-              label="Xác nhận mật khẩu mới"
-              dependencies={["newPassword"]}
-              rules={[
-                { required: true, message: "Vui lòng xác nhận mật khẩu mới!" },
-                ({ getFieldValue }) => ({
-                  validator(_, value) {
-                    if (!value || getFieldValue("newPassword") === value) {
-                      return Promise.resolve();
-                    }
-                    return Promise.reject(
-                      new Error("Mật khẩu xác nhận không khớp!")
-                    );
-                  },
-                }),
-              ]}
-            >
-              <Input.Password
-                prefix={<LockOutlined className="site-form-item-icon" />}
-                placeholder="Xác nhận mật khẩu mới"
-              />
-            </Form.Item>
-
-            <Form.Item>
-              <Button type="primary" htmlType="submit" block>
-                Đổi mật khẩu
-              </Button>
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} md={12}>
-            <Card title="Bảo mật hai lớp" className="security-card">
-              <Space
-                direction="vertical"
-                size="middle"
-                style={{ width: "100%" }}
-              >
-                <div>
-                  <Text strong>Xác thực hai yếu tố</Text>
-                  <Paragraph type="secondary">
-                    Bảo vệ tài khoản của bạn bằng xác thực hai yếu tố
-                  </Paragraph>
-                  <Button type="primary" ghost>
-                    Thiết lập
-                  </Button>
-                </div>
-
-                <Divider />
-
-                <div>
-                  <Text strong>Lịch sử đăng nhập</Text>
-                  <Paragraph type="secondary">
-                    Xem lịch sử đăng nhập trên các thiết bị
-                  </Paragraph>
-                  <Button>Xem chi tiết</Button>
-                </div>
-              </Space>
-            </Card>
-          </Col>
-        </Row>
-      </Form>
-    </div>
-  );
+// Cập nhật object mapping role theo đúng hệ thống
+const roleMapping = {
+  Admin: "Quản trị viên",
+  Veterinarian: "Bác sĩ thú y",
+  Dispatch: "Nhân viên điều phối",
+  FeedManager: "Quản lý thức ăn",
 };
 
 export default Profile;

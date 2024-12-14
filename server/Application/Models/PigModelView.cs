@@ -14,7 +14,7 @@ public class PigModelView
 public class PigInfoModelView : PigModelView
 {
     public decimal Weight { get; set; }
-
+    public string HealthStatus { get; set; }
     public string Status { get; set; }
     public List<PigVaccinationInfoModelView> PigVaccinations { get; set; }
 

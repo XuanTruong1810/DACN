@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import {
   HomeOutlined,
   TeamOutlined,
@@ -24,14 +25,19 @@ import {
 import { Menu, Avatar, Dropdown, Space } from "antd";
 import { Header } from "antd/es/layout/layout";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../../contexts/AuthContext";
+import { useEffect } from "react";
 
 const Sidebar = () => {
   const navigate = useNavigate();
-  const currentUser = {
-    name: "Admin",
-    avatar: null,
-    role: "Quản trị viên",
-  };
+  const { currentUser } = useAuth();
+  console.log(currentUser);
+
+  useEffect(() => {
+    if (!currentUser) {
+      navigate("/login");
+    }
+  }, [currentUser]);
 
   const userMenuItems = [
     { key: "profile", icon: <UserOutlined />, label: "Thông tin cá nhân" },
@@ -81,7 +87,7 @@ const Sidebar = () => {
     {
       key: "history",
       icon: <HistoryOutlined />,
-      label: "Lịch sử",
+      label: "Lịch sử hoạt động",
       children: [
         {
           key: "vaccinationHistory",
@@ -101,7 +107,7 @@ const Sidebar = () => {
           key: "healthHistory",
           icon: <HeartOutlined />,
           label: (
-            <Link to="/admin/health/health-history">Lịch sử khám bệnh</Link>
+            <Link to="/admin/health/medical-history">Lịch sử khám bệnh</Link>
           ),
         },
         {
@@ -301,9 +307,7 @@ const Sidebar = () => {
         {
           key: "performanceStats",
           icon: <BarChartOutlined />,
-          label: (
-            <Link to="/admin/statistics/performance">Thống kê hiệu suất</Link>
-          ),
+          label: <Link to="/admin">Thống kê hiệu suất</Link>,
         },
         {
           key: "pigStats",
@@ -325,6 +329,7 @@ const Sidebar = () => {
     if (key === "logout") {
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
       navigate("/auth/login");
     }
   };
@@ -390,7 +395,7 @@ const Sidebar = () => {
               style={{ backgroundColor: "#1890ff" }}
             />
             <span style={{ color: "#fff", padding: "0 8px" }}>
-              {currentUser.name}
+              {currentUser.fullName}
             </span>
             <span
               style={{
@@ -401,7 +406,15 @@ const Sidebar = () => {
                 borderRadius: "10px",
               }}
             >
-              {currentUser.role}
+              {currentUser.roles[0] === "Admin"
+                ? "Quản trị viên"
+                : currentUser.roles[0] === "Veterinarian"
+                ? "Bác sĩ thú y"
+                : currentUser.roles[0] === "Dispatch"
+                ? "Điều phối heo"
+                : currentUser.roles[0] === "FeedManager"
+                ? "Nhân viên dinh dưỡng"
+                : currentUser.roles[0]}
             </span>
           </Space>
         </Dropdown>

@@ -1,101 +1,50 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react/prop-types */
 import { createContext, useContext, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import axiosInstance from "../utils/axiosConfig";
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [permissions, setPermissions] = useState([]);
-  const [token, setToken] = useState(localStorage.getItem("token"));
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(() => {
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+
+  const updateUser = (userData) => {
+    setCurrentUser(userData);
+    if (userData) {
+      localStorage.setItem("user", JSON.stringify(userData));
+    } else {
+      localStorage.removeItem("user");
+    }
+  };
 
   useEffect(() => {
-    // Check localStorage on initial load
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (token && !currentUser) {
+          const response = await axiosInstance.get("/api/user/profile");
+          updateUser(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setCurrentUser(null);
+      }
+    };
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      const userData = JSON.parse(storedUser);
-      setUser(userData);
-      setPermissions(userData.permissions || []);
-      setIsAuthenticated(true);
-    }
+    fetchUserProfile();
   }, []);
 
-  const login = (response) => {
-    const { data } = response;
-
-    // Save to localStorage
-    localStorage.setItem("token", data.accessToken);
-    localStorage.setItem("refreshToken", data.refreshToken);
-
-    // Save user info
-    const userData = {
-      email: data.user.email,
-      roles: data.user.roles,
-      permissions: data.user.permissions,
-    };
-    localStorage.setItem("user", JSON.stringify(userData));
-
-    // Update state
-    setToken(data.accessToken);
-    setUser(userData);
-    setPermissions(data.user.permissions);
-    setIsAuthenticated(true);
-
-    // Redirect to dashboard
-    navigate("/admin");
-  };
-
-  const logout = () => {
-    // Clear localStorage
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-
-    // Reset state
-    setToken(null);
-    setUser(null);
-    setPermissions([]);
-    setIsAuthenticated(false);
-
-    // Redirect to login
-    navigate("/login");
-  };
-
-  const hasPermission = (requiredPermission) => {
-    if (!permissions) return false;
-    return permissions.includes(requiredPermission);
-  };
-
-  const hasAnyPermission = (requiredPermissions) => {
-    if (!permissions || !requiredPermissions) return false;
-    return requiredPermissions.some((permission) =>
-      permissions.includes(permission)
-    );
-  };
-
-  const value = {
-    user,
-    token,
-    permissions,
-    isAuthenticated,
-    login,
-    logout,
-    hasPermission,
-    hasAnyPermission,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ currentUser, updateUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-// Custom hook để sử dụng AuthContext
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
+// eslint-disable-next-line react-refresh/only-export-components
+export const useAuth = () => useContext(AuthContext);

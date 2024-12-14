@@ -68,6 +68,7 @@ namespace Application.Services
                 UpdatedTime = p.UpdatedTime.HasValue ? p.UpdatedTime.Value : null,
                 Weight = p.Weight ?? 0,
                 Status = p.Status,
+                HealthStatus = p.HealthStatus,
                 PigVaccinations = p.VaccinationPlans.Select(v => new PigVaccinationInfoModelView
                 {
                     ActualDate = v.ActualDate,

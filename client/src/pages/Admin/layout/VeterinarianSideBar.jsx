@@ -1,35 +1,23 @@
 import {
-  HomeOutlined,
   TeamOutlined,
   BugOutlined,
   ShoppingOutlined,
-  BarChartOutlined,
   UserOutlined,
   LogoutOutlined,
-  PieChartOutlined,
-  InboxOutlined,
-  AppstoreOutlined,
   MedicineBoxOutlined,
   ImportOutlined,
-  ExportOutlined,
   UnorderedListOutlined,
-  CheckSquareOutlined,
-  DatabaseOutlined,
   BarsOutlined,
-  TagsOutlined,
   FileTextOutlined,
 } from "@ant-design/icons";
 import { Menu, Avatar, Dropdown, Space } from "antd";
 import { Header } from "antd/es/layout/layout";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const VeterinarianSideBar = () => {
   const navigate = useNavigate();
-  const currentUser = {
-    name: "Veterinarian",
-    avatar: null,
-    role: "Bác sĩ",
-  };
+  const { currentUser } = useAuth();
 
   const userMenuItems = [
     { key: "profile", icon: <UserOutlined />, label: "Thông tin cá nhân" },
@@ -189,7 +177,7 @@ const VeterinarianSideBar = () => {
               style={{ backgroundColor: "#1890ff" }}
             />
             <span style={{ color: "#fff", padding: "0 8px" }}>
-              {currentUser.name}
+              {currentUser.fullName}
             </span>
             <span
               style={{
@@ -200,7 +188,15 @@ const VeterinarianSideBar = () => {
                 borderRadius: "10px",
               }}
             >
-              {currentUser.role}
+              {currentUser.roles[0] === "Admin"
+                ? "Quản trị viên"
+                : currentUser.roles[0] === "Veterinarian"
+                ? "Bác sĩ thú y"
+                : currentUser.roles[0] === "Dispatch"
+                ? "Điều phối heo"
+                : currentUser.roles[0] === "FeedManager"
+                ? "Nhân viên dinh dưỡng"
+                : currentUser.roles[0]}
             </span>
           </Space>
         </Dropdown>

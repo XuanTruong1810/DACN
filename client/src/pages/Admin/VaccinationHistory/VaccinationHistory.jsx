@@ -12,11 +12,15 @@ import {
   Row,
   Col,
   Divider,
+  Statistic,
 } from "antd";
 import {
   CalendarOutlined,
   PrinterOutlined,
   MedicineBoxOutlined,
+  HistoryOutlined,
+  ExperimentOutlined,
+  LineChartOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -24,6 +28,67 @@ import "dayjs/locale/vi";
 import { useLocation } from "react-router-dom";
 
 const { Title, Text } = Typography;
+
+const pageStyles = {
+  layout: {
+    padding: "16px",
+    background: "#f5f5f5",
+    minHeight: "100vh",
+  },
+  mainCard: {
+    boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
+    borderRadius: "12px",
+    border: "none",
+    marginTop: "8px",
+  },
+  headerIcon: {
+    fontSize: 28,
+    color: "#1890ff",
+    backgroundColor: "#e6f7ff",
+    padding: "8px",
+    borderRadius: "8px",
+  },
+  headerTitle: {
+    margin: 0,
+    color: "#262626",
+  },
+  statsCard: {
+    background: "#ffffff",
+    borderRadius: "12px",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+    height: "100%",
+    padding: "20px",
+    border: "1px solid #f0f0f0",
+    transition: "all 0.3s ease",
+    "&:hover": {
+      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1)",
+      transform: "translateY(-2px)",
+    },
+  },
+  table: {
+    borderRadius: "8px",
+    overflow: "hidden",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+    ".ant-table-thead > tr > th": {
+      background: "#fafafa",
+      fontWeight: 600,
+    },
+    ".ant-table-tbody > tr:hover > td": {
+      background: "#f0f7ff",
+    },
+  },
+  createButton: {
+    background: "#1890ff",
+    borderRadius: "6px",
+    boxShadow: "0 2px 4px rgba(24, 144, 255, 0.2)",
+    padding: "0 24px",
+    height: "40px",
+    "&:hover": {
+      background: "#40a9ff",
+      boxShadow: "0 4px 8px rgba(24, 144, 255, 0.3)",
+    },
+  },
+};
 
 const VaccinationHistory = () => {
   const location = useLocation();
@@ -33,6 +98,12 @@ const VaccinationHistory = () => {
   const [data, setData] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [stats, setStats] = useState({
+    totalPigs: 0,
+    totalRecords: 0,
+    vaccineTypes: 0,
+    totalVaccinated: 0,
+  });
 
   const fetchVaccinationHistory = async () => {
     try {
@@ -57,8 +128,68 @@ const VaccinationHistory = () => {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      const [vaccinationResponse, medicineResponse, pigsResponse] =
+        await Promise.all([
+          axios.get(
+            `${
+              import.meta.env.VITE_API_URL
+            }/api/PigExamination?examinationType=Vaccination`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          ),
+          axios.get(
+            `${import.meta.env.VITE_API_URL}/api/v1/Medicine?isVaccine=true`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          ),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/v1/Pigs`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }),
+        ]);
+
+      if (
+        vaccinationResponse.status === 200 &&
+        medicineResponse.status === 200 &&
+        pigsResponse.status === 200
+      ) {
+        const vaccinations = vaccinationResponse.data.data;
+        const vaccines = medicineResponse.data.data;
+        const pigs = pigsResponse.data.data;
+
+        // Tính tổng số lượt tiêm dựa trên healthNote
+        const totalVaccinatedCount = vaccinations.reduce((sum, record) => {
+          const validVaccinations = record.pigExaminationDetails.filter(
+            (detail) => detail.healthNote === "Tiêm chủng"
+          );
+          return sum + validVaccinations.length;
+        }, 0);
+
+        setStats({
+          totalPigs: pigs.length,
+          totalRecords: vaccinations.length,
+          vaccineTypes: vaccines.length,
+          totalVaccinated: totalVaccinatedCount,
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      message.error("Không thể tải dữ liệu thống kê");
+    }
+  };
+
   useEffect(() => {
     fetchVaccinationHistory();
+    fetchStats();
   }, []);
 
   const tableData = data
@@ -367,6 +498,153 @@ const VaccinationHistory = () => {
             </Space>
           )}
         </div>
+
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={12} md={6}>
+            <Card
+              hoverable
+              style={{
+                ...pageStyles.statsCard,
+                background: "linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)",
+                borderLeft: "4px solid #52c41a",
+              }}
+            >
+              <Statistic
+                title={
+                  <Text strong style={{ fontSize: "16px", color: "#52c41a" }}>
+                    Tổng phiếu tiêm
+                  </Text>
+                }
+                value={stats.totalRecords}
+                suffix="phiếu"
+                valueStyle={{
+                  color: "#52c41a",
+                  fontSize: "28px",
+                  fontWeight: "bold",
+                }}
+                prefix={
+                  <HistoryOutlined
+                    style={{
+                      fontSize: "28px",
+                      color: "#52c41a",
+                      backgroundColor: "#f6ffed",
+                      padding: "8px",
+                      borderRadius: "8px",
+                    }}
+                  />
+                }
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card
+              hoverable
+              style={{
+                ...pageStyles.statsCard,
+                background: "linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%)",
+                borderLeft: "4px solid #1890ff",
+              }}
+            >
+              <Statistic
+                title={
+                  <Text strong style={{ fontSize: "16px", color: "#1890ff" }}>
+                    Tổng số heo
+                  </Text>
+                }
+                value={stats.totalPigs}
+                suffix="con"
+                valueStyle={{
+                  color: "#1890ff",
+                  fontSize: "28px",
+                  fontWeight: "bold",
+                }}
+                prefix={
+                  <MedicineBoxOutlined
+                    style={{
+                      fontSize: "28px",
+                      color: "#1890ff",
+                      backgroundColor: "#e6f7ff",
+                      padding: "8px",
+                      borderRadius: "8px",
+                    }}
+                  />
+                }
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card
+              hoverable
+              style={{
+                ...pageStyles.statsCard,
+                background: "linear-gradient(135deg, #f0f5ff 0%, #ffffff 100%)",
+                borderLeft: "4px solid #2f54eb",
+              }}
+            >
+              <Statistic
+                title={
+                  <Text strong style={{ fontSize: "16px", color: "#2f54eb" }}>
+                    Số loại vaccine
+                  </Text>
+                }
+                value={stats.vaccineTypes}
+                suffix="loại"
+                valueStyle={{
+                  color: "#2f54eb",
+                  fontSize: "28px",
+                  fontWeight: "bold",
+                }}
+                prefix={
+                  <ExperimentOutlined
+                    style={{
+                      fontSize: "28px",
+                      color: "#2f54eb",
+                      backgroundColor: "#f0f5ff",
+                      padding: "8px",
+                      borderRadius: "8px",
+                    }}
+                  />
+                }
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card
+              hoverable
+              style={{
+                ...pageStyles.statsCard,
+                background: "linear-gradient(135deg, #fff0f6 0%, #ffffff 100%)",
+                borderLeft: "4px solid #eb2f96",
+              }}
+            >
+              <Statistic
+                title={
+                  <Text strong style={{ fontSize: "16px", color: "#eb2f96" }}>
+                    Tổng lượt tiêm
+                  </Text>
+                }
+                value={stats.totalVaccinated}
+                suffix="lượt"
+                valueStyle={{
+                  color: "#eb2f96",
+                  fontSize: "28px",
+                  fontWeight: "bold",
+                }}
+                prefix={
+                  <LineChartOutlined
+                    style={{
+                      fontSize: "28px",
+                      color: "#eb2f96",
+                      backgroundColor: "#fff0f6",
+                      padding: "8px",
+                      borderRadius: "8px",
+                    }}
+                  />
+                }
+              />
+            </Card>
+          </Col>
+        </Row>
 
         <Table
           columns={columns}

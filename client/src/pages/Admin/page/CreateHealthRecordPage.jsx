@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+/* eslint-disable no-unused-vars */
+import { useState, useEffect } from "react";
 import {
   Card,
   Table,
@@ -27,13 +28,14 @@ import {
   SearchOutlined,
   PlusOutlined,
   DeleteOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
 import locale from "antd/es/date-picker/locale/vi_VN";
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { TextArea } = Input;
 
 const pageStyles = {
@@ -83,6 +85,7 @@ const CreateHealthRecordPage = () => {
   const [selectedHouse, setSelectedHouse] = useState(null);
   const [examDate, setExamDate] = useState(dayjs());
   const [selectedPigs, setSelectedPigs] = useState(new Set());
+  const [searchText, setSearchText] = useState("");
 
   // Fetch danh sách khu
   const fetchAreas = async () => {
@@ -95,6 +98,7 @@ const CreateHealthRecordPage = () => {
           },
         }
       );
+      console.log(response.data.data.items);
       setAreas(response.data.data.items);
     } catch (error) {
       message.error("Lỗi khi tải danh sách khu: " + error.message);
@@ -329,7 +333,8 @@ const CreateHealthRecordPage = () => {
         <Checkbox
           checked={selectedPigs.has(record.id)}
           onChange={(e) => handleSelect(e, record.id)}
-          onClick={(e) => e.stopPropagation()} // Thêm cả onClick để đảm bảo
+          onClick={(e) => e.stopPropagation()}
+          style={{ pointerEvents: "auto" }}
         />
       ),
     },
@@ -339,6 +344,46 @@ const CreateHealthRecordPage = () => {
       width: 120,
       fixed: "left",
       render: (id) => <Tag color="blue">{id}</Tag>,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm mã heo"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => confirm()}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Tìm
+            </Button>
+            <Button
+              onClick={() => clearFilters()}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Xóa
+            </Button>
+          </Space>
+        </div>
+      ),
+      onFilter: (value, record) =>
+        record.id.toString().toLowerCase().includes(value.toLowerCase()),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
     },
     {
       title: "Tình trạng",
@@ -583,6 +628,36 @@ const CreateHealthRecordPage = () => {
     console.log("PigData updated:", pigData);
   }, [pigData]);
 
+  // Thêm CSS để style cho các hàng bị disable
+  const styles = `
+    .disabled-row {
+      opacity: 0.5;
+    }
+    
+    .disabled-row input:not([type="checkbox"]),
+    .disabled-row select,
+    .disabled-row textarea,
+    .disabled-row .ant-select,
+    .disabled-row .ant-picker {
+      pointer-events: none !important;
+      background-color: #f5f5f5 !important;
+    }
+    
+    .disabled-row .ant-checkbox-wrapper {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+    
+    .ant-table-row:not(.disabled-row):hover {
+      cursor: pointer;
+    }
+  `;
+
+  // Thêm lọc dữ liệu theo tìm kiếm
+  const filteredPigData = pigData.filter((pig) =>
+    pig.id.toLowerCase().includes(searchText.toLowerCase())
+  );
+
   return (
     <div>
       <Layout style={pageStyles.layout}>
@@ -600,6 +675,14 @@ const CreateHealthRecordPage = () => {
               </Col>
               <Col>
                 <Space>
+                  <Button
+                    icon={<HistoryOutlined />}
+                    onClick={() =>
+                      navigate("/veterinarian/health/medical-history")
+                    }
+                  >
+                    Lịch sử khám bệnh
+                  </Button>
                   <Button
                     icon={<ArrowLeftOutlined />}
                     onClick={() => navigate(-1)}
@@ -638,17 +721,17 @@ const CreateHealthRecordPage = () => {
                     tooltip="Vui lòng chọn khu vực"
                   >
                     <Select
-                      showSearch
-                      placeholder="Chọn khu vực"
+                      placeholder="Chọn khu"
                       value={selectedArea}
                       onChange={handleAreaChange}
-                      loading={loading}
-                      optionFilterProp="children"
-                      options={areas.map((area) => ({
-                        value: area.id,
-                        label: area.areaName,
-                      }))}
-                    />
+                      style={{ width: "100%" }}
+                    >
+                      {areas.map((area) => (
+                        <Select.Option key={area.id} value={area.id}>
+                          {area.name}
+                        </Select.Option>
+                      ))}
+                    </Select>
                   </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -658,22 +741,18 @@ const CreateHealthRecordPage = () => {
                     tooltip="Vui lòng chọn chuồng"
                   >
                     <Select
-                      showSearch
-                      placeholder={
-                        selectedArea
-                          ? "Chọn chuồng"
-                          : "Vui lòng chọn khu vực trước"
-                      }
+                      placeholder="Chọn chuồng"
                       value={selectedHouse}
                       onChange={handleHouseChange}
+                      style={{ width: "100%" }}
                       disabled={!selectedArea}
-                      loading={loading}
-                      optionFilterProp="children"
-                      options={houses.map((house) => ({
-                        value: house.id,
-                        label: house.stableName,
-                      }))}
-                    />
+                    >
+                      {houses.map((house) => (
+                        <Select.Option key={house.id} value={house.id}>
+                          {house.name}
+                        </Select.Option>
+                      ))}
+                    </Select>
                   </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -771,6 +850,9 @@ const CreateHealthRecordPage = () => {
                   size="middle"
                   scroll={{ x: 1300, y: 500 }}
                   style={pageStyles.table}
+                  rowClassName={(record) =>
+                    !selectedPigs.has(record.id) ? "disabled-row" : ""
+                  }
                 />
               </>
             ) : selectedHouse ? (
@@ -786,6 +868,7 @@ const CreateHealthRecordPage = () => {
           </Space>
         </Card>
       </Layout>
+      <style>{styles}</style>
     </div>
   );
 };
