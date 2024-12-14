@@ -148,6 +148,15 @@ const Sidebar = () => {
                     </Link>
                   ),
                 },
+                {
+                  key: "importMedicineRequests",
+                  icon: <UnorderedListOutlined />,
+                  label: (
+                    <Link to="/admin/inventory/import-medicines">
+                      Danh sách phiếu nhập
+                    </Link>
+                  ),
+                },
               ],
             },
           ],

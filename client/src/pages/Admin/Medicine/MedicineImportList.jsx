@@ -63,7 +63,8 @@ const MedicineImportList = () => {
       title: "Mã phiếu",
       dataIndex: "id",
       key: "id",
-      width: 150,
+      width: 200,
+      render: (id) => <Text style={{ fontSize: "14px" }}>{id}</Text>,
       filterDropdown: ({
         setSelectedKeys,
         selectedKeys,
@@ -204,7 +205,7 @@ const MedicineImportList = () => {
       title: "Người nhận",
       dataIndex: "receivedByName",
       key: "receivedByName",
-      width: 150,
+      width: 160,
     },
     {
       title: "Trạng thái",
@@ -226,6 +227,7 @@ const MedicineImportList = () => {
         { text: "Chờ nhận hàng", value: "Pending" },
         { text: "Đã nhập kho", value: "Stocked" },
       ],
+      defaultFilteredValue: ["Pending"],
       onFilter: (value, record) => record.status === value,
     },
     {
@@ -291,6 +293,7 @@ const MedicineImportList = () => {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
+      console.log(response.data.data);
       setMedicineImports(response.data.data);
     } catch (error) {
       message.error("Lỗi khi tải danh sách phiếu nhập thuốc");
@@ -382,8 +385,8 @@ const MedicineImportList = () => {
               <Descriptions.Item label="Nhà cung cấp">
                 {selectedImport.supplierName}
               </Descriptions.Item>
-              <Descriptions.Item label="Người tạo">
-                {selectedImport.createByName}
+              <Descriptions.Item label="Người nhận">
+                {selectedImport.receivedByName}
               </Descriptions.Item>
 
               <Descriptions.Item label="Ngày tạo">
@@ -416,31 +419,62 @@ const MedicineImportList = () => {
             style={{ marginBottom: 16 }}
           >
             <Row gutter={[16, 16]}>
-              <Col span={8}>
+              <Col span={8} key="totalPrice">
                 <Statistic
-                  title="Tổng tiền hàng"
-                  value={selectedImport.totalPrice}
+                  title={
+                    <Text strong>
+                      {selectedImport.status === "Pending"
+                        ? "Tổng tiền hàng dự kiến"
+                        : "Tổng tiền hàng"}
+                    </Text>
+                  }
+                  value={
+                    selectedImport.status === "Pending"
+                      ? selectedImport.details.reduce(
+                          (sum, item) =>
+                            sum + item.expectedQuantity * item.unitPrice,
+                          0
+                        )
+                      : selectedImport.totalPrice
+                  }
                   precision={0}
                   suffix="đ"
                   valueStyle={{ color: "#cf1322" }}
+                  formatter={(value) =>
+                    `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                  }
                 />
               </Col>
-              <Col span={8}>
+              <Col span={8} key="deposit">
                 <Statistic
                   title="Đã đặt cọc"
                   value={selectedImport.deposit}
                   precision={0}
                   suffix="đ"
                   valueStyle={{ color: "#3f8600" }}
+                  formatter={(value) =>
+                    `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                  }
                 />
               </Col>
-              <Col span={8}>
+              <Col span={8} key="remaining">
                 <Statistic
                   title="Còn phải trả"
-                  value={selectedImport.totalPrice - selectedImport.deposit}
+                  value={
+                    selectedImport.status === "Pending"
+                      ? selectedImport.details.reduce(
+                          (sum, item) =>
+                            sum + item.expectedQuantity * item.unitPrice,
+                          0
+                        ) - selectedImport.deposit
+                      : selectedImport.totalPrice - selectedImport.deposit
+                  }
                   precision={0}
                   suffix="đ"
                   valueStyle={{ color: "#1890ff" }}
+                  formatter={(value) =>
+                    `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                  }
                 />
               </Col>
             </Row>
@@ -503,14 +537,14 @@ const MedicineImportList = () => {
                   key: "total",
                   render: (_, record) =>
                     `${(
-                      record.unitPrice * record.receivedQuantity
-                    ).toLocaleString()}đ`,
+                      record.actualQuantity * record.unitPrice
+                    )?.toLocaleString()}đ`,
                 },
               ]}
               pagination={false}
               summary={(pageData) => {
                 const totalAmount = pageData.reduce(
-                  (sum, item) => sum + item.unitPrice * item.receivedQuantity,
+                  (sum, item) => sum + item.unitPrice * item.actualQuantity,
                   0
                 );
                 return (
@@ -533,7 +567,7 @@ const MedicineImportList = () => {
 
   const calculateTotal = (details) => {
     return details.reduce(
-      (sum, item) => sum + item.receivedQuantity * item.unitPrice,
+      (sum, item) => sum + item.actualQuantity * item.unitPrice,
       0
     );
   };
@@ -541,14 +575,21 @@ const MedicineImportList = () => {
   const handleQuantityChange = (index, value, field) => {
     const newDetails = [...deliveryDetails];
 
-    if (field === "actualQuantity") {
-      newDetails[index].actualQuantity = value;
-      newDetails[index].receivedQuantity = Math.min(
-        value,
-        newDetails[index].expectedQuantity
-      );
-    } else if (field === "receivedQuantity") {
+    if (field === "receivedQuantity") {
+      // Khi thay đổi số lượng giao tới
       newDetails[index].receivedQuantity = value;
+      // Tự động cập nhật số lượng chấp nhận bằng với số lượng giao tới
+      newDetails[index].actualQuantity = Math.min(
+        value, // không vượt quá số lượng giao tới
+        newDetails[index].expectedQuantity // và không vượt quá số lượng yêu cầu
+      );
+    } else if (field === "actualQuantity") {
+      // Khi thay đổi số lượng chấp nhận
+      // Đảm bảo số lượng chấp nhận không vượt quá số lượng giao tới
+      newDetails[index].actualQuantity = Math.min(
+        value,
+        newDetails[index].receivedQuantity
+      );
     }
 
     setDeliveryDetails(newDetails);
@@ -850,30 +891,30 @@ const MedicineImportList = () => {
               key: "expectedQuantity",
             },
             {
-              title: "Số lượng thực tế",
-              dataIndex: "actualQuantity",
-              key: "actualQuantity",
-              render: (_, record, index) => (
-                <InputNumber
-                  min={0}
-                  value={record.actualQuantity}
-                  onChange={(value) =>
-                    handleQuantityChange(index, value, "actualQuantity")
-                  }
-                />
-              ),
-            },
-            {
-              title: "Số lượng nhận",
+              title: "Số lượng giao tới",
               dataIndex: "receivedQuantity",
               key: "receivedQuantity",
               render: (_, record, index) => (
                 <InputNumber
                   min={0}
-                  max={record.actualQuantity}
                   value={record.receivedQuantity}
                   onChange={(value) =>
                     handleQuantityChange(index, value, "receivedQuantity")
+                  }
+                />
+              ),
+            },
+            {
+              title: "Số lượng chấp nhận",
+              dataIndex: "actualQuantity",
+              key: "actualQuantity",
+              render: (_, record, index) => (
+                <InputNumber
+                  min={0}
+                  max={record.receivedQuantity}
+                  value={record.actualQuantity}
+                  onChange={(value) =>
+                    handleQuantityChange(index, value, "actualQuantity")
                   }
                 />
               ),
@@ -889,7 +930,7 @@ const MedicineImportList = () => {
               key: "total",
               render: (_, record) =>
                 `${(
-                  record.receivedQuantity * record.unitPrice
+                  record.actualQuantity * record.unitPrice
                 )?.toLocaleString()}đ`,
             },
           ]}
@@ -917,10 +958,12 @@ const MedicineImportList = () => {
         <Col span={6}>
           <Card className="statistic-card">
             <Statistic
-              title={<Text strong>Tổng số phiếu</Text>}
-              value={medicineImports.length}
-              prefix={<FileDoneOutlined />}
-              valueStyle={{ color: "#1890ff", fontSize: 24 }}
+              title={<Text strong>Chờ nhận hàng</Text>}
+              value={
+                medicineImports.filter((r) => r.status === "Pending").length
+              }
+              prefix={<ClockCircleOutlined />}
+              valueStyle={{ color: "#faad14", fontSize: 24 }}
             />
           </Card>
         </Col>
@@ -939,21 +982,19 @@ const MedicineImportList = () => {
         <Col span={6}>
           <Card className="statistic-card">
             <Statistic
-              title={<Text strong>Chờ nhận hàng</Text>}
-              value={
-                medicineImports.filter((r) => r.status === "Pending").length
-              }
-              prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: "#faad14", fontSize: 24 }}
+              title={<Text strong>Tổng số phiếu</Text>}
+              value={medicineImports.length}
+              prefix={<FileDoneOutlined />}
+              valueStyle={{ color: "#1890ff", fontSize: 24 }}
             />
           </Card>
         </Col>
         <Col span={6}>
           <Card className="statistic-card">
             <Statistic
-              title={<Text strong>Tổng tiền đặt cọc</Text>}
+              title={<Text strong>Tổng tiền</Text>}
               value={medicineImports.reduce(
-                (total, item) => total + (item.deposit || 0),
+                (total, item) => total + (item.totalPrice || 0),
                 0
               )}
               prefix={<DollarOutlined />}

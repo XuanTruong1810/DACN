@@ -123,6 +123,8 @@ namespace Application.Services
                 Status = mi.Status,
                 CreateTime = mi.CreatedTime.GetValueOrDefault(),
                 CreateBy = mi.CreatedBy,
+                TotalPrice = mi.TotalAmount.GetValueOrDefault(),
+                TotalReceivedQuantity = mi.ReceivedAmount.GetValueOrDefault(),
                 CreateByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(mi.CreatedBy).Result?.FullName,
                 ReceivedBy = mi.Receiver,
                 ReceivedByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(mi.Receiver).Result?.FullName,
