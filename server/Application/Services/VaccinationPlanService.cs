@@ -24,30 +24,52 @@ namespace Application.Services
         }
         public async Task<List<VaccinationPlanModelView>> GetVaccinationPlanAsync()
         {
-            List<VaccinationPlanModelView>? vaccinationPlans = await _unitOfWork.GetRepository<VaccinationPlan>().GetEntities
-                .Where(vp => vp.DeleteTime == null && vp.IsActive && vp.Status == "pending")
+            var vaccinationPlans = await _unitOfWork.GetRepository<VaccinationPlan>().GetEntities
+                .Where(vp => vp.DeleteTime == null && vp.IsActive)
                 .Include(vp => vp.Pigs)
+                    .ThenInclude(p => p.Stables)
                 .Include(vp => vp.Medicine)
+                .Select(vp => new // Select trước khi GroupBy
+                {
+                    ExaminationDate = vp.LastModifiedTime ?? vp.ScheduledDate,
+                    ModifiedDate = vp.LastModifiedTime ?? vp.ScheduledDate,
+                    ScheduledDate = vp.ScheduledDate,
+                    MedicineId = vp.MedicineId,
+                    MedicineName = vp.Medicine.MedicineName,
+                    Status = vp.Status,
+                    PigId = vp.PigId,
+                    StableName = vp.Pigs.Stables.Name
+                })
+                .ToListAsync();
+
+            // Group sau khi đã lấy data
+            var groupedPlans = vaccinationPlans
                 .GroupBy(vp => new
                 {
-                    Date = vp.LastModifiedTime.HasValue ? vp.LastModifiedTime.Value : vp.ScheduledDate,
-                    vp.MedicineId
+                    vp.ExaminationDate.Date, // Group theo ngày
+                    vp.MedicineId,
+                    vp.MedicineName,
+                    vp.Status
                 })
                 .Select(g => new VaccinationPlanModelView
                 {
                     ExaminationDate = g.Key.Date,
+                    ModifiedDate = g.First().ModifiedDate,
+                    ScheduledDate = g.First().ScheduledDate,
                     VaccinationQuantity = g.Count(),
-                    MedicineName = g.First().Medicine.MedicineName,
-                    VaccineId = g.First().MedicineId,
+                    MedicineName = g.Key.MedicineName,
+                    VaccineId = g.Key.MedicineId,
+                    Status = g.Key.Status,
                     Pigs = g.Select(vp => new PigSchedule
                     {
                         PigId = vp.PigId,
-                        StableName = vp.Pigs.Stables.Name
+                        StableName = vp.StableName
                     }).ToList()
                 })
                 .OrderByDescending(vp => vp.ExaminationDate)
-                .ToListAsync();
-            return vaccinationPlans;
+                .ToList();
+
+            return groupedPlans;
         }
 
         public async Task<bool> InsertVaccinationPlanAsync(VaccinationInsertDTO vaccinationInsertDTO)

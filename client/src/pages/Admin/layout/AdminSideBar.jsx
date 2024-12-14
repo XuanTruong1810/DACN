@@ -15,9 +15,11 @@ import {
   UnorderedListOutlined,
   CheckSquareOutlined,
   DatabaseOutlined,
-  BarsOutlined,
   TagsOutlined,
   FileTextOutlined,
+  HistoryOutlined,
+  LineChartOutlined,
+  HeartOutlined,
 } from "@ant-design/icons";
 import { Menu, Avatar, Dropdown, Space } from "antd";
 import { Header } from "antd/es/layout/layout";
@@ -77,11 +79,41 @@ const Sidebar = () => {
       ],
     },
     {
-      key: "vaccinationHistory",
-      icon: <BarsOutlined />,
-      label: (
-        <Link to="/admin/health/vaccination-history">Lịch sử tiêm chủng</Link>
-      ),
+      key: "history",
+      icon: <HistoryOutlined />,
+      label: "Lịch sử",
+      children: [
+        {
+          key: "vaccinationHistory",
+          icon: <MedicineBoxOutlined />,
+          label: (
+            <Link to="/admin/health/vaccination-history">
+              Lịch sử tiêm chủng
+            </Link>
+          ),
+        },
+        {
+          key: "weightHistory",
+          icon: <LineChartOutlined />,
+          label: <Link to="/admin/health/weight-history">Lịch sử cân</Link>,
+        },
+        {
+          key: "healthHistory",
+          icon: <HeartOutlined />,
+          label: (
+            <Link to="/admin/health/health-history">Lịch sử khám bệnh</Link>
+          ),
+        },
+        {
+          key: "foodExportHistory",
+          icon: <ExportOutlined />,
+          label: (
+            <Link to="/admin/exports/daily-food-history">
+              Lịch sử xuất thức ăn
+            </Link>
+          ),
+        },
+      ],
     },
     {
       key: "inventory",

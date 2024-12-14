@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -20,7 +21,6 @@ import {
 import {
   InfoCircleOutlined,
   DeleteOutlined,
-  PlusOutlined,
   FileDoneOutlined,
   MedicineBoxOutlined,
 } from "@ant-design/icons";

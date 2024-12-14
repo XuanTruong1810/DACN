@@ -165,6 +165,7 @@ namespace Application.Services
                 Id = x.Id,
                 ExportDate = x.ExportDate,
                 ExportBy = x.ExportBy,
+                ExportByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(u => u.Id == x.ExportBy)?.FullName,
                 Note = x.Note,
                 AreaName = x.AreaName,
                 TotalQuantity = x.FoodExportDetails.Sum(d => d.Quantity),
@@ -198,6 +199,7 @@ namespace Application.Services
                 ExportBy = foodExport.ExportBy,
                 Note = foodExport.Note,
                 AreaName = foodExport.AreaName,
+                ExportByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(u => u.Id == foodExport.ExportBy)?.FullName,
                 TotalQuantity = foodExport.FoodExportDetails.Sum(d => d.Quantity),
                 Details = foodExport.FoodExportDetails.Select(d => new FoodExportDetailModelView
                 {

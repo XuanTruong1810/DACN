@@ -47,6 +47,9 @@ const MedicineSchedule = () => {
           },
         }
       );
+      console.log("API Response:", response.data);
+      console.log("Schedule Data:", response.data.data);
+      console.log("First Item Sample:", response.data.data[0]);
       setScheduleData(response.data.data);
     } catch (error) {
       message.error("Không thể tải lịch tiêm vaccine");
@@ -62,7 +65,6 @@ const MedicineSchedule = () => {
   // Hiển thị trên calendar
   const dateCellRender = (value) => {
     const date = value.format("YYYY-MM-DD");
-    const today = dayjs().format("YYYY-MM-DD");
     const listData = scheduleData.filter(
       (item) => dayjs(item.examinationDate).format("YYYY-MM-DD") === date
     );
@@ -70,11 +72,6 @@ const MedicineSchedule = () => {
     if (listData.length === 0) {
       return null;
     }
-
-    // Kiểm tra xem ngày đã tới chưa
-    const isDateReached = date <= today; // TODO: Uncomment this when backend is ready
-
-    // const isDateReached = true; // TODO: Uncomment this when backend is ready
 
     // Gom nhóm các vaccine giống nhau
     const groupedVaccines = listData.reduce((acc, item) => {
@@ -84,6 +81,7 @@ const MedicineSchedule = () => {
           totalQuantity: 0,
           count: 0,
           vaccineId: item.vaccineId,
+          status: item.status,
         };
       }
       acc[item.medicineName].totalQuantity += item.vaccinationQuantity;
@@ -94,41 +92,60 @@ const MedicineSchedule = () => {
     return (
       <ul className="events">
         {Object.values(groupedVaccines).map((item) => (
-          <li key={item.medicineName}>
+          <li
+            key={item.medicineName}
+            style={{
+              opacity: item.status === "completed" ? 0.7 : 1,
+              textDecoration:
+                item.status === "completed" ? "line-through" : "none",
+              transition: "all 0.3s",
+            }}
+          >
             <Tooltip
-              title={
-                !isDateReached
-                  ? "Chưa tới ngày tiêm"
-                  : `${item.count > 1 ? `${item.count} đợt tiêm - ` : ""}${
-                      item.totalQuantity
-                    } con cần tiêm`
-              }
+              title={`${item.count > 1 ? `${item.count} đợt tiêm - ` : ""}${
+                item.totalQuantity
+              } con ${item.status === "completed" ? "đã tiêm" : "cần tiêm"}`}
             >
               <div className="vaccine-info">
-                <MedicineBoxOutlined /> Tiêm {item.medicineName}
-                <div className="pig-count">
+                <MedicineBoxOutlined
+                  style={{
+                    color: item.status === "completed" ? "#999" : "#1890ff",
+                  }}
+                />
+                <span>Tiêm {item.medicineName}</span>
+                <div
+                  className="pig-count"
+                  style={{
+                    color: item.status === "completed" ? "#999" : "inherit",
+                  }}
+                >
                   {item.count > 1 ? `(${item.count} đợt - ` : "("}
                   {item.totalQuantity} con)
                 </div>
-                <Button
-                  type="link"
-                  size="small"
-                  disabled={!isDateReached}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(
-                      `/veterinarian/health/vaccination/create?vaccineId=${item.vaccineId}&date=${date}`
-                    );
-                  }}
-                  style={{
-                    padding: "4px 8px",
-                    marginTop: "4px",
-                    opacity: isDateReached ? 1 : 0.5,
-                    cursor: isDateReached ? "pointer" : "not-allowed",
-                  }}
-                >
-                  Tạo phiếu tiêm
-                </Button>
+                {item.status !== "completed" && (
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(
+                        `/veterinarian/health/vaccination/create?vaccineId=${item.vaccineId}&date=${date}`
+                      );
+                    }}
+                    style={{
+                      padding: "4px 8px",
+                      marginTop: "4px",
+                      color: "#1890ff",
+                    }}
+                  >
+                    Tạo phiếu tiêm
+                  </Button>
+                )}
+                {item.status === "completed" && (
+                  <Tag color="success" style={{ marginTop: "4px" }}>
+                    Đã tiêm
+                  </Tag>
+                )}
               </div>
             </Tooltip>
           </li>

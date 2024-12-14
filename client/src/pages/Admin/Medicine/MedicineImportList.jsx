@@ -17,6 +17,7 @@ import {
   Modal,
   Descriptions,
   InputNumber,
+  Divider,
 } from "antd";
 import {
   CalendarOutlined,
@@ -32,7 +33,6 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import moment from "moment";
-import dayjs from "dayjs";
 
 const { Text, Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -47,7 +47,6 @@ const MedicineImportList = () => {
   const [showViewDetail, setShowViewDetail] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [filters, setFilters] = useState({
-    status: "all",
     dateRange: [],
   });
   const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
@@ -163,42 +162,78 @@ const MedicineImportList = () => {
       width: 180,
       render: (date) => moment(date).format("DD/MM/YYYY HH:mm"),
       filterDropdown: ({ setSelectedKeys, confirm, clearFilters }) => (
-        <div style={{ padding: 8 }}>
-          <RangePicker
-            onChange={(dates) => {
-              setSelectedKeys(dates);
-            }}
-            style={{ marginBottom: 8 }}
-          />
-          <div>
-            <Button
-              type="primary"
-              onClick={() => confirm()}
-              icon={<SearchOutlined />}
-              size="small"
-              style={{ marginRight: 8 }}
-            >
-              Tìm
-            </Button>
-            <Button
-              onClick={() => {
-                clearFilters();
-                confirm();
+        <div style={{ padding: 16, maxWidth: 400 }}>
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <RangePicker
+              value={filters.dateRange}
+              onChange={(dates) => {
+                setSelectedKeys(dates);
+                handleFilterChange("dateRange", dates);
               }}
-              size="small"
+              style={{ width: "100%" }}
+              ranges={getPresetRanges()}
+              format="DD/MM/YYYY"
+              allowClear
+            />
+            <Space
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                width: "100%",
+              }}
             >
-              Xóa
-            </Button>
-          </div>
+              <Button
+                type="primary"
+                onClick={() => {
+                  confirm();
+                }}
+                size="small"
+              >
+                Áp dụng
+              </Button>
+              <Button
+                onClick={() => {
+                  clearFilters();
+                  handleFilterChange("dateRange", []);
+                }}
+                size="small"
+              >
+                Xóa bộ lọc
+              </Button>
+            </Space>
+            <Divider style={{ margin: "8px 0" }} />
+            <Space wrap>
+              {Object.entries(getPresetRanges()).map(([label, [startDate]]) => (
+                <Tag
+                  key={label}
+                  color="blue"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    const range = getPresetRanges()[label];
+                    setSelectedKeys(range);
+                    handleFilterChange("dateRange", range);
+                    confirm();
+                  }}
+                >
+                  {label}
+                </Tag>
+              ))}
+            </Space>
+          </Space>
         </div>
       ),
       filterIcon: (filtered) => (
         <CalendarOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
       ),
       onFilter: (value, record) => {
-        if (!value || value.length !== 2) return true;
+        if (!filters.dateRange || filters.dateRange.length !== 2) return true;
         const recordDate = moment(record.createTime);
-        return recordDate.isBetween(value[0], value[1], "day", "[]");
+        return recordDate.isBetween(
+          filters.dateRange[0],
+          filters.dateRange[1],
+          "day",
+          "[]"
+        );
       },
     },
     {
@@ -319,13 +354,15 @@ const MedicineImportList = () => {
     setSearchText(value);
   };
 
-  const handleFilterChange = (values) => {
-    setFilters((prev) => ({ ...prev, ...values }));
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
   };
 
   const resetFilters = () => {
     setFilters({
-      status: "all",
       dateRange: [],
     });
     setSearchText("");
@@ -673,7 +710,7 @@ const MedicineImportList = () => {
 
   const handlePrintDelivery = useCallback(
     (record, details) => {
-      const fileName = `Phieu_Giao_${record.id}_${dayjs().format("DDMMYYYY")}`;
+      const fileName = `Phieu_Giao_${record.id}_${moment().format("DDMMYYYY")}`;
       console.log(record);
       const printWindow = window.open("", fileName);
       printWindow.document.write(`
@@ -717,7 +754,7 @@ const MedicineImportList = () => {
         <body>
           <div class="header">
             <h2>PHIẾU GIAO THUỐC</h2>
-            <p>Ngày in: ${dayjs().format("DD/MM/YYYY HH:mm:ss")}</p>
+            <p>Ngày in: ${moment().format("DD/MM/YYYY HH:mm:ss")}</p>
           </div>
           
           <div class="info">
@@ -951,6 +988,27 @@ const MedicineImportList = () => {
       </Form>
     </Modal>
   );
+
+  const getPresetRanges = () => ({
+    "Hôm nay": [moment().startOf("day"), moment().endOf("day")],
+    "Hôm qua": [
+      moment().subtract(1, "days").startOf("day"),
+      moment().subtract(1, "days").endOf("day"),
+    ],
+    "7 ngày qua": [
+      moment().subtract(6, "days").startOf("day"),
+      moment().endOf("day"),
+    ],
+    "30 ngày qua": [
+      moment().subtract(29, "days").startOf("day"),
+      moment().endOf("day"),
+    ],
+    "Tháng này": [moment().startOf("month"), moment().endOf("month")],
+    "Tháng trước": [
+      moment().subtract(1, "month").startOf("month"),
+      moment().subtract(1, "month").endOf("month"),
+    ],
+  });
 
   return (
     <div style={{ padding: "24px" }}>

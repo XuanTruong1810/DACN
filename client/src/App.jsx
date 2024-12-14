@@ -49,6 +49,7 @@ import NotFound from "./pages/Error/NotFound";
 import Unauthorized from "./pages/Error/Unauthorized";
 import WeighingSchedule from "./pages/Admin/Schedule/WeighingSchedule";
 import VaccinationHistory from "./pages/Admin/VaccinationHistory/VaccinationHistory";
+import DailyFoodHistory from "./pages/Admin/page/Exports/DailyFoodHistory";
 
 function App() {
   return (
@@ -69,6 +70,10 @@ function App() {
             <Route path="Houses" element={<HousesPage />} />
             <Route path="inventory/foods" element={<FoodsPage />} />
             <Route path="inventory/medicines" element={<MedicinePage />} />
+            <Route
+              path="exports/daily-food-history"
+              element={<DailyFoodHistory />}
+            />
             <Route
               path="inventory/import-medicines"
               element={<MedicineImportList />}
@@ -138,6 +143,10 @@ function App() {
             <Route
               path="exports/daily-food-export"
               element={<DailyFoodExport />}
+            />
+            <Route
+              path="exports/daily-food-history"
+              element={<DailyFoodHistory />}
             />
             <Route
               path="inventory/import-foods/create"
