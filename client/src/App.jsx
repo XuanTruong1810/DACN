@@ -52,6 +52,7 @@ import VaccinationHistory from "./pages/Admin/VaccinationHistory/VaccinationHist
 import DailyFoodHistory from "./pages/Admin/page/Exports/DailyFoodHistory";
 import HealthRecordHistory from "./pages/Admin/page/HealthRecordHistory";
 import { AuthProvider } from "./contexts/AuthContext";
+import WeighingHistory from "./pages/Admin/Schedule/WeighingHistory";
 
 function App() {
   return (
@@ -72,6 +73,7 @@ function App() {
             <Route path="Houses" element={<HousesPage />} />
             <Route path="inventory/foods" element={<FoodsPage />} />
             <Route path="inventory/medicines" element={<MedicinePage />} />
+            <Route path="weighing-history" element={<WeighingHistory />} />
             <Route
               path="exports/daily-food-history"
               element={<DailyFoodHistory />}
@@ -132,6 +134,7 @@ function App() {
           <Route path="/dispatch" element={<DispatchLayout />}>
             <Route path="animals/move-house" element={<MoveHouse />} />
             <Route path="animals/pigs" element={<PigsManagement />} />
+            <Route path="weighing-history" element={<WeighingHistory />} />
             <Route index element={<WeighingSchedule />} />
             <Route
               path="inventory/create-request"

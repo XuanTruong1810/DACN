@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+/* eslint-disable react/no-unknown-property */
+import { useState, useEffect, useRef } from "react";
 import {
   Calendar,
   Card,
@@ -39,6 +40,7 @@ const WeighingSchedule = () => {
   const [selectedPlanPigs, setSelectedPlanPigs] = useState([]);
   const [weighingData, setWeighingData] = useState({});
   const [weighingNote, setWeighingNote] = useState("");
+  const calendarRef = useRef(null);
 
   // Fetch danh sách kế hoạch cân
   const fetchWeighingPlans = async () => {
@@ -70,9 +72,51 @@ const WeighingSchedule = () => {
   // Xử lý dữ liệu cho calendar cell
   const getListData = (value) => {
     const date = value.format("YYYY-MM-DD");
-    return weighingPlans.filter(
+    const result = [];
+
+    // Tìm kế hoạch cân cho ngày này
+    const plansForDate = weighingPlans.filter(
       (plan) => dayjs(plan.weighingDate).format("YYYY-MM-DD") === date
     );
+
+    if (plansForDate.length > 0) {
+      const plan = plansForDate[0];
+      // Đếm số heo đã cân trong kế hoạch này
+      const weighedPigs = plan.weighingDetails.filter(
+        (detail) =>
+          detail.lastWeighingDate &&
+          dayjs(detail.lastWeighingDate).format("YYYY-MM-DD") === date
+      );
+
+      // Nếu có heo đã cân
+      if (weighedPigs.length > 0) {
+        result.push({
+          type: "weighed",
+          totalPigs: weighedPigs.length,
+          weighingDetails: weighedPigs,
+          lastWeighingDate: weighedPigs[0].lastWeighingDate,
+        });
+      }
+
+      // Đếm số heo chưa cân
+      const remainingPigs = plan.weighingDetails.filter(
+        (detail) =>
+          !detail.lastWeighingDate ||
+          dayjs(detail.lastWeighingDate).format("YYYY-MM-DD") !== date
+      );
+
+      // Nếu còn heo chưa cân
+      if (remainingPigs.length > 0) {
+        result.push({
+          type: "planned",
+          weighingDate: plan.weighingDate,
+          totalPigs: remainingPigs.length,
+          weighingDetails: remainingPigs,
+        });
+      }
+    }
+
+    return result;
   };
 
   // Render nội dung cho calendar cell
@@ -87,23 +131,48 @@ const WeighingSchedule = () => {
           <li key={index}>
             <Tooltip
               title={
-                <div>
-                  <div>Khu: {item.areaName}</div>
-                  <div>Số lượng: {item.pigIds.length} con</div>
-                </div>
+                <>
+                  <div>
+                    {item.type === "weighed" ? "Đã cân" : "Lịch cân"}:{" "}
+                    {item.totalPigs} con
+                  </div>
+                  {item.type === "weighed" && (
+                    <div>
+                      Ngày cân:{" "}
+                      {dayjs(item.lastWeighingDate).format("DD/MM/YYYY")}
+                    </div>
+                  )}
+                </>
               }
               placement="topLeft"
             >
               <Badge
-                status="processing"
-                text={`${item.areaName} - ${item.pigIds.length} con`}
+                status={item.type === "weighed" ? "default" : "processing"}
+                text={
+                  <span
+                    style={{
+                      color: item.type === "weighed" ? "#999" : "inherit",
+                      textDecoration:
+                        item.type === "weighed" ? "line-through" : "none",
+                      fontSize: item.type === "weighed" ? "12px" : "14px",
+                      cursor: item.type === "planned" ? "pointer" : "default",
+                    }}
+                  >
+                    {item.type === "weighed" ? "Đã cân" : "Lịch cân"} -{" "}
+                    {item.totalPigs} con
+                  </span>
+                }
                 style={{
                   whiteSpace: "nowrap",
-                  cursor: "pointer",
                   display: "block",
                   marginBottom: 4,
+                  opacity: item.type === "weighed" ? 0.7 : 1,
                 }}
-                onClick={() => handleDateClick(value, item)}
+                onClick={() => {
+                  if (item.type === "planned") {
+                    handleDateClick(value, item);
+                  }
+                }}
               />
             </Tooltip>
           </li>
@@ -114,15 +183,23 @@ const WeighingSchedule = () => {
 
   // Xử lý khi click vào một ngày
   const handleDateClick = (date, plan) => {
-    console.log(plan);
+    const isWeighed =
+      plan.lastWeighingDate &&
+      dayjs(plan.lastWeighingDate).format("YYYY-MM-DD") ===
+        date.format("YYYY-MM-DD");
+
+    if (isWeighed) {
+      return; // Không làm gì nếu đã cân
+    }
+
     setSelectedDate(date);
     const formattedPigs = plan.weighingDetails.map((pig) => ({
       key: pig.pigId,
       pigId: pig.pigId,
       stableName: pig.stableName,
-      areaId: plan.areaId,
-      areaName: plan.areaName,
-      weight: weighingData[pig.pigId] || "",
+      areaId: pig.areaId,
+      areaName: pig.areaName,
+      weight: pig.weight || weighingData[pig.pigId] || "",
       note: "",
     }));
     setSelectedPlanPigs(formattedPigs);
@@ -131,12 +208,15 @@ const WeighingSchedule = () => {
 
   // Xử lý in phiếu
   const handlePrint = () => {
-    // Nhóm heo theo chuồng
-    const pigsByStable = selectedPlanPigs.reduce((acc, pig) => {
-      if (!acc[pig.stableName]) {
-        acc[pig.stableName] = [];
+    // Nhóm heo theo khu vực và chuồng
+    const pigsByArea = selectedPlanPigs.reduce((acc, pig) => {
+      if (!acc[pig.areaName]) {
+        acc[pig.areaName] = {};
       }
-      acc[pig.stableName].push({
+      if (!acc[pig.areaName][pig.stableName]) {
+        acc[pig.areaName][pig.stableName] = [];
+      }
+      acc[pig.areaName][pig.stableName].push({
         ...pig,
         weight: weighingData[pig.pigId] || "",
       });
@@ -150,18 +230,38 @@ const WeighingSchedule = () => {
           <title>Phiếu Cân Heo</title>
           <style>
             @media print {
-              body { font-family: Arial, sans-serif; }
-              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-              th, td { border: 1px solid black; padding: 8px; text-align: left; }
-              h2, h3 { text-align: center; }
-              .print-header { text-align: center; margin-bottom: 20px; }
-              .date-info { text-align: right; margin: 10px 0; }
-              .stable-section { margin-top: 20px; }
-              .stable-header { 
-                background-color: #f5f5f5;
-                padding: 10px;
-                margin-bottom: 10px;
-                border: 1px solid #ddd;
+              body { 
+                font-family: Arial, sans-serif;
+                padding: 20px;
+              }
+              table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin-top: 10px;
+                margin-bottom: 20px;
+              }
+              th, td { 
+                border: 1px solid black; 
+                padding: 8px; 
+                text-align: left; 
+              }
+              h2, h3, h4 { 
+                margin: 10px 0;
+              }
+              h2 { 
+                text-align: center;
+                font-size: 24px;
+              }
+              h3 { 
+                color: #003366;
+                font-size: 20px;
+                border-bottom: 2px solid #003366;
+                padding-bottom: 5px;
+              }
+              h4 {
+                color: #666;
+                font-size: 16px;
+                margin-left: 10px;
               }
             }
           </style>
@@ -173,51 +273,63 @@ const WeighingSchedule = () => {
           <div class="date-info">
             Ngày: ${selectedDate?.format("DD/MM/YYYY")}
           </div>
-          ${Object.entries(pigsByStable)
+
+          ${Object.entries(pigsByArea)
             .map(
-              ([stableName, pigs]) => `
-              <div class="stable-section">
-                <div class="stable-header">
-                  <h3>Chuồng: ${stableName}</h3>
-                </div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="width: 35%">Mã Heo</th>
-                      <th style="width: 25%">Chuồng</th>
-                      <th style="width: 20%">Cân nặng (kg)</th>
-                      <th style="width: 20%">Ghi chú</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${pigs
-                      .map(
-                        (pig) => `
-                      <tr>
-                        <td>${pig.pigId}</td>
-                        <td>${pig.stableName}</td>
-                        <td>${pig.weight}</td>
-                        <td>${pig.note || ""}</td>
-                      </tr>
-                    `
-                      )
-                      .join("")}
-                  </tbody>
-                </table>
+              ([areaName, stables]) => `
+              <div class="area-section">
+                <h3>Khu: ${areaName}</h3>
+                ${Object.entries(stables)
+                  .map(
+                    ([stableName, pigs]) => `
+                    <div class="stable-section">
+                      <h4>Chuồng: ${stableName}</h4>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th style="width: 30%">Mã Heo</th>
+                            <th style="width: 20%">Cân nặng (kg)</th>
+                            <th style="width: 50%">Ghi chú</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${pigs
+                            .map(
+                              (pig) => `
+                            <tr>
+                              <td>${pig.pigId}</td>
+                              <td>${pig.weight}</td>
+                              <td>${pig.note || ""}</td>
+                            </tr>
+                          `
+                            )
+                            .join("")}
+                        </tbody>
+                      </table>
+                    </div>
+                  `
+                  )
+                  .join("")}
               </div>
             `
             )
             .join("")}
+          
+          <div style="text-align: right; margin: 20px 0;">
+            <strong>Tổng số heo: ${selectedPlanPigs.length} con</strong>
+          </div>
+
           ${
             weighingNote
               ? `
-            <div style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px;">
+            <div class="note-section">
               <strong>Ghi chú chung:</strong>
               <p>${weighingNote}</p>
             </div>
           `
               : ""
           }
+
           <script>
             window.onload = function() {
               window.print();
@@ -275,18 +387,27 @@ const WeighingSchedule = () => {
     }
   };
 
+  // Sắp xếp và nhóm dữ liệu theo khu vực
+  const groupedPigsByArea = selectedPlanPigs.reduce((acc, pig) => {
+    if (!acc[pig.areaName]) {
+      acc[pig.areaName] = [];
+    }
+    acc[pig.areaName].push(pig);
+    return acc;
+  }, {});
+
   // Columns cho bảng cân heo
   const weighingColumns = [
+    {
+      title: "Chuồng",
+      dataIndex: "stableName",
+      width: 120,
+    },
     {
       title: "Mã Heo",
       dataIndex: "pigId",
       width: 150,
       render: (id) => <Tag color="blue">{id}</Tag>,
-    },
-    {
-      title: "Chuồng",
-      dataIndex: "stableName",
-      width: 120,
     },
     {
       title: "Cân nặng (kg)",
@@ -345,14 +466,33 @@ const WeighingSchedule = () => {
           style={{ marginBottom: 16 }}
         >
           <Col>
-            <Title level={3}>Lịch cân heo</Title>
+            <Title level={3}>
+              <HistoryOutlined /> Lịch trình cân heo
+            </Title>
           </Col>
           <Col>
             <Space>
               <Button
+                onClick={() => {
+                  if (calendarRef.current) {
+                    const todayElement = calendarRef.current.querySelector(
+                      ".ant-picker-calendar-date-today"
+                    );
+                    if (todayElement) {
+                      todayElement.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
+                    }
+                  }
+                }}
+              >
+                Hôm nay
+              </Button>
+              <Button
                 type="primary"
                 icon={<HistoryOutlined />}
-                onClick={() => navigate("/weighing-history")}
+                onClick={() => navigate("/dispatch/weighing-history")}
               >
                 Lịch sử cân
               </Button>
@@ -360,11 +500,15 @@ const WeighingSchedule = () => {
           </Col>
         </Row>
 
-        <Calendar
-          locale={locale}
-          dateCellRender={dateCellRender}
-          loading={loading}
-        />
+        <div ref={calendarRef}>
+          <Calendar
+            locale={locale}
+            cellRender={(date, { type }) =>
+              type === "date" ? dateCellRender(date) : null
+            }
+            loading={loading}
+          />
+        </div>
       </Card>
 
       <Modal
@@ -376,50 +520,35 @@ const WeighingSchedule = () => {
           setWeighingNote("");
         }}
         width={1000}
-        footer={
-          canCreateWeighingRecord(selectedDate)
-            ? [
-                <Button
-                  key="cancel"
-                  onClick={() => {
-                    setIsWeighingModalVisible(false);
-                    setWeighingData({});
-                    setWeighingNote("");
-                  }}
-                >
-                  Hủy
-                </Button>,
-                <Button
-                  key="print"
-                  icon={<PrinterOutlined />}
-                  onClick={handlePrint}
-                  disabled={selectedPlanPigs.length === 0}
-                >
-                  In phiếu
-                </Button>,
-                <Button
-                  key="save"
-                  type="primary"
-                  icon={<SaveOutlined />}
-                  onClick={handleWeighingSave}
-                  disabled={selectedPlanPigs.length === 0}
-                >
-                  Lưu phiếu ({selectedPlanPigs.length} con)
-                </Button>,
-              ]
-            : [
-                <Button
-                  key="cancel"
-                  onClick={() => {
-                    setIsWeighingModalVisible(false);
-                    setWeighingData({});
-                    setWeighingNote("");
-                  }}
-                >
-                  Đóng
-                </Button>,
-              ]
-        }
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setIsWeighingModalVisible(false);
+              setWeighingData({});
+              setWeighingNote("");
+            }}
+          >
+            Hủy
+          </Button>,
+          <Button
+            key="print"
+            icon={<PrinterOutlined />}
+            onClick={handlePrint}
+            disabled={selectedPlanPigs.length === 0}
+          >
+            In phiếu
+          </Button>,
+          <Button
+            key="save"
+            type="primary"
+            icon={<SaveOutlined />}
+            onClick={handleWeighingSave}
+            disabled={selectedPlanPigs.length === 0}
+          >
+            Lưu phiếu ({selectedPlanPigs.length} con)
+          </Button>,
+        ]}
       >
         <Space direction="vertical" style={{ width: "100%" }} size="large">
           <Row gutter={[16, 16]}>
@@ -429,10 +558,6 @@ const WeighingSchedule = () => {
                   <div>
                     <Text strong>Ngày cân:</Text>{" "}
                     <Text>{selectedDate?.format("DD/MM/YYYY")}</Text>
-                  </div>
-                  <div>
-                    <Text strong>Khu:</Text>{" "}
-                    <Text>{selectedPlanPigs[0]?.areaName}</Text>
                   </div>
                   <div>
                     <Text strong>Tổng số heo:</Text>{" "}
@@ -450,14 +575,25 @@ const WeighingSchedule = () => {
             onChange={(e) => setWeighingNote(e.target.value)}
           />
 
-          <Table
-            columns={weighingColumns}
-            dataSource={selectedPlanPigs}
-            pagination={false}
-            scroll={{ y: 400 }}
-            size="small"
-            bordered
-          />
+          {/* Hiển thị theo từng khu vực */}
+          {Object.entries(groupedPigsByArea).map(([areaName, pigs]) => (
+            <Card
+              key={areaName}
+              title={`${areaName}`} // Bỏ phần hiển thị số lượng heo trong khu
+              size="small"
+              style={{ marginBottom: 16 }}
+            >
+              <Table
+                columns={weighingColumns.filter(
+                  (col) => col.dataIndex !== "areaName"
+                )}
+                dataSource={pigs}
+                pagination={false}
+                size="small"
+                bordered
+              />
+            </Card>
+          ))}
         </Space>
         {!canCreateWeighingRecord(selectedDate) && (
           <Alert
@@ -468,6 +604,14 @@ const WeighingSchedule = () => {
           />
         )}
       </Modal>
+      <style jsx>{`
+        .area-divider {
+          border-top: 2px solid #1890ff;
+        }
+        .stable-divider {
+          border-top: 1px solid #d9d9d9;
+        }
+      `}</style>
     </div>
   );
 };

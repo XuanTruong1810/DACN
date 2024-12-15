@@ -128,6 +128,7 @@ public class WeighingHistoryService : IWeighingHistoryService
             AverageWeight = x.AverageWeight,
             Note = x.Note,
             CreatedBy = x.CreatedBy,
+            CreatedByName = _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(x.CreatedBy).GetAwaiter().GetResult().FullName,
             Details = x.WeighingDetails.Select(y => new WeighingDetailModelView
             {
                 PigId = y.PigId,

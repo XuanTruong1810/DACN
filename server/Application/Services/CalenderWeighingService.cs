@@ -20,19 +20,17 @@ public class CalenderWeighingService : ICalenderWeighingService
             .GroupBy(p => new
             {
                 WeighingDate = p.NextWeighingDate.Value,
-                AreaName = p.Stables.Areas.Name,
-                AreaId = p.Stables.Areas.Id
             })
             .Select(g => new CalenderWeighingModelView
             {
                 WeighingDate = g.Key.WeighingDate,
-                AreaName = g.Key.AreaName,
-                AreaId = g.Key.AreaId,
-                PigIds = g.Select(p => p.Id).ToList(),
                 WeighingDetails = g.Select(p => new WeighingDetailModelView
                 {
                     PigId = p.Id,
-                    StableName = p.Stables.Name
+                    StableName = p.Stables.Name,
+                    AreaName = p.Stables.Areas.Name,
+                    AreaId = p.Stables.Areas.Id,
+                    LastWeighingDate = p.LastWeighingDate
                 }).ToList()
             })
             .OrderBy(c => c.WeighingDate)

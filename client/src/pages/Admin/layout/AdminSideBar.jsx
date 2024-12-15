@@ -85,38 +85,36 @@ const Sidebar = () => {
       ],
     },
     {
-      key: "history",
+      key: "farmRecords",
       icon: <HistoryOutlined />,
-      label: "Lịch sử hoạt động",
+      label: "Nhật ký trang trại",
       children: [
         {
-          key: "vaccinationHistory",
+          key: "vaccineRecords",
           icon: <MedicineBoxOutlined />,
           label: (
             <Link to="/admin/health/vaccination-history">
-              Lịch sử tiêm chủng
+              Nhật ký tiêm phòng
             </Link>
           ),
         },
         {
-          key: "weightHistory",
+          key: "weightRecords",
           icon: <LineChartOutlined />,
-          label: <Link to="/admin/health/weight-history">Lịch sử cân</Link>,
+          label: <Link to="/admin/weighing-history">Nhật ký cân heo</Link>,
         },
         {
-          key: "healthHistory",
+          key: "medicalRecords",
           icon: <HeartOutlined />,
           label: (
-            <Link to="/admin/health/medical-history">Lịch sử khám bệnh</Link>
+            <Link to="/admin/health/medical-history">Nhật ký điều trị</Link>
           ),
         },
         {
-          key: "foodExportHistory",
+          key: "feedingRecords",
           icon: <ExportOutlined />,
           label: (
-            <Link to="/admin/exports/daily-food-history">
-              Lịch sử xuất thức ăn
-            </Link>
+            <Link to="/admin/exports/daily-food-history">Nhật ký cho ăn</Link>
           ),
         },
       ],
