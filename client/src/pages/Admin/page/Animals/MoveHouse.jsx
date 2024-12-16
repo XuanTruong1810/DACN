@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+/* eslint-disable no-unused-vars */
+/* eslint-disable react/prop-types */
+import { useState, useEffect } from "react";
 import {
   Card,
   Table,
@@ -32,20 +34,22 @@ import {
   HomeOutlined,
   UnorderedListOutlined,
   EyeOutlined,
-  DeleteOutlined,
   CalendarOutlined,
   UserOutlined,
   DashboardOutlined,
   CloudOutlined,
   WarningOutlined,
-  CloseCircleOutlined,
+  SearchOutlined,
+  PrinterOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import moment from "moment";
 import { WiThermometer, WiHumidity } from "react-icons/wi";
+import ReactDOMServer from "react-dom/server";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 const MoveHouse = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -63,6 +67,11 @@ const MoveHouse = () => {
   const [selectedStableInfo, setSelectedStableInfo] = useState(null);
   const [selectedTargetStableInfo, setSelectedTargetStableInfo] =
     useState(null);
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+  const [selectedMoveDetail, setSelectedMoveDetail] = useState(null);
+  const [filteredInfo, setFilteredInfo] = useState({});
+  const [sortedInfo, setSortedInfo] = useState({});
+  const [dateRange, setDateRange] = useState([]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -136,36 +145,176 @@ const MoveHouse = () => {
       dataIndex: "id",
       key: "id",
       width: 120,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm mã phiếu"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => confirm()}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              icon={<SearchOutlined />}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Tìm
+            </Button>
+            <Button onClick={clearFilters} size="small" style={{ width: 90 }}>
+              Xóa
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) =>
+        record.id.toLowerCase().includes(value.toLowerCase()),
     },
     {
       title: "Ngày chuyển",
       dataIndex: "moveDate",
       key: "moveDate",
-      width: 120,
+      width: 200,
+      filterDropdown: ({ setSelectedKeys, confirm, clearFilters }) => (
+        <div style={{ padding: 8 }}>
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <RangePicker
+              value={dateRange}
+              onChange={(dates) => {
+                setDateRange(dates);
+                setSelectedKeys(dates ? [dates] : []);
+              }}
+              style={{ width: "100%" }}
+            />
+            <Space wrap style={{ width: "100%" }}>
+              <Button
+                size="small"
+                onClick={() => {
+                  const today = moment();
+                  setDateRange([today.startOf("day"), today.endOf("day")]);
+                  setSelectedKeys([[today.startOf("day"), today.endOf("day")]]);
+                }}
+              >
+                Hôm nay
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const yesterday = moment().subtract(1, "days");
+                  setDateRange([
+                    yesterday.startOf("day"),
+                    yesterday.endOf("day"),
+                  ]);
+                  setSelectedKeys([
+                    [yesterday.startOf("day"), yesterday.endOf("day")],
+                  ]);
+                }}
+              >
+                Hôm qua
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const sevenDaysAgo = moment().subtract(7, "days");
+                  setDateRange([sevenDaysAgo, moment()]);
+                  setSelectedKeys([[sevenDaysAgo, moment()]]);
+                }}
+              >
+                7 ngày qua
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const thirtyDaysAgo = moment().subtract(30, "days");
+                  setDateRange([thirtyDaysAgo, moment()]);
+                  setSelectedKeys([[thirtyDaysAgo, moment()]]);
+                }}
+              >
+                30 ngày qua
+              </Button>
+            </Space>
+            <Divider style={{ margin: "8px 0" }} />
+            <Space>
+              <Button
+                type="primary"
+                onClick={() => confirm()}
+                icon={<SearchOutlined />}
+                size="small"
+                style={{ width: 90 }}
+              >
+                Lọc
+              </Button>
+              <Button
+                onClick={() => {
+                  clearFilters();
+                  setDateRange([]);
+                }}
+                size="small"
+                style={{ width: 90 }}
+              >
+                Xóa
+              </Button>
+            </Space>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <CalendarOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) => {
+        if (!value || value.length !== 2) return true;
+        const recordDate = moment(record.moveDate);
+        return recordDate.isBetween(value[0], value[1], "day", "[]");
+      },
       render: (date) => moment(date).format("DD/MM/YYYY"),
+    },
+    {
+      title: "Người chuyển",
+      dataIndex: "createdByName",
+      key: "createdByName",
+      width: 150,
+      render: (name) => (
+        <Space>
+          <UserOutlined />
+          {name}
+        </Space>
+      ),
     },
     {
       title: "Từ khu",
       dataIndex: "fromArea",
       key: "fromArea",
       width: 100,
-      render: (area) => <Tag color="blue">Khu {area}</Tag>,
+      render: (area) => <Tag color="blue">{area}</Tag>,
     },
     {
       title: "Đến khu",
       dataIndex: "toArea",
       key: "toArea",
       width: 100,
-      render: (area) => <Tag color="green">Khu {area}</Tag>,
+      render: (area) => <Tag color="green">{area}</Tag>,
     },
     {
       title: "Số lượng",
       dataIndex: "totalPigs",
       key: "totalPigs",
       width: 100,
-      render: (totalPigs) => (
+      render: (total) => (
         <Badge
-          count={totalPigs}
+          count={total}
           showZero
           style={{
             backgroundColor: "#52c41a",
@@ -178,59 +327,31 @@ const MoveHouse = () => {
       ),
     },
     {
-      title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
-      width: 120,
-      render: (status) => {
-        let color = "default";
-        let text = status;
-
-        switch (status?.toLowerCase()) {
-          case "completed":
-            color = "success";
-            text = "Hoàn thành";
-            break;
-          case "pending":
-            color = "processing";
-            text = "Đang xử lý";
-            break;
-          case "cancelled":
-            color = "error";
-            text = "Đã hủy";
-            break;
-          default:
-            break;
-        }
-
-        return <Badge status={color} text={text} />;
-      },
-    },
-
-    {
       title: "Thao tác",
       key: "action",
-      width: 120,
-      fixed: "right",
+      width: 100,
       render: (_, record) => (
         <Space>
           <Tooltip title="Xem chi tiết">
-            <Button
-              type="link"
-              icon={<EyeOutlined />}
-              onClick={() => handleViewDetail(record.id)}
+            <EyeOutlined
+              style={{
+                fontSize: "16px",
+                color: "#1890ff",
+                cursor: "pointer",
+              }}
+              onClick={() => handleViewDetail(record)}
             />
           </Tooltip>
-          {record.status === "pending" && (
-            <Tooltip title="Hủy phiếu">
-              <Button
-                type="link"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() => handleCancelMove(record.id)}
-              />
-            </Tooltip>
-          )}
+          <Tooltip title="In phiếu">
+            <PrinterOutlined
+              style={{
+                fontSize: "16px",
+                color: "#52c41a",
+                cursor: "pointer",
+              }}
+              onClick={() => handlePrint(record)}
+            />
+          </Tooltip>
         </Space>
       ),
     },
@@ -466,38 +587,9 @@ const MoveHouse = () => {
     return false;
   };
 
-  const handleViewDetail = async (recordId) => {
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/v1/MovePig/${recordId}`
-      );
-      console.log("Move record detail:", response.data.data);
-    } catch (error) {
-      message.error("Không thể tải thông tin chi tiết!");
-    }
-  };
-
-  const handleCancelMove = async (recordId) => {
-    try {
-      Modal.confirm({
-        title: "Xác nhận hủy phiếu",
-        content: "Bạn có chắc chắn muốn hủy phiếu chuyển chuồng này?",
-        okText: "Đồng ý",
-        cancelText: "Hủy",
-        onOk: async () => {
-          await axios.put(
-            `${import.meta.env.VITE_API_URL}/api/v1/MovePig/${recordId}/cancel`
-          );
-          message.success("Đã hủy phiếu chuyển chuồng!");
-          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/v1/MovePig`
-          );
-          setMoveRecords(response.data.data.items);
-        },
-      });
-    } catch (error) {
-      message.error("Không thể hủy phiếu chuyển!");
-    }
+  const handleViewDetail = async (record) => {
+    setSelectedMoveDetail(record);
+    setIsViewModalVisible(true);
   };
 
   const fetchMoveRecords = async () => {
@@ -985,8 +1077,378 @@ const MoveHouse = () => {
     );
   };
 
+  const ViewDetailModal = ({ visible, record, onClose }) => {
+    return (
+      <Modal
+        title="Chi tiết phiếu chuyển chuồng"
+        open={visible}
+        onCancel={onClose}
+        footer={null}
+        width={800}
+      >
+        {record && (
+          <>
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="Mã phiếu">
+                {record.id}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ngày chuyển">
+                {moment(record.moveDate).format("DD/MM/YYYY")}
+              </Descriptions.Item>
+              <Descriptions.Item label="Từ khu">
+                <Tag color="blue">{record.fromArea}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Đến khu">
+                <Tag color="green">{record.toArea}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Số lượng heo" span={2}>
+                <Badge
+                  count={record.totalPigs}
+                  showZero
+                  style={{
+                    backgroundColor: "#52c41a",
+                    fontSize: "14px",
+                    minWidth: "45px",
+                    height: "22px",
+                    lineHeight: "22px",
+                  }}
+                />
+              </Descriptions.Item>
+              <Descriptions.Item label="Ghi chú" span={2}>
+                {record.note || "Không có"}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Divider orientation="left">Chi tiết heo chuyển</Divider>
+
+            <Table
+              dataSource={record.movePigDetails}
+              columns={[
+                {
+                  title: "Mã heo",
+                  dataIndex: "pigId",
+                  key: "pigId",
+                },
+                {
+                  title: "Từ chuồng",
+                  dataIndex: "fromStable",
+                  key: "fromStable",
+                },
+                {
+                  title: "Đến chuồng",
+                  dataIndex: "toStable",
+                  key: "toStable",
+                },
+              ]}
+              pagination={false}
+              size="small"
+            />
+          </>
+        )}
+      </Modal>
+    );
+  };
+
+  // Thêm component Statistics
+  const MoveStatistics = ({ moveRecords }) => {
+    // Tính toán thống kê
+    const stats = {
+      total: moveRecords.length,
+      todayMoves: moveRecords.filter((record) =>
+        moment(record.moveDate).isSame(moment(), "day")
+      ).length,
+      totalPigs: moveRecords.reduce((sum, record) => sum + record.totalPigs, 0),
+    };
+
+    return (
+      <Card style={{ marginBottom: 24 }}>
+        <Row gutter={[24, 24]} justify="space-around">
+          <Col span={8}>
+            <Card
+              className="stat-card"
+              style={{
+                backgroundColor: "#e6f7ff",
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Statistic
+                title={
+                  <Text strong style={{ fontSize: "16px", color: "#0050b3" }}>
+                    <Space>
+                      <FileTextOutlined />
+                      Tổng số phiếu
+                    </Space>
+                  </Text>
+                }
+                value={stats.total}
+                valueStyle={{
+                  color: "#1890ff",
+                  fontSize: "28px",
+                  fontWeight: "bold",
+                }}
+                prefix={<UnorderedListOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card
+              className="stat-card"
+              style={{
+                backgroundColor: "#f6ffed",
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Statistic
+                title={
+                  <Text strong style={{ fontSize: "16px", color: "#389e0d" }}>
+                    <Space>
+                      <CalendarOutlined />
+                      Phiếu chuyển hôm nay
+                    </Space>
+                  </Text>
+                }
+                value={stats.todayMoves}
+                valueStyle={{
+                  color: "#52c41a",
+                  fontSize: "28px",
+                  fontWeight: "bold",
+                }}
+                prefix={<DashboardOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card
+              className="stat-card"
+              style={{
+                backgroundColor: "#f9f0ff",
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Statistic
+                title={
+                  <Text strong style={{ fontSize: "16px", color: "#531dab" }}>
+                    <Space>
+                      <DashboardOutlined />
+                      Tổng số heo đã chuyển
+                    </Space>
+                  </Text>
+                }
+                value={stats.totalPigs}
+                valueStyle={{
+                  color: "#722ed1",
+                  fontSize: "28px",
+                  fontWeight: "bold",
+                }}
+                prefix={<CloudOutlined />}
+              />
+            </Card>
+          </Col>
+        </Row>
+      </Card>
+    );
+  };
+
+  // Thêm CSS cho hiệu ứng hover
+  const styles = `
+    .stat-card {
+      transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    }
+  `;
+
+  // Hàm handle thay đổi bộ lọc và sắp xếp
+  const handleChange = (pagination, filters, sorter) => {
+    setFilteredInfo(filters);
+    setSortedInfo(sorter);
+  };
+
+  // Hàm reset bộ lọc
+  const clearFilters = () => {
+    setFilteredInfo({});
+  };
+
+  const handlePrint = (record) => {
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(
+      "<html><head><title>Phiếu chuyển chuồng</title>"
+    );
+    printWindow.document.write(`<style>${printStyles}</style></head><body>`);
+    printWindow.document.write('<div class="print-only">');
+    printWindow.document.write(
+      ReactDOMServer.renderToString(<PrintableMove record={record} />)
+    );
+    printWindow.document.write("</div></body></html>");
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
+  // Thêm component PrintableMove
+  const PrintableMove = ({ record }) => {
+    return (
+      <div
+        style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}
+        className="print-only"
+      >
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+          <h2 style={{ margin: "0" }}>PHIẾU CHUYỂN CHUỒNG</h2>
+          <p style={{ margin: "5px 0" }}>Mã phiếu: {record.id}</p>
+          <p style={{ margin: "5px 0" }}>
+            Ngày chuyển: {moment(record.moveDate).format("DD/MM/YYYY")}
+          </p>
+        </div>
+
+        {/* Thông tin chuyển chuồng */}
+        <div style={{ marginBottom: "20px" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <tbody>
+              <tr>
+                <td
+                  style={{
+                    padding: "8px",
+                    border: "1px solid #ddd",
+                    width: "30%",
+                  }}
+                >
+                  <strong>Từ khu:</strong>
+                </td>
+                <td style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  {record.fromArea}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  <strong>Đến khu:</strong>
+                </td>
+                <td style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  {record.toArea}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  <strong>Tổng số heo:</strong>
+                </td>
+                <td style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  {record.totalPigs} con
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  <strong>Ghi chú:</strong>
+                </td>
+                <td style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  {record.note || "Không có"}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Chi tiết heo chuyển */}
+        <div style={{ marginBottom: "20px" }}>
+          <h3>Chi tiết heo chuyển:</h3>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  STT
+                </th>
+                <th style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  Mã heo
+                </th>
+                <th style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  Từ chuồng
+                </th>
+                <th style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  Đến chuồng
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {record.movePigDetails.map((detail, index) => (
+                <tr key={index}>
+                  <td
+                    style={{
+                      padding: "8px",
+                      border: "1px solid #ddd",
+                      textAlign: "center",
+                    }}
+                  >
+                    {index + 1}
+                  </td>
+                  <td style={{ padding: "8px", border: "1px solid #ddd" }}>
+                    {detail.pigId}
+                  </td>
+                  <td style={{ padding: "8px", border: "1px solid #ddd" }}>
+                    {detail.fromStable}
+                  </td>
+                  <td style={{ padding: "8px", border: "1px solid #ddd" }}>
+                    {detail.toStable}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer - Chữ ký */}
+        <div
+          style={{
+            marginTop: "40px",
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
+          <div style={{ textAlign: "center", width: "200px" }}>
+            <p>
+              <strong>Người lập phiếu</strong>
+            </p>
+            <p style={{ fontStyle: "italic" }}>(Ký và ghi rõ họ tên)</p>
+            <div style={{ marginTop: "60px" }}>{record.createdByName}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Thêm CSS cho in ấn
+  const printStyles = `
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      .print-only, .print-only * {
+        visibility: visible;
+      }
+      .print-only {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+      @page {
+        size: A4;
+        margin: 20mm;
+      }
+    }
+  `;
+
   return (
     <div style={{ padding: "24px" }}>
+      <style>{styles}</style>
+      <style>{printStyles}</style>
       <Card>
         <Space direction="vertical" style={{ width: "100%" }} size="large">
           <Space style={{ justifyContent: "space-between", width: "100%" }}>
@@ -996,9 +1458,12 @@ const MoveHouse = () => {
             </Button>
           </Space>
 
+          <MoveStatistics moveRecords={moveRecords} />
+
           <Table
             columns={moveRecordColumns}
             dataSource={moveRecords}
+            onChange={handleChange}
             rowKey={(record) => record.id}
             loading={loading}
             scroll={{ x: 1300 }}
@@ -1435,6 +1900,15 @@ const MoveHouse = () => {
             </Row>
           </Form>
         </Modal>
+
+        <ViewDetailModal
+          visible={isViewModalVisible}
+          record={selectedMoveDetail}
+          onClose={() => {
+            setIsViewModalVisible(false);
+            setSelectedMoveDetail(null);
+          }}
+        />
       </Card>
     </div>
   );

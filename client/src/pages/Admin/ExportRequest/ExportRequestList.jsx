@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+/* eslint-disable react/prop-types */
+/* eslint-disable no-unused-vars */
+import { useState, useEffect } from "react";
 import {
   Table,
   Card,
@@ -10,7 +12,6 @@ import {
   Badge,
   Space,
   Input,
-  Dropdown,
   Menu,
   DatePicker,
   Row,
@@ -19,6 +20,10 @@ import {
   Form,
   Select,
   Modal,
+  Descriptions,
+  Divider,
+  InputNumber,
+  Spin,
 } from "antd";
 import {
   ExportOutlined,
@@ -27,13 +32,8 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   SearchOutlined,
-  FilterOutlined,
-  MoreOutlined,
-  PrinterOutlined,
-  FileExcelOutlined,
-  PercentageOutlined,
-  CalculatorOutlined,
-  ClearOutlined,
+  CalendarOutlined,
+  UnorderedListOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -48,7 +48,7 @@ const ExportRequestList = () => {
   const [exportRequests, setExportRequests] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [dateRange, setDateRange] = useState(null);
-  const [filteredStatus, setFilteredStatus] = useState(null);
+  const [filteredStatus, setFilteredStatus] = useState("pending");
   const navigate = useNavigate();
 
   // Thêm state cho thống kê
@@ -60,8 +60,20 @@ const ExportRequestList = () => {
     totalPigs: 0,
   });
 
+  // Thêm state cho modal
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+  const [selectedExportDetail, setSelectedExportDetail] = useState(null);
+
+  // Thêm state cho modal tạo phiếu xuất
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const [form] = Form.useForm();
+
+  // Thêm state cho danh sách khách hàng
+  const [customers, setCustomers] = useState([]);
+
   useEffect(() => {
     fetchExportRequests();
+    fetchCustomers();
   }, []);
 
   const fetchExportRequests = async () => {
@@ -75,6 +87,7 @@ const ExportRequestList = () => {
           },
         }
       );
+      console.log(response);
       const data = response.data.data;
       setExportRequests(data);
 
@@ -95,9 +108,36 @@ const ExportRequestList = () => {
     }
   };
 
+  // Thêm hàm fetch danh sách khách hàng
+  const fetchCustomers = async () => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/Customer`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      setCustomers(response.data.data);
+    } catch (error) {
+      message.error("Không thể tải danh sách khách hàng");
+    }
+  };
+
   // Lọc dữ liệu
   const getFilteredData = () => {
-    return exportRequests.filter((item) => {
+    let filteredData = exportRequests;
+
+    // Lọc theo trạng thái trước
+    if (filteredStatus) {
+      filteredData = filteredData.filter(
+        (item) => item.status === filteredStatus
+      );
+    }
+
+    // Sau đó mới lọc theo các điều kiện khác
+    return filteredData.filter((item) => {
       const matchesSearch =
         !searchText ||
         item.id.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -105,14 +145,12 @@ const ExportRequestList = () => {
         (item.note &&
           item.note.toLowerCase().includes(searchText.toLowerCase()));
 
-      const matchesStatus = !filteredStatus || item.status === filteredStatus;
-
       const matchesDate =
         !dateRange ||
         (dayjs(item.requestDate).isAfter(dateRange[0]) &&
           dayjs(item.requestDate).isBefore(dateRange[1]));
 
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch && matchesDate;
     });
   };
 
@@ -128,11 +166,6 @@ const ExportRequestList = () => {
         icon: <CheckCircleOutlined />,
         text: "Đã duyệt",
       },
-      rejected: {
-        color: "error",
-        icon: <CloseCircleOutlined />,
-        text: "Từ chối",
-      },
     };
 
     const config = statusConfig[status] || statusConfig.pending;
@@ -145,28 +178,9 @@ const ExportRequestList = () => {
   };
 
   // Thêm hàm xác nhận phiếu
-  const handleApproveRequest = async (record) => {
-    try {
-      await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/v1/pigExport/request/${
-          record.id
-        }/approve`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-      message.success("Xác nhận phiếu thành công");
-      fetchExportRequests(); // Refresh danh sách
-    } catch (error) {
-      console.error("Error approving request:", error);
-      message.error(
-        "Không thể xác nhận phiếu: " + error.response?.data?.message ||
-          error.message
-      );
-    }
+  const handleApproveRequest = (record) => {
+    setSelectedExportDetail(record);
+    setIsCreateModalVisible(true);
   };
 
   // Thêm hàm từ chối phiếu
@@ -200,7 +214,7 @@ const ExportRequestList = () => {
       <Menu.Item
         key="view"
         icon={<EyeOutlined />}
-        onClick={() => navigate(`/admin/exports/animals/${record.id}`)}
+        onClick={() => handleViewDetail(record)}
       >
         Xem chi tiết
       </Menu.Item>
@@ -221,34 +235,8 @@ const ExportRequestList = () => {
           >
             Duyệt phiếu
           </Menu.Item>
-          <Menu.Item
-            key="reject"
-            icon={<CloseCircleOutlined />}
-            onClick={() => {
-              Modal.confirm({
-                title: "Từ chối phiếu",
-                content: (
-                  <Input.TextArea
-                    placeholder="Nhập lý do từ chối"
-                    onChange={(e) => (rejectReason = e.target.value)}
-                  />
-                ),
-                onOk: () => handleRejectRequest(record, rejectReason),
-                okText: "Xác nhận",
-                cancelText: "Hủy",
-              });
-            }}
-          >
-            Từ chối
-          </Menu.Item>
         </>
       )}
-      <Menu.Item key="print" icon={<PrinterOutlined />}>
-        In phiếu
-      </Menu.Item>
-      <Menu.Item key="export" icon={<FileExcelOutlined />}>
-        Xuất Excel
-      </Menu.Item>
     </Menu>
   );
 
@@ -258,36 +246,166 @@ const ExportRequestList = () => {
       dataIndex: "id",
       key: "id",
       render: (id) => <Tag color="blue">{id}</Tag>,
-      width: 150,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm mã phiếu"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => confirm()}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              icon={<SearchOutlined />}
+              size="small"
+            >
+              Tìm
+            </Button>
+            <Button onClick={clearFilters} size="small">
+              Xóa
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) =>
+        record.id.toLowerCase().includes(value.toLowerCase()),
     },
     {
-      title: "Ngày tạo",
+      title: "Ngày đề xuất",
       dataIndex: "requestDate",
       key: "requestDate",
-      render: (date) => (
-        <Space direction="vertical" size={0}>
-          <Text strong>{dayjs(date).format("DD/MM/YYYY")}</Text>
-          <Text type="secondary" style={{ fontSize: "12px" }}>
-            {dayjs(date).format("HH:mm")}
-          </Text>
-        </Space>
+      render: (date) => <Text>{dayjs(date).format("DD/MM/YYYY")}</Text>,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            {/* Preset buttons */}
+            <Space wrap>
+              <Button
+                size="small"
+                onClick={() => {
+                  setSelectedKeys([
+                    [dayjs().startOf("day"), dayjs().endOf("day")],
+                  ]);
+                  confirm();
+                }}
+              >
+                Hôm nay
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  setSelectedKeys([
+                    [
+                      dayjs().subtract(1, "day").startOf("day"),
+                      dayjs().subtract(1, "day").endOf("day"),
+                    ],
+                  ]);
+                  confirm();
+                }}
+              >
+                Hôm qua
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  setSelectedKeys([
+                    [
+                      dayjs().subtract(7, "days").startOf("day"),
+                      dayjs().endOf("day"),
+                    ],
+                  ]);
+                  confirm();
+                }}
+              >
+                7 ngày qua
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  setSelectedKeys([
+                    [
+                      dayjs().subtract(30, "days").startOf("day"),
+                      dayjs().endOf("day"),
+                    ],
+                  ]);
+                  confirm();
+                }}
+              >
+                30 ngày qua
+              </Button>
+            </Space>
+
+            {/* Custom range picker */}
+            <RangePicker
+              value={selectedKeys[0]}
+              onChange={(dates) => {
+                setSelectedKeys(dates ? [dates] : []);
+              }}
+              style={{ width: "100%" }}
+            />
+
+            {/* Action buttons */}
+            <Space style={{ justifyContent: "space-between", width: "100%" }}>
+              <Button
+                type="primary"
+                onClick={() => confirm()}
+                icon={<SearchOutlined />}
+                size="small"
+              >
+                Lọc
+              </Button>
+              <Button
+                onClick={() => {
+                  clearFilters();
+                  setSelectedKeys([]);
+                  confirm();
+                }}
+                size="small"
+              >
+                Xóa
+              </Button>
+            </Space>
+          </Space>
+        </div>
       ),
-      sorter: (a, b) =>
-        dayjs(a.requestDate).unix() - dayjs(b.requestDate).unix(),
-      width: 120,
+      filterIcon: (filtered) => (
+        <CalendarOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) => {
+        if (!value || !Array.isArray(value) || value.length !== 2) return true;
+        const recordDate = dayjs(record.requestDate);
+        return recordDate.isAfter(value[0]) && recordDate.isBefore(value[1]);
+      },
     },
     {
-      title: "Người tạo",
-      dataIndex: "createdBy",
-      key: "createdBy",
-      render: (email) => (
-        <Tooltip title={email}>
+      title: "Người đề xuất",
+      dataIndex: "createdByName",
+      key: "createdByName",
+      render: (name) => (
+        <Tooltip title={name}>
           <Text ellipsis style={{ maxWidth: 150 }}>
-            {email}
+            {name}
           </Text>
         </Tooltip>
       ),
-      width: 200,
     },
     {
       title: "Trạng thái",
@@ -297,10 +415,9 @@ const ExportRequestList = () => {
       filters: [
         { text: "Chờ duyệt", value: "pending" },
         { text: "Đã duyệt", value: "approved" },
-        { text: "Từ chối", value: "rejected" },
       ],
+      defaultFilteredValue: ["pending"],
       onFilter: (value, record) => record.status === value,
-      width: 120,
     },
     {
       title: "Số lượng heo",
@@ -332,11 +449,31 @@ const ExportRequestList = () => {
     {
       title: "Thao tác",
       key: "action",
-      width: 100,
+      width: 80,
       render: (_, record) => (
-        <Dropdown overlay={moreMenu(record)} trigger={["click"]}>
-          <Button icon={<MoreOutlined />} />
-        </Dropdown>
+        <Space>
+          <Tooltip title="Xem chi tiết">
+            <EyeOutlined
+              style={{ fontSize: "16px", color: "#1890ff", cursor: "pointer" }}
+              onClick={() => handleViewDetail(record)}
+            />
+          </Tooltip>
+          {record.status === "pending" && (
+            <Tooltip title="Duyệt phiếu">
+              <CheckCircleOutlined
+                style={{
+                  fontSize: "16px",
+                  color: "#52c41a",
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  setSelectedExportDetail(record);
+                  setIsCreateModalVisible(true);
+                }}
+              />
+            </Tooltip>
+          )}
+        </Space>
       ),
     },
   ];
@@ -447,85 +584,495 @@ const ExportRequestList = () => {
     );
   };
 
+  // Thêm component ViewDetailModal
+  const ViewDetailModal = ({ visible, record, onClose }) => {
+    return (
+      <Modal
+        title="Chi tiết phiếu đề xuất xuất"
+        open={visible}
+        onCancel={onClose}
+        footer={null}
+        width={800}
+      >
+        {record && (
+          <>
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="Mã phiếu">
+                {record.id}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ngày tạo">
+                {dayjs(record.requestDate).format("DD/MM/YYYY HH:mm")}
+              </Descriptions.Item>
+              <Descriptions.Item label="Trạng thái">
+                {getStatusTag(record.status)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Số lượng heo">
+                <Badge
+                  count={record.details.length}
+                  style={{
+                    backgroundColor: "#52c41a",
+                    fontSize: "14px",
+                    minWidth: "45px",
+                    height: "22px",
+                    lineHeight: "22px",
+                  }}
+                />
+              </Descriptions.Item>
+              <Descriptions.Item label="Ghi chú" span={2}>
+                {record.note || "Không có"}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Divider orientation="left">Chi tiết heo xuất</Divider>
+
+            <Table
+              dataSource={record.details}
+              columns={[
+                {
+                  title: "Mã heo",
+                  dataIndex: "pigId",
+                  key: "pigId",
+                  render: (id) => <Tag color="blue">{id}</Tag>,
+                },
+                {
+                  title: "Cân nặng (kg)",
+                  dataIndex: "currentWeight",
+                  key: "currentWeight",
+                  render: (weight) => (
+                    <span style={{ fontWeight: 500 }}>
+                      {weight.toFixed(1)} kg
+                    </span>
+                  ),
+                },
+                {
+                  title: "Tình trạng sức khỏe",
+                  dataIndex: "healthStatus",
+                  key: "healthStatus",
+                  render: (status) => (
+                    <Tag color={status === "good" ? "success" : "error"}>
+                      {status === "good" ? "Tốt" : "Xấu"}
+                    </Tag>
+                  ),
+                },
+                {
+                  title: "Ghi chú",
+                  dataIndex: "note",
+                  key: "note",
+                  render: (note) => note || "-",
+                },
+              ]}
+              pagination={false}
+              size="small"
+            />
+          </>
+        )}
+      </Modal>
+    );
+  };
+
+  // Thêm hàm xử lý xem chi tiết
+  const handleViewDetail = (record) => {
+    setSelectedExportDetail(record);
+    setIsViewModalVisible(true);
+  };
+
+  // Thêm component modal tạo phiếu xuất
+  const CreateExportModal = ({ visible, record, onClose }) => {
+    const [selectedCustomerInfo, setSelectedCustomerInfo] = useState(null);
+    const [totalPrice, setTotalPrice] = useState(0);
+    const [itemPrices, setItemPrices] = useState({});
+    const [submitting, setSubmitting] = useState(false);
+
+    // Hàm xử lý khi chọn khách hàng
+    const handleCustomerSelect = (customerId) => {
+      const selectedCustomer = customers.find((c) => c.id === customerId);
+      setSelectedCustomerInfo(selectedCustomer);
+    };
+
+    // Hàm tính toán giá cho từng item và tổng giá
+    const calculatePrices = (unitPrice, weights) => {
+      const newItemPrices = {};
+      let newTotal = 0;
+
+      record.details.forEach((item, index) => {
+        const weight = weights?.[index]?.exportWeight || item.currentWeight;
+        const price = weight * unitPrice;
+        newItemPrices[item.pigId] = price;
+        newTotal += price;
+      });
+
+      setItemPrices(newItemPrices);
+      setTotalPrice(newTotal);
+    };
+
+    // Xử lý khi đơn giá thay đổi
+    const handleUnitPriceChange = (value) => {
+      const weights = form.getFieldValue("pigs");
+      calculatePrices(value, weights);
+    };
+
+    // Xử lý khi cân nặng thay đổi
+    const handleWeightChange = (value, index) => {
+      const unitPrice = form.getFieldValue("unitPrice") || 0;
+      const weights = form.getFieldValue("pigs") || [];
+      weights[index] = { exportWeight: value };
+      calculatePrices(unitPrice, weights);
+    };
+
+    const handleCreateExport = async (values) => {
+      setSubmitting(true);
+      try {
+        // 1. Call API approve request first
+        await axios.patch(
+          `${import.meta.env.VITE_API_URL}/api/v1/pigExport/request/${
+            record.id
+          }/approve`,
+          null,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        // 2. Prepare data for create export
+        const exportData = {
+          customerId: values.customerId,
+          exportDate: values.exportDate.toISOString(),
+          unitPrice: values.unitPrice,
+          details: record.details.map((pig, index) => ({
+            pigId: pig.pigId,
+            actualWeight: values.pigs[index].exportWeight || pig.currentWeight,
+          })),
+        };
+
+        // 3. Call API create export
+        await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/v1/pigExport/export`,
+          exportData,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        message.success("Duyệt phiếu và tạo phiếu xuất thành công");
+        onClose();
+        fetchExportRequests(); // Refresh list
+      } catch (error) {
+        console.error("Error:", error);
+        message.error(
+          "Lỗi khi duyệt phiếu: " +
+            (error.response?.data?.message || error.message)
+        );
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    if (!record) return null;
+
+    return (
+      <Modal
+        title="Tạo phiếu xuất heo"
+        open={visible}
+        onCancel={onClose}
+        footer={[
+          <Button key="back" onClick={onClose} disabled={submitting}>
+            Hủy
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={submitting}
+            onClick={() => form.submit()}
+          >
+            Xác nhận xuất
+          </Button>,
+        ]}
+        width={800}
+        maskClosable={!submitting}
+        closable={!submitting}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleCreateExport}
+          initialValues={{
+            exportDate: dayjs(),
+          }}
+        >
+          <Card className="mb-4">
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item
+                  name="customerId"
+                  label={<Text strong>Khách hàng</Text>}
+                  rules={[
+                    { required: true, message: "Vui lòng chọn khách hàng" },
+                  ]}
+                >
+                  <Select
+                    placeholder="Chọn khách hàng"
+                    loading={!customers.length}
+                    showSearch
+                    optionFilterProp="children"
+                    onChange={handleCustomerSelect}
+                  >
+                    {customers.map((customer) => (
+                      <Select.Option key={customer.id} value={customer.id}>
+                        {customer.name} - {customer.phone}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="exportDate"
+                  label={<Text strong>Ngày xuất</Text>}
+                  initialValue={dayjs()}
+                  rules={[
+                    { required: true, message: "Vui lòng chọn ngày xuất" },
+                  ]}
+                >
+                  <DatePicker
+                    style={{ width: "100%" }}
+                    format="DD/MM/YYYY"
+                    placeholder="Chọn ngày xuất"
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="unitPrice"
+                  label={<Text strong>Đơn giá (VNĐ/kg)</Text>}
+                  rules={[{ required: true, message: "Vui lòng nhập đơn giá" }]}
+                >
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={0}
+                    formatter={(value) =>
+                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    }
+                    parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                    onChange={handleUnitPriceChange}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            {/* Thêm phần hiển thị thông tin khách hàng */}
+            {selectedCustomerInfo && (
+              <>
+                <Divider />
+                <Descriptions title="Thông tin khách hàng" column={2}>
+                  <Descriptions.Item label="Mã khách hàng">
+                    <Tag color="blue">{selectedCustomerInfo.id}</Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Tên khách hàng">
+                    <Text strong>{selectedCustomerInfo.name}</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Tên công ty">
+                    <Text strong>
+                      {selectedCustomerInfo.companyName || "-"}
+                    </Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Số điện thoại">
+                    {selectedCustomerInfo.phone}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Email">
+                    {selectedCustomerInfo.email || "-"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Địa chỉ" span={2}>
+                    {selectedCustomerInfo.address}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Ghi chú" span={2}>
+                    {selectedCustomerInfo.note || "-"}
+                  </Descriptions.Item>
+                </Descriptions>
+              </>
+            )}
+          </Card>
+
+          <Card title="Danh sách heo xuất" className="mt-4">
+            <Table
+              dataSource={record.details || []}
+              columns={[
+                {
+                  title: "Mã heo",
+                  dataIndex: "pigId",
+                  key: "pigId",
+                  render: (id) => <Tag color="blue">{id}</Tag>,
+                },
+                {
+                  title: "Tình trạng sức khỏe",
+                  dataIndex: "healthStatus",
+                  key: "healthStatus",
+                  render: (status) => (
+                    <Tag color={status === "good" ? "success" : "error"}>
+                      {status === "good" ? "Tốt" : "Xấu"}
+                    </Tag>
+                  ),
+                },
+                {
+                  title: "Tiêm vaccine",
+                  dataIndex: "isVaccinationComplete",
+                  key: "isVaccinationComplete",
+                  render: () => (
+                    <Tag color="success" icon={<CheckCircleOutlined />}>
+                      Đã tiêm đủ
+                    </Tag>
+                  ),
+                },
+                {
+                  title: "Cân nặng hiện tại (kg)",
+                  dataIndex: "currentWeight",
+                  key: "currentWeight",
+                  render: (weight) => (
+                    <span style={{ fontWeight: 500 }}>
+                      {weight.toFixed(1)} kg
+                    </span>
+                  ),
+                },
+                {
+                  title: "Cân nặng xuất (kg)",
+                  dataIndex: "exportWeight",
+                  key: "exportWeight",
+                  render: (_, record, index) => (
+                    <Form.Item
+                      name={["pigs", index, "exportWeight"]}
+                      initialValue={record.currentWeight}
+                      style={{ margin: 0 }}
+                    >
+                      <InputNumber
+                        style={{ width: "100%" }}
+                        min={0}
+                        step={0.1}
+                        precision={1}
+                        onChange={(value) => handleWeightChange(value, index)}
+                      />
+                    </Form.Item>
+                  ),
+                },
+                {
+                  title: "Thành tiền (VNĐ)",
+                  key: "totalPrice",
+                  render: (_, record) => (
+                    <Text strong style={{ color: "#1890ff" }}>
+                      {new Intl.NumberFormat("vi-VN").format(
+                        itemPrices[record.pigId] || 0
+                      )}
+                    </Text>
+                  ),
+                },
+              ]}
+              pagination={false}
+              size="small"
+              summary={() => (
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={0} colSpan={4}>
+                    <Text strong>Tổng cộng ({record.details.length} con)</Text>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={1}>
+                    <Text strong>
+                      {record.details
+                        .reduce((sum, _, index) => {
+                          const weight =
+                            form.getFieldValue([
+                              "pigs",
+                              index,
+                              "exportWeight",
+                            ]) || record.details[index].currentWeight;
+                          return sum + weight;
+                        }, 0)
+                        .toFixed(1)}{" "}
+                      kg
+                    </Text>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={2}>
+                    <Text strong style={{ color: "#1890ff", fontSize: "16px" }}>
+                      {new Intl.NumberFormat("vi-VN").format(totalPrice)}
+                    </Text>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+              )}
+            />
+          </Card>
+        </Form>
+        {submitting && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(255, 255, 255, 0.7)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 1000,
+            }}
+          >
+            <Space direction="vertical" align="center">
+              <Spin size="large" />
+              <Text>Đang xử lý xuất heo...</Text>
+            </Space>
+          </div>
+        )}
+      </Modal>
+    );
+  };
+
+  // Thêm hàm tính tiền
+  const calculateItemPrice = (exportWeight, unitPrice) => {
+    return (exportWeight || 0) * (unitPrice || 0);
+  };
+
   return (
     <div style={{ padding: "24px", background: "#f0f2f5", minHeight: "100vh" }}>
       {/* Thống kê tổng quan */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={4}>
-          <Card bordered={false}>
+        <Col span={6}>
+          <Card bordered={false} style={{ backgroundColor: "#f6ffed" }}>
             <Statistic
-              title="Tổng số phiếu"
+              title={<Text strong>Tổng số phiếu</Text>}
               value={statistics.total}
-              prefix={<ExportOutlined />}
+              prefix={<ExportOutlined style={{ color: "#52c41a" }} />}
+              valueStyle={{ color: "#52c41a" }}
             />
           </Card>
         </Col>
-        <Col span={4}>
-          <Card bordered={false}>
+        <Col span={6}>
+          <Card bordered={false} style={{ backgroundColor: "#e6f7ff" }}>
             <Statistic
-              title="Chờ duyệt"
+              title={<Text strong>Chờ duyệt</Text>}
               value={statistics.pending}
               valueStyle={{ color: "#1890ff" }}
-              prefix={<ClockCircleOutlined />}
+              prefix={<ClockCircleOutlined style={{ color: "#1890ff" }} />}
             />
           </Card>
         </Col>
-        <Col span={4}>
-          <Card bordered={false}>
+        <Col span={6}>
+          <Card bordered={false} style={{ backgroundColor: "#f6ffed" }}>
             <Statistic
-              title="Đã duyệt"
+              title={<Text strong>Đã duyệt</Text>}
               value={statistics.approved}
               valueStyle={{ color: "#52c41a" }}
-              prefix={<CheckCircleOutlined />}
+              prefix={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
             />
           </Card>
         </Col>
-        <Col span={4}>
-          <Card bordered={false}>
+        <Col span={6}>
+          <Card bordered={false} style={{ backgroundColor: "#fff7e6" }}>
             <Statistic
-              title="Từ chối"
-              value={statistics.rejected}
-              valueStyle={{ color: "#ff4d4f" }}
-              prefix={<CloseCircleOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card bordered={false}>
-            <Statistic
-              title="Tổng số heo"
+              title={<Text strong>Tổng số heo</Text>}
               value={statistics.totalPigs}
+              valueStyle={{ color: "#fa8c16" }}
+              prefix={<UnorderedListOutlined style={{ color: "#fa8c16" }} />}
               suffix="con"
-            />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card bordered={false}>
-            <Statistic
-              title="Tỷ lệ duyệt"
-              value={
-                statistics.total
-                  ? ((statistics.approved / statistics.total) * 100).toFixed(1)
-                  : 0
-              }
-              suffix="%"
-              valueStyle={{ color: "#722ed1" }}
-              prefix={<PercentageOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card bordered={false}>
-            <Statistic
-              title="Trung bình/phiếu"
-              value={
-                statistics.total
-                  ? (statistics.totalPigs / statistics.total).toFixed(1)
-                  : 0
-              }
-              suffix="con"
-              valueStyle={{ color: "#13c2c2" }}
-              prefix={<CalculatorOutlined />}
             />
           </Card>
         </Col>
@@ -537,51 +1084,51 @@ const ExportRequestList = () => {
             <ExportOutlined /> Danh sách phiếu đề xuất xuất
           </Title>
         }
-        extra={
-          <Space>
-            <Button icon={<FileExcelOutlined />}>Xuất Excel</Button>
-            <Button
-              type="primary"
-              icon={<ExportOutlined />}
-              onClick={() => navigate("/admin/exports/animals/create")}
-            >
-              Tạo đề xuất vật nuôi
-            </Button>
-          </Space>
-        }
         className="custom-card"
         style={{ borderRadius: 8 }}
       >
-        {/* Thanh công cụ tìm kiếm và lọc */}
-        <Space style={{ marginBottom: 16 }} size="middle">
-          <Input
-            placeholder="Tìm kiếm theo mã phiếu, người tạo..."
-            prefix={<SearchOutlined />}
-            style={{ width: 300 }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            allowClear
-          />
-          <RangePicker onChange={setDateRange} style={{ width: 300 }} />
-          <Button icon={<FilterOutlined />}>Lọc</Button>
-        </Space>
-
         <Table
-          loading={loading}
           columns={columns}
           dataSource={getFilteredData()}
-          rowKey="id"
-          expandable={{
-            expandedRowRender,
-            expandRowByClick: true,
-          }}
+          loading={loading}
           pagination={{
             defaultPageSize: 10,
             showSizeChanger: true,
             showTotal: (total) => `Tổng số ${total} phiếu`,
           }}
+          defaultFilteredValue={{
+            status: ["pending"],
+          }}
+          onChange={(pagination, filters, sorter) => {
+            // Cập nhật lại filteredStatus khi filter thay đổi
+            if (filters.status && filters.status.length > 0) {
+              setFilteredStatus(filters.status[0]);
+            } else {
+              setFilteredStatus("pending"); // Reset về pending khi clear filter
+            }
+          }}
         />
       </Card>
+
+      <ViewDetailModal
+        visible={isViewModalVisible}
+        record={selectedExportDetail}
+        onClose={() => {
+          setIsViewModalVisible(false);
+          setSelectedExportDetail(null);
+        }}
+      />
+
+      <CreateExportModal
+        visible={isCreateModalVisible}
+        record={selectedExportDetail}
+        onClose={() => {
+          setIsCreateModalVisible(false);
+          setSelectedExportDetail(null);
+          form.resetFields();
+          fetchExportRequests(); // Refresh list after closing
+        }}
+      />
     </div>
   );
 };

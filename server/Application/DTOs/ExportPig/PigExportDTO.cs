@@ -4,7 +4,6 @@ namespace Application.DTOs.ExportPig
     {
         public string CustomerId { get; set; }
         public DateTimeOffset ExportDate { get; set; }
-        public string CreatedBy { get; set; }
 
         public decimal UnitPrice { get; set; }
         public decimal TotalWeight { get; set; }

@@ -4,7 +4,10 @@ namespace Application.Models.PigExport
     {
         public string Id { get; set; }
         public string CreatedBy { get; set; }
+
+        public string CreatedByName { get; set; }
         public string? ApprovedBy { get; set; }
+        public string? ApprovedByName { get; set; }
         public DateTimeOffset RequestDate { get; set; }
         public DateTimeOffset? ApprovalDate { get; set; }
         public string Status { get; set; } = "pending";

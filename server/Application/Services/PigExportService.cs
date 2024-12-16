@@ -13,12 +13,13 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Application.Services
 {
-    public class PigExportService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor httpContextAccessor, UserManager<ApplicationUser> userManager) : IPigExportService
+    public class PigExportService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor httpContextAccessor, UserManager<ApplicationUser> userManager, IEmailService emailService) : IPigExportService
     {
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
         private readonly IMapper _mapper = mapper;
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
         private readonly UserManager<ApplicationUser> _userManager = userManager;
+        private readonly IEmailService _emailService = emailService;
 
         private async Task<string> GenerateExportRequestId()
         {
@@ -27,16 +28,23 @@ namespace Application.Services
             // Lấy số thứ tự cao nhất trong ngày
             var lastRequest = await _unitOfWork.GetRepository<PigExportRequest>()
                 .GetEntities
-                .Where(r => r.Id.StartsWith($"PEXRQ{dateStr}"))
                 .OrderByDescending(r => r.Id)
                 .FirstOrDefaultAsync();
 
             int sequence = 1;
             if (lastRequest != null)
             {
-                // Lấy số thứ tự từ ID cuối cùng và tăng lên 1
-                string lastSequence = lastRequest.Id.Substring(11); // Lấy 3 số cuối
-                sequence = int.Parse(lastSequence) + 1;
+                string lastDateStr = lastRequest.Id.Substring(5, 8); // Lấy phần ngày từ ID cuối
+                string lastSequence = lastRequest.Id.Substring(13); // Lấy 3 số cuối từ vị trí 13
+
+                if (lastDateStr == dateStr) // Nếu cùng ngày
+                {
+                    sequence = int.Parse(lastSequence) + 1;
+                }
+                else // Nếu khác ngày
+                {
+                    sequence = 1;
+                }
             }
 
             return $"PEXRQ{dateStr}{sequence:D3}";
@@ -131,7 +139,6 @@ namespace Application.Services
                 Status = "pending",
                 Details = dto.Details.Select(d => new PigExportRequestDetail
                 {
-
                     PigId = d.PigId,
                     CurrentWeight = d.CurrentWeight,
                     HealthStatus = d.HealthStatus.ToLower(),
@@ -174,8 +181,10 @@ namespace Application.Services
                     ? await _userManager.FindByIdAsync(request.ApprovedBy)
                     : null;
 
-                request.CreatedBy = createdByUser?.UserName;
-                request.ApprovedBy = approvedByUser?.UserName;
+                request.CreatedBy = createdByUser?.Id;
+                request.CreatedByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(x => x.Id == request.CreatedBy)?.FullName;
+                request.ApprovedBy = approvedByUser?.Id;
+                request.ApprovedByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(x => x.Id == request.ApprovedBy)?.FullName;
             }
 
             return result;
@@ -209,7 +218,9 @@ namespace Application.Services
 
             // Bổ sung thông tin người tạo/duyệt
             result.CreatedBy = createdByUser?.UserName;
+            result.CreatedByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(x => x.Id == request.CreatedBy)?.FullName;
             result.ApprovedBy = approvedByUser?.UserName;
+            result.ApprovedByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(x => x.Id == request.ApprovedBy)?.FullName;
 
             return result;
         }
@@ -217,7 +228,7 @@ namespace Application.Services
         public async Task<PigExportRequestModelView> ApprovePigExportRequest(string id)
         {
             // Lấy đề xuất xuất heo
-            var exportRequest = await _unitOfWork.GetRepository<PigExportRequest>()
+            PigExportRequest? exportRequest = await _unitOfWork.GetRepository<PigExportRequest>()
                 .GetEntities
                 .Include(x => x.Details)
                 .FirstOrDefaultAsync(x => x.Id == id && x.DeleteTime == null)
@@ -270,11 +281,11 @@ namespace Application.Services
                     Note = "Đã duyệt đề xuất xuất heo thành công"
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError,
-                    "Lỗi khi duyệt đề xuất xuất heo");
+                    ex.Message);
             }
         }
 
@@ -334,7 +345,8 @@ namespace Application.Services
                     });
 
                     // Cập nhật trạng thái heo thành đã xuất
-                    pig.Status = "exported";
+                    pig.Status = "sold";
+                    await _unitOfWork.GetRepository<Pigs>().UpdateAsync(pig);
                 }
 
                 // Tạo phiếu xuất
@@ -352,7 +364,8 @@ namespace Application.Services
 
                 await _unitOfWork.GetRepository<PigExport>().InsertAsync(pigExport);
                 await _unitOfWork.SaveAsync();
-                await transaction.CommitAsync();
+
+
 
                 PigExport? result = await _unitOfWork.GetRepository<PigExport>()
                     .GetEntities
@@ -361,13 +374,139 @@ namespace Application.Services
                         .ThenInclude(d => d.Pig)
                     .FirstOrDefaultAsync(e => e.Id == pigExport.Id);
 
-                return _mapper.Map<PigExportViewModel>(result);
+                if (customer.Email != null && result != null)
+                {
+                    string subject = $"Thông báo xuất heo - Mã phiếu: {result.Id}";
+                    string body = $@"
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <style>
+                                body {{
+                                    font-family: Arial, sans-serif;
+                                    line-height: 1.6;
+                                    color: #333;
+                                }}
+                                .container {{
+                                    max-width: 600px;
+                                    margin: 0 auto;
+                                    padding: 20px;
+                                    background-color: #f9f9f9;
+                                    border-radius: 8px;
+                                }}
+                                .header {{
+                                    background-color: #4CAF50;
+                                    color: white;
+                                    padding: 20px;
+                                    text-align: center;
+                                    border-radius: 8px 8px 0 0;
+                                }}
+                                .content {{
+                                    background-color: white;
+                                    padding: 20px;
+                                    border-radius: 0 0 8px 8px;
+                                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                                }}
+                                .info-table {{
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    margin: 20px 0;
+                                }}
+                                .info-table th, .info-table td {{
+                                    padding: 12px;
+                                    border: 1px solid #ddd;
+                                }}
+                                .info-table th {{
+                                    background-color: #f5f5f5;
+                                    text-align: left;
+                                }}
+                                .footer {{
+                                    text-align: center;
+                                    margin-top: 20px;
+                                    padding-top: 20px;
+                                    border-top: 1px solid #ddd;
+                                    color: #666;
+                                }}
+                                .highlight {{
+                                    color: #4CAF50;
+                                    font-weight: bold;
+                                }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class='container'>
+                                <div class='header'>
+                                    <h1>Thông Báo Xuất Heo</h1>
+                                </div>
+                                <div class='content'>
+                                    <p>Kính gửi <strong>{customer.Name}</strong>,</p>
+                                    <p>Chúng tôi xin thông báo về việc xuất heo với thông tin chi tiết như sau:</p>
+                                    
+                                    <table class='info-table'>
+                                        <tr>
+                                            <th>Mã phiếu:</th>
+                                            <td><span class='highlight'>{result.Id}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Ngày xuất:</th>
+                                            <td>{result.ExportDate:dd/MM/yyyy}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Số lượng:</th>
+                                            <td><strong>{result.Details.Count} con</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Tổng khối lượng:</th>
+                                            <td><strong>{result.TotalWeight:N1} kg</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Đơn giá:</th>
+                                            <td><strong>{result.UnitPrice:N0} VNĐ/kg</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Tổng tiền:</th>
+                                            <td><span class='highlight'>{result.TotalAmount:N0} VNĐ</span></td>
+                                        </tr>
+                                    </table>
+
+                                    <p>Cảm ơn quý khách đã tin tưởng sử dụng dịch vụ của chúng tôi.</p>
+                                    
+                                    <div class='footer'>
+                                        <p>Trân trọng,<br><strong>PigFarm</strong></p>
+                                        <small>Email này được gửi tự động, vui lòng không trả lời.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </body>
+                        </html>";
+                    await _emailService.SendEmailAsync(customer.Email, subject, body);
+                }
+                await transaction.CommitAsync();
+                return new PigExportViewModel
+                {
+                    Id = result.Id,
+                    CustomerId = result.CustomerId,
+                    ExportDate = result.ExportDate,
+                    UnitPrice = result.UnitPrice,
+                    TotalWeight = result.TotalWeight,
+                    TotalAmount = result.TotalAmount,
+                    CreatedBy = result.CreatedBy,
+                    CustomerName = result.Customers.Name,
+                    Details = result.Details.Select(d => new PigExportDetailViewModel
+                    {
+                        Id = d.Id,
+                        PigId = d.PigId,
+                        ActualWeight = d.ActualWeight,
+                        TotalAmount = d.TotalAmount,
+
+                    }).ToList()
+                };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError,
-                    "Lỗi khi tạo phiếu xuất");
+                    ex.Message);
             }
         }
 
