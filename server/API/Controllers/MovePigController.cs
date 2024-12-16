@@ -22,9 +22,9 @@ public class MovePigController : ControllerBase
         return Ok(BaseResponse<MovePigModelView>.OkResponse(result));
     }
     [HttpGet]
-    public async Task<IActionResult> GetMovePigs([FromQuery] string? fromArea, [FromQuery] string? toArea, [FromQuery] string? status, [FromQuery] DateTime? moveDate, [FromQuery] int page, [FromQuery] int pageSize)
+    public async Task<IActionResult> GetMovePigs([FromQuery] string? fromArea, [FromQuery] string? toArea, [FromQuery] DateTime? moveDate, [FromQuery] int page, [FromQuery] int pageSize)
     {
-        List<MovePigModelView>? result = await _movePigService.GetMovePigs(fromArea, toArea, status, moveDate, page, pageSize);
+        List<MovePigModelView>? result = await _movePigService.GetMovePigs(fromArea, toArea, moveDate, page, pageSize);
         return Ok(BaseResponse<List<MovePigModelView>>.OkResponse(result));
     }
     [HttpGet("{id}")]

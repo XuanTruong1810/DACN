@@ -118,7 +118,8 @@ public class MovePigService : IMovePigService
                 ToArea = movePig.ToArea,
                 Note = movePig.Note,
                 TotalPigs = movePig.TotalPigs,
-                Status = movePig.Status,
+                CreatedBy = movePig.CreateBy,
+                CreatedByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(x => x.Id == movePig.CreateBy)?.FullName ?? "",
                 MovePigDetails = movePig.MovePigDetails.Select(x => new MovePigDetailModelView
                 {
                     PigId = x.PigId,
@@ -147,7 +148,8 @@ public class MovePigService : IMovePigService
             ToArea = movePig.ToArea,
             Note = movePig.Note,
             TotalPigs = movePig.TotalPigs,
-            Status = movePig.Status,
+            CreatedBy = movePig.CreateBy,
+            CreatedByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(x => x.Id == movePig.CreateBy)?.FullName ?? "",
             MovePigDetails = movePig.MovePigDetails.Select(x => new MovePigDetailModelView
             {
                 PigId = x.PigId,
@@ -157,7 +159,7 @@ public class MovePigService : IMovePigService
         };
     }
 
-    public async Task<List<MovePigModelView>> GetMovePigs(string? fromArea, string? toArea, string? status, DateTime? moveDate, int page, int pageSize)
+    public async Task<List<MovePigModelView>> GetMovePigs(string? fromArea, string? toArea, DateTime? moveDate, int page, int pageSize)
     {
         IEnumerable<MovePigs>? query = _unitOfWork.GetRepository<MovePigs>().GetEntities.AsEnumerable();
         if (!string.IsNullOrEmpty(fromArea))
@@ -167,10 +169,6 @@ public class MovePigService : IMovePigService
         if (!string.IsNullOrEmpty(toArea))
         {
             query = query.Where(x => x.ToArea == toArea);
-        }
-        if (!string.IsNullOrEmpty(status))
-        {
-            query = query.Where(x => x.Status == status);
         }
         if (moveDate != null)
         {
@@ -186,7 +184,8 @@ public class MovePigService : IMovePigService
             ToArea = x.ToArea,
             Note = x.Note,
             TotalPigs = x.TotalPigs,
-            Status = x.Status,
+            CreatedBy = x.CreateBy,
+            CreatedByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(y => y.Id == x.CreateBy)?.FullName ?? "",
             MovePigDetails = x.MovePigDetails.Select(y => new MovePigDetailModelView
             {
                 PigId = y.PigId,

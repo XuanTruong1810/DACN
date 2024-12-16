@@ -7,5 +7,5 @@ public interface IMovePigService
 {
     Task<MovePigModelView> CreateMovePig(CreateMovePigDTO createMovePigDTO);
     Task<MovePigModelView> GetMovePigById(string id);
-    Task<List<MovePigModelView>> GetMovePigs(string? fromArea, string? toArea, string? status, DateTime? moveDate, int page, int pageSize);
+    Task<List<MovePigModelView>> GetMovePigs(string? fromArea, string? toArea, DateTime? moveDate, int page, int pageSize);
 }

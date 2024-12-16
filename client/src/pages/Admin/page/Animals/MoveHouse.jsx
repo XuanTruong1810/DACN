@@ -12,7 +12,6 @@ import {
   Divider,
   Alert,
   Typography,
-  Steps,
   Badge,
   Tooltip,
   message,
@@ -22,6 +21,7 @@ import {
   Descriptions,
   Statistic,
   Progress,
+  Checkbox,
 } from "antd";
 import {
   SwapOutlined,
@@ -60,6 +60,9 @@ const MoveHouse = () => {
   const [houses, setHouses] = useState({});
   const [form] = Form.useForm();
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [selectedStableInfo, setSelectedStableInfo] = useState(null);
+  const [selectedTargetStableInfo, setSelectedTargetStableInfo] =
+    useState(null);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -234,6 +237,71 @@ const MoveHouse = () => {
   ];
 
   const pigColumns = [
+    {
+      title: "",
+      dataIndex: "select",
+      width: 60,
+      render: (_, record) => {
+        const targetArea = form.getFieldValue("targetArea");
+        const targetHouse = form.getFieldValue("targetHouse");
+
+        // Kiểm tra xem đã chọn chuồng đích chưa
+        if (!targetArea || !targetHouse) {
+          return (
+            <Tooltip title="Vui lòng chọn chuồng đích trước">
+              <Checkbox disabled />
+            </Tooltip>
+          );
+        }
+
+        // Kiểm tra sức chứa còn lại của chuồng đích
+        const remainingCapacity =
+          selectedTargetStableInfo.capacity -
+          selectedTargetStableInfo.currentOccupancy;
+        const wouldExceedCapacity = selectedPigs.length + 1 > remainingCapacity;
+
+        // Nếu đang được chọn rồi thì vẫn cho phép bỏ chọn
+        const isSelected = selectedRowKeys.includes(record.id);
+
+        return (
+          <Tooltip
+            title={
+              wouldExceedCapacity && !isSelected
+                ? `Chuồng đích chỉ còn trống ${remainingCapacity} chỗ`
+                : null
+            }
+          >
+            <Checkbox
+              checked={isSelected}
+              disabled={
+                !checkPigEligibility(record, targetArea) ||
+                (!isSelected && wouldExceedCapacity)
+              }
+              onChange={(e) => {
+                if (e.target.checked) {
+                  // Kiểm tra lại một lần nữa trước khi thêm
+                  if (selectedPigs.length + 1 > remainingCapacity) {
+                    message.error(
+                      `Không thể chọn thêm! Chuồng đích chỉ còn trống ${remainingCapacity} chỗ`
+                    );
+                    return;
+                  }
+                  setSelectedRowKeys([...selectedRowKeys, record.id]);
+                  setSelectedPigs([...selectedPigs, record]);
+                } else {
+                  setSelectedRowKeys(
+                    selectedRowKeys.filter((key) => key !== record.id)
+                  );
+                  setSelectedPigs(
+                    selectedPigs.filter((pig) => pig.id !== record.id)
+                  );
+                }
+              }}
+            />
+          </Tooltip>
+        );
+      },
+    },
     {
       title: "Mã heo",
       dataIndex: "id",
@@ -438,13 +506,13 @@ const MoveHouse = () => {
 
       // Tạo payload theo đúng format API
       const payload = {
-        moveDate: values.date.toISOString(), // Chuyển sang ISO format
+        moveDate: moment(values.date).format("YYYY-MM-DD HH:mm:ss"),
         fromArea: values.sourceArea,
         toArea: values.targetArea,
         note: values.note,
         movePigDetails: selectedPigs.map((pig) => ({
           pigId: pig.id,
-          fromStable: values.sourceHouse || pig.stableId, // Nếu không chọn chuồng nguồn thì lấy stableId của heo
+          fromStable: values.sourceHouse || pig.stableId,
           toStable: values.targetHouse,
         })),
       };
@@ -575,12 +643,38 @@ const MoveHouse = () => {
       setSelectedRowKeys([]);
       setSelectedPigs([]);
 
+      // Nếu không chọn chuồng, hiển thị tất cả heo trong khu vực
+      if (!houseId) {
+        const pigsResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/v1/Pigs/vaccination`,
+          {
+            params: {
+              areaId: selectedSourceArea,
+            },
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        const allPigs = pigsResponse.data.data;
+        const qualifiedPigs = allPigs.filter((pig) => {
+          const isVaccinated = pig.vaccinationStatus === "Đã tiêm";
+          const isWeightQualified = checkWeightQualified(
+            pig.weight,
+            selectedSourceArea
+          );
+          return isVaccinated && isWeightQualified;
+        });
+        setFilteredPigs(qualifiedPigs);
+        return;
+      }
+
       // Fetch pigs theo chuồng
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/v1/Pigs`,
+        `${import.meta.env.VITE_API_URL}/api/v1/Pigs/vaccination`, // Sửa lại endpoint
         {
           params: {
-            stableId: houseId,
+            stableId: houseId, // Thêm tham số stableId
           },
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -589,7 +683,7 @@ const MoveHouse = () => {
       );
 
       // Lọc chỉ hiển thị những heo đạt chuẩn
-      const allPigs = response.data.data.items;
+      const allPigs = response.data.data; // Sửa lại cách lấy data
       const qualifiedPigs = allPigs.filter((pig) => {
         const isVaccinated = pig.vaccinationStatus === "Đã tiêm";
         const isWeightQualified = checkWeightQualified(
@@ -599,23 +693,25 @@ const MoveHouse = () => {
         return isVaccinated && isWeightQualified;
       });
 
-      console.log("Qualified Pigs:", qualifiedPigs);
+      console.log("Pigs in selected stable:", qualifiedPigs);
       setFilteredPigs(qualifiedPigs);
       setSelectedPigs([]);
+
+      // Tìm và set thông tin chi tiết của chuồng được chọn
+      const selectedHouse = houses[selectedSourceArea]?.find(
+        (house) => house.id === houseId
+      );
+      setSelectedStableInfo(selectedHouse);
     } catch (error) {
       console.error("Error:", error);
       message.error("Không thể tải danh sách heo!");
     }
   };
 
-  const handlePigSelection = (selectedKeys, selectedRows) => {
-    setSelectedRowKeys(selectedKeys);
-    setSelectedPigs(selectedRows);
-  };
-
   const handleTargetAreaChange = async (areaId) => {
     try {
       form.setFieldsValue({ targetHouse: undefined });
+      setSelectedTargetStableInfo(null);
       setTargetHouseInfo(null);
 
       const housesResponse = await axios.get(
@@ -632,18 +728,20 @@ const MoveHouse = () => {
 
       console.log("Target Area Houses:", housesResponse.data.data.items);
 
+      const housesData = housesResponse.data.data.items.map((house) => ({
+        id: house.id,
+        name: house.name,
+        capacity: house.capacity,
+        currentOccupancy: house.currentOccupancy,
+        humidity: house.humidity,
+        temperature: house.temperature,
+        status: house.status,
+        remainingCapacity: house.capacity - house.currentOccupancy,
+      }));
+
       setHouses((prev) => ({
         ...prev,
-        [areaId]: housesResponse.data.data.items.map((house) => ({
-          id: house.id,
-          name: house.name,
-          capacity: house.capacity,
-          currentOccupancy: house.currentOccupancy,
-          humidity: house.humidity,
-          temperature: house.temperature,
-          status: house.status,
-          remainingCapacity: house.capacity - house.currentOccupancy,
-        })),
+        [areaId]: housesData,
       }));
       console.log("Houses state:", houses);
     } catch (error) {
@@ -654,15 +752,13 @@ const MoveHouse = () => {
 
   const handleTargetHouseChange = async (houseId) => {
     try {
+      // Tìm thông tin chuồng được chọn
       const selectedHouse = houses[form.getFieldValue("targetArea")]?.find(
         (house) => house.id === houseId
       );
 
       if (selectedHouse) {
-        setTargetHouseInfo({
-          capacity: selectedHouse.capacity,
-          currentQuantity: selectedHouse.currentQuantity,
-        });
+        setSelectedTargetStableInfo(selectedHouse);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -732,54 +828,48 @@ const MoveHouse = () => {
   );
 
   const StableOption = ({ house }) => (
-    <div className="stable-option">
-      <div className="stable-header">
+    <div className="stable-option" style={{ padding: "4px 0" }}>
+      <Space direction="vertical" size="small" style={{ width: "100%" }}>
         <Space>
-          <HomeOutlined style={{ fontSize: "18px" }} />
+          <HomeOutlined />
           <Text strong>{house.name}</Text>
+          <Divider type="vertical" />
+          <Text type="secondary">
+            Sức chứa: {house.currentQuantity}/{house.capacity}
+          </Text>
+        </Space>
+        <Space split={<Divider type="vertical" />}>
+          <Space>
+            <WiThermometer />
+            <Text type="secondary">{house.temperature}°C</Text>
+          </Space>
+          <Space>
+            <WiHumidity />
+            <Text type="secondary">{house.humidity}%</Text>
+          </Space>
           <Badge
-            status={house.status === "Available" ? "success" : "error"}
-            text={house.status === "Available" ? "Khả dụng" : "Không khả dụng"}
+            status={house.status === "Active" ? "success" : "error"}
+            text={
+              house.status === "Active" ? "Đang hoạt động" : "Ngưng hoạt động"
+            }
           />
         </Space>
-      </div>
-
-      <div className="stable-stats">
-        <Row gutter={16}>
-          <Col span={12}>
-            <Tooltip title="Số lượng/Sức chứa">
-              <Progress
-                percent={house.currentOccupancy}
-                size="small"
-                format={() => `${house.currentOccupancy}/${house.capacity}`}
-                status={
-                  house.currentOccupancy >= house.capacity
-                    ? "exception"
-                    : "active"
-                }
-              />
-            </Tooltip>
-          </Col>
-          <Col span={6}>
-            <Statistic
-              value={house.temperature}
-              suffix="°C"
-              prefix={<WiThermometer />}
-              valueStyle={{ fontSize: "14px" }}
-            />
-          </Col>
-          <Col span={6}>
-            <Statistic
-              value={house.humidity}
-              suffix="%"
-              prefix={<WiHumidity />}
-              valueStyle={{ fontSize: "14px" }}
-            />
-          </Col>
-        </Row>
-      </div>
+      </Space>
     </div>
   );
+
+  const StableTag = ({ house }) => (
+    <Tag>
+      <HomeOutlined /> {house.name}
+    </Tag>
+  );
+
+  const showModal = () => {
+    form.setFieldsValue({
+      date: moment().local(), // Set ngày hiện tại
+    });
+    setIsModalVisible(true);
+  };
 
   return (
     <div style={{ padding: "24px" }}>
@@ -787,11 +877,7 @@ const MoveHouse = () => {
         <Space direction="vertical" style={{ width: "100%" }} size="large">
           <Space style={{ justifyContent: "space-between", width: "100%" }}>
             <Title level={3}>Quản lý chuyển chuồng</Title>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setIsModalVisible(true)}
-            >
+            <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>
               Tạo phiếu chuyển
             </Button>
           </Space>
@@ -845,11 +931,13 @@ const MoveHouse = () => {
                       </Space>
                     }
                     rules={[{ required: true, message: "Vui lòng chọn ngày!" }]}
+                    initialValue={moment()}
                   >
                     <DatePicker
                       style={{ width: "100%" }}
                       format="DD/MM/YYYY"
                       placeholder="Chọn ngày chuyển"
+                      showTime={false}
                     />
                   </Form.Item>
 
@@ -907,18 +995,85 @@ const MoveHouse = () => {
                   >
                     <Select
                       placeholder="Chọn chuồng nguồn"
-                      onChange={handleSourceHouseChange}
+                      onChange={(value) => {
+                        handleSourceHouseChange(value);
+                        // Tìm và set thông tin chi tiết của chuồng được chọn
+                        const selectedHouse = houses[selectedSourceArea]?.find(
+                          (house) => house.id === value
+                        );
+                        setSelectedStableInfo(selectedHouse);
+                      }}
                       disabled={!selectedSourceArea}
                       showSearch
                       optionFilterProp="children"
                     >
                       {houses[selectedSourceArea]?.map((house) => (
                         <Option key={house.id} value={house.id}>
-                          <StableOption house={house} />
+                          {house.name}
                         </Option>
                       ))}
                     </Select>
                   </Form.Item>
+
+                  {selectedStableInfo && (
+                    <Card
+                      size="small"
+                      className="mt-2"
+                      title="Thông tin chuồng"
+                      style={{ marginTop: "16px" }}
+                    >
+                      <Descriptions column={1} size="small">
+                        <Descriptions.Item label="Tên chuồng">
+                          {selectedStableInfo.name}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Trạng thái">
+                          <Badge
+                            status={
+                              selectedStableInfo.status === "Available"
+                                ? "success"
+                                : "error"
+                            }
+                            text={
+                              selectedStableInfo.status === "Available"
+                                ? "Khả dụng"
+                                : "Không khả dụng"
+                            }
+                          />
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Sức chứa">
+                          <Progress
+                            percent={
+                              (selectedStableInfo.currentOccupancy /
+                                selectedStableInfo.capacity) *
+                              100
+                            }
+                            size="small"
+                            format={() =>
+                              `${selectedStableInfo.currentOccupancy}/${selectedStableInfo.capacity}`
+                            }
+                            status={
+                              selectedStableInfo.currentOccupancy >=
+                              selectedStableInfo.capacity
+                                ? "exception"
+                                : "active"
+                            }
+                          />
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Nhiệt độ">
+                          <Space>
+                            <WiThermometer />
+                            {selectedStableInfo.temperature}°C
+                          </Space>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Độ ẩm">
+                          <Space>
+                            <WiHumidity />
+                            {selectedStableInfo.humidity}%
+                          </Space>
+                        </Descriptions.Item>
+                      </Descriptions>
+                    </Card>
+                  )}
 
                   <Divider>Thông tin đích</Divider>
 
@@ -980,7 +1135,14 @@ const MoveHouse = () => {
                   >
                     <Select
                       placeholder="Chọn chuồng đích"
-                      onChange={handleTargetHouseChange}
+                      onChange={(value) => {
+                        handleTargetHouseChange(value);
+                        // Tìm và set thông tin chi tiết của chuồng đích được chọn
+                        const selectedHouse = houses[
+                          form.getFieldValue("targetArea")
+                        ]?.find((house) => house.id === value);
+                        setSelectedTargetStableInfo(selectedHouse);
+                      }}
                       disabled={!form.getFieldValue("targetArea")}
                       showSearch
                       optionFilterProp="children"
@@ -988,12 +1150,72 @@ const MoveHouse = () => {
                       {houses[form.getFieldValue("targetArea")]?.map(
                         (house) => (
                           <Option key={house.id} value={house.id}>
-                            <StableOption house={house} />
+                            {house.name}
                           </Option>
                         )
                       )}
                     </Select>
                   </Form.Item>
+
+                  {selectedTargetStableInfo && (
+                    <Card
+                      size="small"
+                      className="mt-2"
+                      title="Thông tin chuồng đích"
+                      style={{ marginTop: "16px" }}
+                    >
+                      <Descriptions column={1} size="small">
+                        <Descriptions.Item label="Tên chuồng">
+                          {selectedTargetStableInfo.name}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Trạng thái">
+                          <Badge
+                            status={
+                              selectedTargetStableInfo.status === "Available"
+                                ? "success"
+                                : "error"
+                            }
+                            text={
+                              selectedTargetStableInfo.status === "Available"
+                                ? "Khả dụng"
+                                : "Không khả dụng"
+                            }
+                          />
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Sức chứa">
+                          <Progress
+                            percent={
+                              (selectedTargetStableInfo.currentOccupancy /
+                                selectedTargetStableInfo.capacity) *
+                              100
+                            }
+                            size="small"
+                            format={() =>
+                              `${selectedTargetStableInfo.currentOccupancy}/${selectedTargetStableInfo.capacity}`
+                            }
+                            status={
+                              selectedTargetStableInfo.currentOccupancy >=
+                              selectedTargetStableInfo.capacity
+                                ? "exception"
+                                : "active"
+                            }
+                          />
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Nhiệt độ">
+                          <Space>
+                            <WiThermometer />
+                            {selectedTargetStableInfo.temperature}°C
+                          </Space>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Độ ẩm">
+                          <Space>
+                            <WiHumidity />
+                            {selectedTargetStableInfo.humidity}%
+                          </Space>
+                        </Descriptions.Item>
+                      </Descriptions>
+                    </Card>
+                  )}
 
                   <Form.Item
                     name="note"
@@ -1049,62 +1271,8 @@ const MoveHouse = () => {
                   )}
 
                   <Table
-                    columns={[
-                      ...pigColumns,
-                      {
-                        title: "Trạng thái đạt chuẩn",
-                        key: "eligibility",
-                        width: 150,
-                        render: (_, record) => {
-                          const isEligible = checkPigEligibility(
-                            record,
-                            form.getFieldValue("targetArea")
-                          );
-                          return (
-                            <Tooltip
-                              title={
-                                !isEligible
-                                  ? record.ineligibleReason
-                                  : "Đủ điều kiện chuyển"
-                              }
-                            >
-                              <Tag
-                                icon={
-                                  isEligible ? (
-                                    <CheckCircleOutlined />
-                                  ) : (
-                                    <CloseCircleOutlined />
-                                  )
-                                }
-                                color={isEligible ? "success" : "error"}
-                                className={`${!isEligible ? "opacity-50" : ""}`}
-                              >
-                                {isEligible ? "Đạt chuẩn" : "Không đạt"}
-                              </Tag>
-                            </Tooltip>
-                          );
-                        },
-                      },
-                    ]}
+                    columns={pigColumns}
                     dataSource={filteredPigs}
-                    rowSelection={{
-                      type: "checkbox",
-                      selectedRowKeys: selectedRowKeys,
-                      onChange: handlePigSelection,
-                      getCheckboxProps: (record) => ({
-                        disabled: !checkPigEligibility(
-                          record,
-                          form.getFieldValue("targetArea")
-                        ),
-                      }),
-                    }}
-                    rowClassName={(record) => {
-                      const isEligible = checkPigEligibility(
-                        record,
-                        form.getFieldValue("targetArea")
-                      );
-                      return !isEligible ? "bg-red-50 opacity-75" : "";
-                    }}
                     className="overflow-hidden shadow-sm rounded-lg"
                     scroll={{ y: 400 }}
                     loading={loading}
@@ -1116,7 +1284,7 @@ const MoveHouse = () => {
                     }}
                   />
 
-                  {selectedPigs.length > 0 && targetHouseInfo && (
+                  {selectedPigs.length > 0 && selectedTargetStableInfo && (
                     <Alert
                       message={
                         <Space>
@@ -1125,14 +1293,20 @@ const MoveHouse = () => {
                             Đã chọn <Text strong>{selectedPigs.length}</Text>{" "}
                             heo, còn trống{" "}
                             <Text strong>
-                              {targetHouseInfo.capacity -
-                                targetHouseInfo.currentOccupancy}
+                              {selectedTargetStableInfo.capacity -
+                                selectedTargetStableInfo.currentOccupancy}
                             </Text>{" "}
-                            chỗ
+                            chỗ trong chuồng đích
                           </Text>
                         </Space>
                       }
-                      type="info"
+                      type={
+                        selectedPigs.length >
+                        selectedTargetStableInfo.capacity -
+                          selectedTargetStableInfo.currentOccupancy
+                          ? "error"
+                          : "info"
+                      }
                       showIcon
                       className="mt-4"
                     />
