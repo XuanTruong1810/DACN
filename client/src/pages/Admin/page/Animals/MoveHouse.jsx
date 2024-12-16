@@ -500,26 +500,46 @@ const MoveHouse = () => {
     }
   };
 
+  const fetchMoveRecords = async () => {
+    try {
+      const moveResponse = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/v1/MovePig`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          params: {
+            page: 1,
+            pageSize: 10,
+          },
+        }
+      );
+      setMoveRecords(moveResponse.data.data);
+    } catch (error) {
+      console.error("Error fetching move records:", error);
+      message.error("Không thể tải danh sách phiếu chuyển!");
+    }
+  };
+
   const handleMove = async (values) => {
     try {
       setLoading(true);
 
-      // Tạo payload theo đúng format API
+      // Tạo payload theo đúng format DTO từ backend
       const payload = {
-        moveDate: moment(values.date).format("YYYY-MM-DD HH:mm:ss"),
+        moveDate: moment(values.date).format("YYYY-MM-DDTHH:mm:ss"), // Format ISO datetime
         fromArea: values.sourceArea,
         toArea: values.targetArea,
-        note: values.note,
+        note: values.note || "", // Thêm empty string nếu không có ghi chú
         movePigDetails: selectedPigs.map((pig) => ({
           pigId: pig.id,
-          fromStable: values.sourceHouse || pig.stableId,
+          fromStable: values.sourceHouse || pig.stableId, // Sử dụng chuồng được chọn hoặc chuồng hiện tại của heo
           toStable: values.targetHouse,
         })),
       };
 
-      console.log("Payload:", payload); // Log để kiểm tra
+      console.log("Payload being sent:", payload); // Log để debug
 
-      // Gọi API tạo phiếu
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/v1/MovePig`,
         payload,
@@ -529,17 +549,22 @@ const MoveHouse = () => {
           },
         }
       );
-      console.log("Response:", response);
+
       if (response.status === 200) {
         message.success("Tạo phiếu chuyển chuồng thành công!");
+
+        // Reset form và state
         setIsModalVisible(false);
         form.resetFields();
         setSelectedPigs([]);
         setSelectedRowKeys([]);
-        fetchMoveRecords();
+
+        // Gọi API để cập nhật lại danh sách phiếu
+        await fetchMoveRecords();
       }
     } catch (error) {
       console.error("Error creating move record:", error);
+      message.error("Có lỗi xảy ra khi tạo phiếu chuyển!");
     } finally {
       setLoading(false);
     }
@@ -777,10 +802,14 @@ const MoveHouse = () => {
         </Space>
       }
     >
-      <Row gutter={[24, 24]}>
+      <Row gutter={[24, 24]} justify="space-around" align="middle">
         <Col span={4}>
           <Card className="area-guide-card">
-            <Space direction="vertical">
+            <Space
+              direction="vertical"
+              align="center"
+              style={{ width: "100%" }}
+            >
               <Badge status="processing" text={<Text strong>Khu A</Text>} />
               <Text type="secondary">20kg - 30kg</Text>
               <Tag color="blue">Khu khởi đầu</Tag>
@@ -789,7 +818,11 @@ const MoveHouse = () => {
         </Col>
         <Col span={4}>
           <Card className="area-guide-card">
-            <Space direction="vertical">
+            <Space
+              direction="vertical"
+              align="center"
+              style={{ width: "100%" }}
+            >
               <Badge status="processing" text={<Text strong>Khu B</Text>} />
               <Text type="secondary">30kg - 80kg</Text>
               <Tag color="cyan">Yêu cầu tiêm đủ</Tag>
@@ -798,7 +831,11 @@ const MoveHouse = () => {
         </Col>
         <Col span={4}>
           <Card className="area-guide-card">
-            <Space direction="vertical">
+            <Space
+              direction="vertical"
+              align="center"
+              style={{ width: "100%" }}
+            >
               <Badge status="processing" text={<Text strong>Khu C</Text>} />
               <Text type="secondary">80kg - 105kg</Text>
               <Tag color="cyan">Yêu cầu tiêm đủ</Tag>
@@ -807,7 +844,11 @@ const MoveHouse = () => {
         </Col>
         <Col span={4}>
           <Card className="area-guide-card">
-            <Space direction="vertical">
+            <Space
+              direction="vertical"
+              align="center"
+              style={{ width: "100%" }}
+            >
               <Badge status="processing" text={<Text strong>Khu D</Text>} />
               <Text type="secondary">105kg</Text>
               <Tag color="green">Xuất chuồng</Tag>
@@ -816,7 +857,11 @@ const MoveHouse = () => {
         </Col>
         <Col span={4}>
           <Card className="area-guide-card">
-            <Space direction="vertical">
+            <Space
+              direction="vertical"
+              align="center"
+              style={{ width: "100%" }}
+            >
               <Badge status="error" text={<Text strong>Khu F</Text>} />
               <Text type="secondary">Khu cách ly</Text>
               <Tag color="red">Heo bệnh</Tag>
@@ -869,6 +914,75 @@ const MoveHouse = () => {
       date: moment().local(), // Set ngày hiện tại
     });
     setIsModalVisible(true);
+  };
+
+  // Thêm component mới để hiển thị tiêu chuẩn chuyển chuồng
+  const TransferStandards = ({ targetArea }) => {
+    const getStandardInfo = () => {
+      switch (targetArea) {
+        case "AREA0002": // Khu B
+          return {
+            weight: "30kg - 80kg",
+            requirements: ["Đã tiêm đủ vaccine", "Sức khỏe tốt"],
+            color: "cyan",
+          };
+        case "AREA0003": // Khu C
+          return {
+            weight: "80kg - 105kg",
+            requirements: ["Đã tiêm đủ vaccine", "Sức khỏe tốt"],
+            color: "blue",
+          };
+        case "AREA0004": // Khu D
+          return {
+            weight: "Trên 105kg",
+            requirements: ["Đã tiêm đủ vaccine", "Sức khỏe tốt"],
+            color: "green",
+          };
+        case "AREA0005": // Khu F (Cách ly)
+          return {
+            weight: "Không giới hạn",
+            requirements: ["Heo có vấn đề sức khỏe"],
+            color: "red",
+          };
+        default:
+          return null;
+      }
+    };
+
+    const standards = getStandardInfo();
+
+    if (!standards) return null;
+
+    return (
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        message={
+          <div>
+            <Text strong>Tiêu chuẩn chuyển chuồng:</Text>
+            <div style={{ marginTop: 8 }}>
+              <Space direction="vertical">
+                <Space>
+                  <Tag color={standards.color}>
+                    Cân nặng: {standards.weight}
+                  </Tag>
+                  {standards.requirements.map((req, index) => (
+                    <Tag key={index} color={standards.color}>
+                      <CheckCircleOutlined /> {req}
+                    </Tag>
+                  ))}
+                </Space>
+                <Text type="secondary">
+                  <InfoCircleOutlined /> Chỉ những heo đáp ứng đủ tiêu chuẩn mới
+                  có thể được chọn để chuyển
+                </Text>
+              </Space>
+            </div>
+          </div>
+        }
+      />
+    );
   };
 
   return (
@@ -1260,6 +1374,11 @@ const MoveHouse = () => {
                   bordered={false}
                   className="custom-card"
                 >
+                  <GuidelineCard />
+                  <TransferStandards
+                    targetArea={form.getFieldValue("targetArea")}
+                  />
+
                   {capacityError && (
                     <Alert
                       message="Lỗi sức chứa"
