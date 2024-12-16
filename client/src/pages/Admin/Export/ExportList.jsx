@@ -1,3 +1,6 @@
+/* eslint-disable no-case-declarations */
+/* eslint-disable no-unused-vars */
+/* eslint-disable react/prop-types */
 import React, { useState, useEffect } from "react";
 import {
   Table,
@@ -17,6 +20,7 @@ import {
   Col,
   Statistic,
   Divider,
+  Descriptions,
 } from "antd";
 import {
   ExportOutlined,
@@ -24,6 +28,11 @@ import {
   PlusOutlined,
   EyeOutlined,
   PrinterOutlined,
+  CalendarOutlined,
+  TagsOutlined,
+  BarChartOutlined,
+  DollarOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -32,38 +41,10 @@ import "./ExportCss.css";
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
-// Thêm dữ liệu khách hàng mẫu
-const MOCK_CUSTOMERS = [
-  {
-    id: "CUS001",
-    name: "Công ty TNHH Thực phẩm ABC",
-    phone: "0901234567",
-    address: "123 Nguyễn Văn A, Q.1, TP.HCM",
-  },
-  {
-    id: "CUS002",
-    name: "Công ty CP Chăn nuôi XYZ",
-    phone: "0909876543",
-    address: "456 Lê Văn B, Q.2, TP.HCM",
-  },
-  {
-    id: "CUS003",
-    name: "Doanh nghiệp Thực phẩm Sạch",
-    phone: "0905555666",
-    address: "789 Phạm Văn C, Q.3, TP.HCM",
-  },
-  {
-    id: "CUS004",
-    name: "Công ty TNHH Thương mại DEF",
-    phone: "0907777888",
-    address: "321 Trần Văn D, Q.4, TP.HCM",
-  },
-];
-
 const ExportList = () => {
   const [loading, setLoading] = useState(false);
   const [exports, setExports] = useState([]);
-  const [customers, setCustomers] = useState(MOCK_CUSTOMERS);
+  const [customers, setCustomers] = useState([]);
   const [pendingPigs, setPendingPigs] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
@@ -72,6 +53,8 @@ const ExportList = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [isInvoiceVisible, setIsInvoiceVisible] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [selectedExport, setSelectedExport] = useState(null);
 
   useEffect(() => {
     fetchExports();
@@ -81,13 +64,14 @@ const ExportList = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/v1/pigExport`,
+        `${import.meta.env.VITE_API_URL}/api/v1/pigExport/export`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
+      console.log(response.data.data);
       setExports(response.data.data);
     } catch (error) {
       message.error("Không thể tải danh sách phiếu xuất");
@@ -256,31 +240,238 @@ const ExportList = () => {
   const columns = [
     {
       title: "Mã phiếu",
-      dataIndex: "code",
-      key: "code",
-      render: (code) => <Tag color="blue">{code}</Tag>,
+      dataIndex: "id",
+      key: "id",
+      render: (id) => <Tag color="blue">{id}</Tag>,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm mã phiếu"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => confirm()}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              icon={<SearchOutlined />}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Tìm
+            </Button>
+            <Button
+              onClick={() => clearFilters()}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Xóa
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) =>
+        record.id.toLowerCase().includes(value.toLowerCase()),
     },
     {
       title: "Khách hàng",
       dataIndex: "customerName",
       key: "customerName",
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm khách hàng"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => confirm()}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => confirm()}
+              icon={<SearchOutlined />}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Tìm
+            </Button>
+            <Button
+              onClick={() => clearFilters()}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Xóa
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) =>
+        record.customerName.toLowerCase().includes(value.toLowerCase()),
     },
     {
       title: "Ngày xuất",
       dataIndex: "exportDate",
       key: "exportDate",
-      render: (date) => dayjs(date).format("DD/MM/YYYY"),
+      render: (date) => <Text>{dayjs(date).format("DD/MM/YYYY")}</Text>,
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            <Space wrap>
+              <Button
+                size="small"
+                onClick={() => {
+                  setSelectedKeys(["today"]);
+                  confirm();
+                }}
+              >
+                Hôm nay
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  setSelectedKeys(["yesterday"]);
+                  confirm();
+                }}
+              >
+                Hôm qua
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  setSelectedKeys(["last7days"]);
+                  confirm();
+                }}
+              >
+                7 ngày qua
+              </Button>
+            </Space>
+
+            <RangePicker
+              value={
+                selectedKeys[0] &&
+                selectedKeys[0] !== "today" &&
+                selectedKeys[0] !== "yesterday" &&
+                selectedKeys[0] !== "last7days"
+                  ? [dayjs(selectedKeys[0]), dayjs(selectedKeys[1])]
+                  : null
+              }
+              onChange={(dates) => {
+                if (dates) {
+                  setSelectedKeys([
+                    dates[0].format("YYYY-MM-DD"),
+                    dates[1].format("YYYY-MM-DD"),
+                  ]);
+                } else {
+                  setSelectedKeys([]);
+                }
+              }}
+              style={{ width: "100%" }}
+            />
+
+            <Space style={{ justifyContent: "space-between", width: "100%" }}>
+              <Button
+                type="primary"
+                onClick={() => confirm()}
+                icon={<SearchOutlined />}
+                size="small"
+              >
+                Lọc
+              </Button>
+              <Button
+                onClick={() => {
+                  clearFilters();
+                  confirm();
+                }}
+                size="small"
+              >
+                Xóa
+              </Button>
+            </Space>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered) => (
+        <CalendarOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) => {
+        if (!value || !record.exportDate) return false;
+
+        const recordDate = dayjs(record.exportDate);
+
+        // Xử lý các trường hợp đặc biệt
+        switch (value) {
+          case "today":
+            return recordDate.isSame(dayjs(), "day");
+
+          case "yesterday":
+            return recordDate.isSame(dayjs().subtract(1, "day"), "day");
+
+          case "last7days":
+            const sevenDaysAgo = dayjs().subtract(7, "days").startOf("day");
+            return (
+              recordDate.isAfter(sevenDaysAgo) ||
+              recordDate.isSame(sevenDaysAgo)
+            );
+
+          default:
+            // Xử lý trường hợp chọn khoảng ngày từ RangePicker
+            if (Array.isArray(value)) {
+              const startDate = dayjs(value[0]).startOf("day");
+              const endDate = dayjs(value[1]).endOf("day");
+              return (
+                (recordDate.isAfter(startDate) &&
+                  recordDate.isBefore(endDate)) ||
+                recordDate.isSame(startDate, "day") ||
+                recordDate.isSame(endDate, "day")
+              );
+            }
+            return false;
+        }
+      },
+    },
+    {
+      title: "Số lượng heo",
+      key: "totalPigs",
+      render: (_, record) => `${record.details.length} con`,
     },
     {
       title: "Tổng khối lượng",
       dataIndex: "totalWeight",
       key: "totalWeight",
-      render: (weight) => `${weight} kg`,
+      render: (weight) => `${weight.toFixed(1)} kg`,
     },
     {
-      title: "Tổng tiền",
-      dataIndex: "totalPrice",
-      key: "totalPrice",
+      title: "Đơn giá",
+      dataIndex: "unitPrice",
+      key: "unitPrice",
       render: (price) =>
         new Intl.NumberFormat("vi-VN", {
           style: "currency",
@@ -288,28 +479,26 @@ const ExportList = () => {
         }).format(price),
     },
     {
-      title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => (
-        <Tag color={status === "completed" ? "success" : "processing"}>
-          {status === "completed" ? "Đã hoàn thnh" : "Đang xử lý"}
-        </Tag>
-      ),
+      title: "Tổng tiền",
+      dataIndex: "totalAmount",
+      key: "totalAmount",
+      render: (amount) =>
+        new Intl.NumberFormat("vi-VN", {
+          style: "currency",
+          currency: "VND",
+        }).format(amount),
     },
     {
       title: "Thao tác",
       key: "action",
       render: (_, record) => (
-        <Space>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/admin/exports/${record.id}`)}
-          >
-            Chi tiết
-          </Button>
-          <Button icon={<PrinterOutlined />}>In phiếu</Button>
-        </Space>
+        <EyeOutlined
+          style={{ fontSize: "18px", color: "#1890ff", cursor: "pointer" }}
+          onClick={() => {
+            setSelectedExport(record);
+            setIsDetailModalVisible(true);
+          }}
+        />
       ),
     },
   ];
@@ -617,34 +806,177 @@ const ExportList = () => {
     </Modal>
   );
 
+  const DetailModal = ({ visible, data, onClose }) => {
+    if (!data) return null;
+
+    return (
+      <Modal
+        title={<Title level={4}>Chi tiết phiếu xuất #{data.id}</Title>}
+        open={visible}
+        onCancel={onClose}
+        width={800}
+        footer={[
+          <Button key="close" onClick={onClose}>
+            Đóng
+          </Button>,
+        ]}
+      >
+        <Descriptions bordered column={2}>
+          <Descriptions.Item label="Khách hàng" span={2}>
+            {data.customerName}
+          </Descriptions.Item>
+          <Descriptions.Item label="Ngày xuất">
+            {dayjs(data.exportDate).format("DD/MM/YYYY")}
+          </Descriptions.Item>
+          <Descriptions.Item label="Người tạo">
+            {data.createdByName}
+          </Descriptions.Item>
+          <Descriptions.Item label="Số lượng heo">
+            {data.details.length} con
+          </Descriptions.Item>
+          <Descriptions.Item label="Đơn giá">
+            {new Intl.NumberFormat("vi-VN", {
+              style: "currency",
+              currency: "VND",
+            }).format(data.unitPrice)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Tổng khối lượng">
+            {data.totalWeight.toFixed(1)} kg
+          </Descriptions.Item>
+          <Descriptions.Item label="Tổng tiền">
+            {new Intl.NumberFormat("vi-VN", {
+              style: "currency",
+              currency: "VND",
+            }).format(data.totalAmount)}
+          </Descriptions.Item>
+        </Descriptions>
+
+        <Divider />
+
+        <Table
+          dataSource={data.details}
+          pagination={false}
+          bordered
+          columns={[
+            {
+              title: "Mã heo",
+              dataIndex: "pigId",
+              key: "pigId",
+              render: (id) => <Tag color="blue">{id}</Tag>,
+            },
+            {
+              title: "Khối lượng xuất (kg)",
+              dataIndex: "actualWeight",
+              key: "actualWeight",
+              render: (weight) => `${weight.toFixed(1)} kg`,
+            },
+            {
+              title: "Thành tiền",
+              key: "total",
+              render: (_, record) =>
+                new Intl.NumberFormat("vi-VN", {
+                  style: "currency",
+                  currency: "VND",
+                }).format(record.actualWeight * data.unitPrice),
+            },
+          ]}
+        />
+      </Modal>
+    );
+  };
+
   return (
     <div style={{ padding: "24px" }}>
       <Card
-        title={<Title level={4}>Danh sách phiếu xuất</Title>}
+        title={
+          <Space>
+            <FileTextOutlined style={{ fontSize: "24px", color: "#1890ff" }} />
+            <Title level={4} style={{ margin: 0 }}>
+              Danh sách phiếu xuất
+            </Title>
+          </Space>
+        }
         extra={
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={showCreateModal}
+            onClick={() => navigate("/admin/exports/request/list")}
           >
             Tạo phiếu xuất
           </Button>
         }
       >
-        <Space style={{ marginBottom: 16 }}>
-          <Input
-            placeholder="Tìm kiếm theo mã phiếu"
-            prefix={<SearchOutlined />}
-            style={{ width: 200 }}
-          />
-          <RangePicker />
-        </Space>
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col span={6}>
+            <Card bodyStyle={{ backgroundColor: "#e6f7ff", padding: "20px" }}>
+              <Statistic
+                title={<Text strong>Tổng số phiếu xuất</Text>}
+                value={exports.length}
+                prefix={<ExportOutlined style={{ color: "#1890ff" }} />}
+                suffix="phiếu"
+                valueStyle={{ color: "#1890ff" }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card bodyStyle={{ backgroundColor: "#f6ffed", padding: "20px" }}>
+              <Statistic
+                title={<Text strong>Tổng số heo đã xuất</Text>}
+                value={exports.reduce(
+                  (total, exp) => total + exp.details.length,
+                  0
+                )}
+                prefix={<TagsOutlined style={{ color: "#52c41a" }} />}
+                suffix="con"
+                valueStyle={{ color: "#52c41a" }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card bodyStyle={{ backgroundColor: "#fff7e6", padding: "20px" }}>
+              <Statistic
+                title={<Text strong>Tổng khối lượng</Text>}
+                value={exports
+                  .reduce((total, exp) => total + exp.totalWeight, 0)
+                  .toFixed(1)}
+                prefix={<BarChartOutlined style={{ color: "#fa8c16" }} />}
+                suffix="kg"
+                valueStyle={{ color: "#fa8c16" }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card bodyStyle={{ backgroundColor: "#f6f6f6", padding: "20px" }}>
+              <Statistic
+                title={<Text strong>Tổng doanh thu</Text>}
+                value={exports.reduce(
+                  (total, exp) => total + exp.totalAmount,
+                  0
+                )}
+                prefix={<DollarOutlined style={{ color: "#722ed1" }} />}
+                valueStyle={{ color: "#722ed1" }}
+                formatter={(value) =>
+                  new Intl.NumberFormat("vi-VN", {
+                    style: "currency",
+                    currency: "VND",
+                  }).format(value)
+                }
+              />
+            </Card>
+          </Col>
+        </Row>
 
         <Table
           columns={columns}
           dataSource={exports}
           loading={loading}
           rowKey="id"
+          pagination={{
+            defaultPageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} của ${total} phiếu`,
+          }}
         />
       </Card>
 
@@ -787,6 +1119,14 @@ const ExportList = () => {
         </Form>
       </Modal>
       <InvoiceModal />
+      <DetailModal
+        visible={isDetailModalVisible}
+        data={selectedExport}
+        onClose={() => {
+          setIsDetailModalVisible(false);
+          setSelectedExport(null);
+        }}
+      />
     </div>
   );
 };

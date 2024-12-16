@@ -8,7 +8,6 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
 
 public class CustomerController(ICustomerService customerService) : ControllerBase
 {

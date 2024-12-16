@@ -36,7 +36,7 @@ import {
   UnorderedListOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import dayjs from "dayjs";
 import { Column } from "@ant-design/plots";
 
@@ -50,6 +50,7 @@ const ExportRequestList = () => {
   const [dateRange, setDateRange] = useState(null);
   const [filteredStatus, setFilteredStatus] = useState("pending");
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Thêm state cho thống kê
   const [statistics, setStatistics] = useState({
@@ -207,38 +208,6 @@ const ExportRequestList = () => {
       );
     }
   };
-
-  // Cập nhật menu thao tác
-  const moreMenu = (record) => (
-    <Menu>
-      <Menu.Item
-        key="view"
-        icon={<EyeOutlined />}
-        onClick={() => handleViewDetail(record)}
-      >
-        Xem chi tiết
-      </Menu.Item>
-      {record.status === "pending" && (
-        <>
-          <Menu.Item
-            key="approve"
-            icon={<CheckCircleOutlined />}
-            onClick={() => {
-              Modal.confirm({
-                title: "Xác nhận duyệt phiếu",
-                content: "Bạn có chắc chắn muốn duyệt phiếu này?",
-                onOk: () => handleApproveRequest(record),
-                okText: "Xác nhận",
-                cancelText: "Hủy",
-              });
-            }}
-          >
-            Duyệt phiếu
-          </Menu.Item>
-        </>
-      )}
-    </Menu>
-  );
 
   const columns = [
     {
@@ -458,7 +427,7 @@ const ExportRequestList = () => {
               onClick={() => handleViewDetail(record)}
             />
           </Tooltip>
-          {record.status === "pending" && (
+          {record.status === "pending" && isAdminRoute() && (
             <Tooltip title="Duyệt phiếu">
               <CheckCircleOutlined
                 style={{
@@ -1029,6 +998,11 @@ const ExportRequestList = () => {
   // Thêm hàm tính tiền
   const calculateItemPrice = (exportWeight, unitPrice) => {
     return (exportWeight || 0) * (unitPrice || 0);
+  };
+
+  // Thêm hàm kiểm tra URL
+  const isAdminRoute = () => {
+    return location.pathname.includes("/admin/exports");
   };
 
   return (

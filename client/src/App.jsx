@@ -135,6 +135,10 @@ function App() {
             <Route path="animals/move-house" element={<MoveHouse />} />
             <Route path="animals/pigs" element={<PigsManagement />} />
             <Route path="weighing-history" element={<WeighingHistory />} />
+            <Route
+              path="exports/request/list"
+              element={<ExportRequestList />}
+            />
             <Route index element={<WeighingSchedule />} />
             <Route
               path="inventory/create-request"

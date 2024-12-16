@@ -40,8 +40,13 @@ const Restore = () => {
           },
         }
       );
-      console.log(response);
-      setBackups(response.data.data);
+
+      // Sắp xếp danh sách backup theo thời gian mới nhất
+      const sortedBackups = response.data.data.sort((a, b) => {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
+      setBackups(sortedBackups);
     } catch (error) {
       console.log(error);
       message.error("Không thể tải danh sách sao lưu");
@@ -84,7 +89,7 @@ const Restore = () => {
             }
           );
           message.success("Phục hồi dữ liệu thành công");
-          window.location.reload();
+          // window.location.reload();
         } catch (error) {
           console.error(error);
           message.error("Phục hồi dữ liệu thất bại");

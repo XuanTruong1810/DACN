@@ -34,7 +34,7 @@ public class DatabaseBackupJob : IJob
             // 1. Tạo file backup tạm trên local
             string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             string backupFileName = $"{_databaseName}_backup_{timestamp}.bak";
-            tempPath = Path.Combine(Environment.GetEnvironmentVariable("BackupPath") ?? throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError, "Không tìm thấy đường dẫn backup"), backupFileName);
+            tempPath = Path.Combine(Environment.GetEnvironmentVariable("BACKUP_FOLDER") ?? throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError, "Không tìm thấy đường dẫn backup"), backupFileName);
 
             // 2. Backup database ra file local
             using (SqlConnection? connection = new SqlConnection(_connectionString))

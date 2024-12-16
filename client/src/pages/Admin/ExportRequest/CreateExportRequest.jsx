@@ -46,7 +46,10 @@ const CreateExportRequest = () => {
       const pigs = Array.isArray(response.data)
         ? response.data
         : response.data.data;
-      setEligiblePigs(pigs);
+
+      // Lọc chỉ lấy những con heo có sức khỏe tốt
+      const healthyPigs = pigs.filter((pig) => pig.healthStatus === "good");
+      setEligiblePigs(healthyPigs);
     } catch (error) {
       console.error("Error fetching eligible pigs:", error);
       message.error("Không thể tải danh sách heo đủ điều kiện xuất");

@@ -494,7 +494,7 @@ namespace Application.Services
                     CustomerName = result.Customers.Name,
                     Details = result.Details.Select(d => new PigExportDetailViewModel
                     {
-                        Id = d.Id,
+                        PigExportId = d.PigExportId,
                         PigId = d.PigId,
                         ActualWeight = d.ActualWeight,
                         TotalAmount = d.TotalAmount,
@@ -549,13 +549,29 @@ namespace Application.Services
                 ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
                     "Không tìm thấy phiếu xuất");
 
-            PigExportViewModel? result = _mapper.Map<PigExportViewModel>(export);
-
             // Lấy thông tin người tạo
             ApplicationUser? createdByUser = await _userManager.FindByIdAsync(export.CreatedBy);
-            result.CreatedBy = createdByUser?.UserName;
 
-            return result;
+            return new PigExportViewModel
+            {
+                Id = export.Id,
+                CustomerId = export.CustomerId,
+                CustomerName = export.Customers?.Name,
+                ExportDate = export.ExportDate,
+                CreatedBy = createdByUser?.UserName,
+                CreatedByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(x => x.Id == export.CreatedBy)?.FullName,
+                TotalWeight = export.TotalWeight,
+                TotalAmount = export.TotalAmount,
+                UnitPrice = export.UnitPrice,
+                Note = export.Note,
+                Details = export.Details.Select(d => new PigExportDetailViewModel
+                {
+                    PigExportId = d.PigExportId,
+                    PigId = d.PigId,
+                    ActualWeight = d.ActualWeight,
+                    TotalAmount = d.TotalAmount
+                }).ToList()
+            };
         }
 
         public async Task<List<PigExportViewModel>> GetAllPigExports()
@@ -570,15 +586,31 @@ namespace Application.Services
                 .OrderByDescending(e => e.ExportDate)
                 .ToListAsync();
 
-            List<PigExportViewModel>? result = _mapper.Map<List<PigExportViewModel>>(exports);
+            List<PigExportViewModel> result = new List<PigExportViewModel>();
 
-            // Lấy thông tin người tạo cho từng phiếu xuất
-            foreach (PigExportViewModel export in result)
+            foreach (PigExport export in exports)
             {
-                ApplicationUser? createdByUser = await _userManager.FindByIdAsync(export.CreatedBy);
-                export.CreatedBy = createdByUser?.UserName;
+                PigExportViewModel? viewModel = new PigExportViewModel
+                {
+                    Id = export.Id,
+                    CustomerId = export.CustomerId,
+                    CustomerName = export.Customers?.Name,
+                    ExportDate = export.ExportDate,
+                    TotalWeight = export.TotalWeight,
+                    TotalAmount = export.TotalAmount,
+                    UnitPrice = export.UnitPrice,
+                    CreatedBy = export.CreatedBy,
+                    CreatedByName = _unitOfWork.GetRepository<ApplicationUser>().GetEntities.FirstOrDefault(x => x.Id == export.CreatedBy)?.FullName,
+                    Details = export.Details.Select(d => new PigExportDetailViewModel
+                    {
+                        PigExportId = d.PigExportId,
+                        PigId = d.PigId,
+                        ActualWeight = d.ActualWeight,
+                        TotalAmount = d.TotalAmount
+                    }).ToList()
+                };
+                result.Add(viewModel);
             }
-
             return result;
         }
     }

@@ -119,6 +119,15 @@ const DispatchSideBar = () => {
                 },
               ],
             },
+            {
+              key: "exportList",
+              icon: <UnorderedListOutlined />,
+              label: (
+                <Link to="/Dispatch/exports/request/list">
+                  Danh sách đề xuất xuất vật nuôi
+                </Link>
+              ),
+            },
           ],
         },
       ],

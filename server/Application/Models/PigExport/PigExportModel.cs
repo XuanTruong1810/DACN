@@ -7,6 +7,7 @@ public class PigExportViewModel
     public string CustomerName { get; set; }
     public DateTimeOffset ExportDate { get; set; }
     public string CreatedBy { get; set; }
+    public string CreatedByName { get; set; }
     public decimal TotalWeight { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal UnitPrice { get; set; }
@@ -16,7 +17,7 @@ public class PigExportViewModel
 
 public class PigExportDetailViewModel
 {
-    public string Id { get; set; }
+    public string PigExportId { get; set; }
     public string PigId { get; set; }
     public decimal ActualWeight { get; set; }
     public decimal TotalAmount { get; set; }   // Thành tiền = ActualWeight * UnitPrice
