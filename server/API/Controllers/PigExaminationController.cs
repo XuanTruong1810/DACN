@@ -16,5 +16,11 @@ namespace API.Controllers
             List<PigExaminationModelView>? result = await _pigExaminationService.GetPigExaminationAsync(examinationType);
             return Ok(BaseResponse<List<PigExaminationModelView>>.OkResponse(result));
         }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetPigExaminationByIdAsync(string id)
+        {
+            PigExaminationModelView? result = await _pigExaminationService.GetPigExaminationModelViewsAsync(id);
+            return Ok(BaseResponse<PigExaminationModelView>.OkResponse(result));
+        }
     }
 }

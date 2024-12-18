@@ -1,5 +1,6 @@
+/* eslint-disable react/no-unknown-property */
 /* eslint-disable no-unused-vars */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Calendar,
   Modal,
@@ -14,11 +15,15 @@ import {
   Table,
   message,
   Divider,
+  notification,
 } from "antd";
 import {
   CalendarOutlined,
   PrinterOutlined,
   MedicineBoxOutlined,
+  WarningOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -34,6 +39,8 @@ const MedicineSchedule = () => {
   const [scheduleData, setScheduleData] = useState([]);
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [isPrintModalVisible, setIsPrintModalVisible] = useState(false);
+  const [hasShownNotification, setHasShownNotification] = useState(false);
+  const calendarRef = useRef(null);
 
   // Fetch lịch tiêm
   const fetchScheduleData = async () => {
@@ -62,6 +69,100 @@ const MedicineSchedule = () => {
     fetchScheduleData();
   }, []);
 
+  useEffect(() => {
+    const checkTodaySchedule = () => {
+      if (hasShownNotification) return;
+
+      const today = dayjs().format("YYYY-MM-DD");
+      const todayPlans = scheduleData.filter(
+        (item) => dayjs(item.examinationDate).format("YYYY-MM-DD") === today
+      );
+
+      if (todayPlans.length > 0) {
+        // Gom nhóm các vaccine giống nhau
+        const groupedVaccines = todayPlans.reduce((acc, item) => {
+          if (!acc[item.medicineName]) {
+            acc[item.medicineName] = {
+              medicineName: item.medicineName,
+              totalQuantity: 0,
+              count: 0,
+              vaccineId: item.vaccineId,
+              status: item.status,
+            };
+          }
+          acc[item.medicineName].totalQuantity += item.vaccinationQuantity;
+          acc[item.medicineName].count += 1;
+          return acc;
+        }, {});
+
+        const totalVaccines = Object.keys(groupedVaccines).length;
+        const totalPigs = Object.values(groupedVaccines).reduce(
+          (sum, item) => sum + item.totalQuantity,
+          0
+        );
+
+        // Tạo danh sách tên vaccine
+        const vaccineNames = Object.values(groupedVaccines)
+          .map((item) => item.medicineName)
+          .join(", ");
+
+        const notificationKey = `vaccination-${today}`;
+
+        notification.info({
+          key: notificationKey,
+          message: "Lịch tiêm vaccine hôm nay",
+          description: (
+            <div>
+              <p>
+                Có {totalVaccines} loại vaccine cần tiêm cho {totalPigs} con heo
+              </p>
+              <p>Vaccine cần tiêm: {vaccineNames}</p>
+            </div>
+          ),
+          placement: "topRight",
+          duration: 3,
+          style: {
+            backgroundColor: "#e6f7ff",
+            border: "1px solid #91d5ff",
+          },
+          icon: <MedicineBoxOutlined style={{ color: "#1890ff" }} />,
+          btn: (
+            <Button
+              type="primary"
+              size="small"
+              onClick={() => {
+                notification.destroy(notificationKey);
+
+                if (calendarRef.current) {
+                  const todayElement = calendarRef.current.querySelector(
+                    ".ant-picker-calendar-date-today"
+                  );
+                  if (todayElement) {
+                    todayElement.scrollIntoView({
+                      behavior: "smooth",
+                      block: "center",
+                    });
+                  }
+                }
+
+                setSelectedDate(dayjs());
+                setIsPrintModalVisible(true);
+              }}
+            >
+              Xem chi tiết
+            </Button>
+          ),
+        });
+
+        setHasShownNotification(true);
+      }
+    };
+
+    if (scheduleData.length > 0) {
+      checkTodaySchedule();
+    }
+  }, [scheduleData, hasShownNotification]);
+
   // Hiển thị trên calendar
   const dateCellRender = (value) => {
     const date = value.format("YYYY-MM-DD");
@@ -89,18 +190,58 @@ const MedicineSchedule = () => {
       return acc;
     }, {});
 
+    const isToday = date === dayjs().format("YYYY-MM-DD");
+    const isPast = value.isBefore(dayjs(), "day");
+
     return (
-      <ul className="events">
+      <ul className="events" style={{ margin: 0, padding: "4px 0" }}>
         {Object.values(groupedVaccines).map((item) => (
           <li
             key={item.medicineName}
             style={{
               opacity: item.status === "completed" ? 0.7 : 1,
-              textDecoration:
-                item.status === "completed" ? "line-through" : "none",
               transition: "all 0.3s",
+              marginBottom: "8px",
+              backgroundColor:
+                item.status === "completed"
+                  ? "#f5f5f5" // Light gray for completed
+                  : isPast && item.status !== "completed"
+                  ? "#fff1f0" // Light red for overdue
+                  : isToday
+                  ? "#f6ffed" // Light green for today
+                  : "#e6f7ff", // Light blue for future
+              padding: "8px",
+              borderRadius: "6px",
+              border: `1px solid ${
+                item.status === "completed"
+                  ? "#d9d9d9" // Gray border for completed
+                  : isPast && item.status !== "completed"
+                  ? "#ffa39e" // Red border for overdue
+                  : isToday
+                  ? "#b7eb8f" // Green border for today
+                  : "#91d5ff" // Blue border for future
+              }`,
+              position: "relative",
             }}
           >
+            <div
+              style={{
+                position: "absolute",
+                top: "-10px",
+                right: "4px",
+                fontSize: "16px",
+                zIndex: 1,
+              }}
+            >
+              {item.status === "completed" ? (
+                <CheckCircleOutlined style={{ color: "#52c41a" }} />
+              ) : isPast ? (
+                <WarningOutlined style={{ color: "#f5222d" }} />
+              ) : isToday ? (
+                <ExclamationCircleOutlined style={{ color: "#faad14" }} />
+              ) : null}
+            </div>
+
             <Tooltip
               title={`${item.count > 1 ? `${item.count} đợt tiêm - ` : ""}${
                 item.totalQuantity
@@ -109,14 +250,47 @@ const MedicineSchedule = () => {
               <div className="vaccine-info">
                 <MedicineBoxOutlined
                   style={{
-                    color: item.status === "completed" ? "#999" : "#1890ff",
+                    color:
+                      item.status === "completed"
+                        ? "#8c8c8c" // Gray for completed
+                        : isPast && item.status !== "completed"
+                        ? "#f5222d" // Red for overdue
+                        : isToday
+                        ? "#52c41a" // Green for today
+                        : "#1890ff", // Blue for future
+                    fontSize: "16px",
+                    marginRight: "8px",
                   }}
                 />
-                <span>Tiêm {item.medicineName}</span>
+                <span
+                  style={{
+                    color:
+                      item.status === "completed"
+                        ? "#8c8c8c"
+                        : isPast && item.status !== "completed"
+                        ? "#f5222d"
+                        : isToday
+                        ? "#52c41a"
+                        : "#1890ff",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                  }}
+                >
+                  Tiêm {item.medicineName}
+                </span>
                 <div
                   className="pig-count"
                   style={{
-                    color: item.status === "completed" ? "#999" : "inherit",
+                    color:
+                      item.status === "completed"
+                        ? "#8c8c8c"
+                        : isPast && item.status !== "completed"
+                        ? "#f5222d"
+                        : isToday
+                        ? "#52c41a"
+                        : "#1890ff",
+                    fontSize: "13px",
+                    margin: "4px 0",
                   }}
                 >
                   {item.count > 1 ? `(${item.count} đợt - ` : "("}
@@ -135,14 +309,25 @@ const MedicineSchedule = () => {
                     style={{
                       padding: "4px 8px",
                       marginTop: "4px",
-                      color: "#1890ff",
+                      color:
+                        isPast && item.status !== "completed"
+                          ? "#f5222d"
+                          : isToday
+                          ? "#52c41a"
+                          : "#1890ff",
                     }}
                   >
                     Tạo phiếu tiêm
                   </Button>
                 )}
                 {item.status === "completed" && (
-                  <Tag color="success" style={{ marginTop: "4px" }}>
+                  <Tag
+                    color="default"
+                    style={{
+                      marginTop: "4px",
+                      padding: "2px 8px",
+                    }}
+                  >
                     Đã tiêm
                   </Tag>
                 )}
@@ -203,7 +388,7 @@ const MedicineSchedule = () => {
                 height: 100%;
               }
 
-              /* Ẩn các phần không cần thiết của modal */
+              /* Ẩn các phần không c��n thiết của modal */
               .ant-modal-mask,
               .ant-modal-footer,
               .ant-modal-close {
@@ -476,9 +661,12 @@ const MedicineSchedule = () => {
           }}
         >
           <Space direction="vertical" size={4}>
-            <Title level={3}>Lịch tiêm vaccine</Title>
+            <Title level={3}>
+              <MedicineBoxOutlined style={{ marginRight: 8 }} /> Lịch tiêm chủng
+              định kỳ cho đàn heo
+            </Title>
             <Text type="secondary">
-              Quản lý lịch tiêm vaccine định kỳ cho đàn heo
+              Quản lý lịch tiêm chủng định kỳ cho đàn heo
             </Text>
           </Space>
           <Space>
@@ -508,26 +696,43 @@ const MedicineSchedule = () => {
                   "/veterinarian/health/vaccination-history")
               }
             >
-              Lịch sử tiêm chủng
+              Nhật ký tiêm chủng
             </Button>
           </Space>
         </div>
 
-        <Calendar
-          locale={{ lang: { locale: "vi" } }}
-          cellRender={(current, info) => {
-            if (info.type === "date") {
-              return dateCellRender(current);
-            }
-            return info.originNode;
-          }}
-          value={selectedDate}
-          onSelect={onSelect}
-          className="medicine-calendar"
-        />
+        <div ref={calendarRef}>
+          <Calendar
+            locale={{ lang: { locale: "vi" } }}
+            cellRender={(current, info) => {
+              if (info.type === "date") {
+                return dateCellRender(current);
+              }
+              return info.originNode;
+            }}
+            value={selectedDate}
+            onSelect={onSelect}
+            className="medicine-calendar"
+          />
+        </div>
       </Card>
 
       {renderDayDetails()}
+
+      <style jsx global>{`
+        .medicine-calendar .ant-picker-calendar-date-content {
+          height: 100px !important;
+          overflow: auto;
+        }
+        .medicine-calendar .events {
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+        .medicine-calendar .ant-picker-cell {
+          min-height: 120px;
+        }
+      `}</style>
     </div>
   );
 };

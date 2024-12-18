@@ -39,5 +39,6 @@ namespace Application.Models.PigExamination
         public string MedicineId { get; set; }
         public string MedicineName { get; set; }
         public decimal? MedicineQuantity { get; set; }
+        public string? MedicineUnit { get; set; }
     }
 }

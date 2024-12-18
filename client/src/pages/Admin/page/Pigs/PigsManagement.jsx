@@ -9,6 +9,7 @@ import {
   Space,
   Tag,
   Button,
+  Tabs,
 } from "antd";
 import { SearchOutlined, ReloadOutlined } from "@ant-design/icons";
 import axios from "axios";
@@ -30,6 +31,8 @@ const PigsManagement = () => {
     stableId: null,
   });
   const [sortedInfo, setSortedInfo] = useState({});
+  const [examinations, setExaminations] = useState({});
+  const [examinationLoading, setExaminationLoading] = useState({});
 
   const columns = [
     {
@@ -102,47 +105,147 @@ const PigsManagement = () => {
     },
   ];
 
-  const expandedRowRender = (record) => {
-    const vaccinationColumns = [
-      {
-        title: "Tên vaccine",
-        dataIndex: "medicineName",
-        key: "medicineName",
-      },
-      {
-        title: "Ngày dự kiến",
-        dataIndex: "scheduleDate",
-        key: "scheduleDate",
-        render: (text) =>
-          text ? new Date(text).toLocaleDateString() : "Chưa lên lịch",
-      },
-      {
-        title: "Ngày tiêm",
-        dataIndex: "actualDate",
-        key: "actualDate",
-        render: (text) =>
-          text ? new Date(text).toLocaleDateString() : "Chưa tiêm",
-      },
-      {
-        title: "Trạng thái",
-        dataIndex: "status",
-        key: "status",
-        render: (status) => (
-          <Tag color={status === "completed" ? "green" : "red"}>
-            {status === "completed" ? "Đã tiêm" : "Chưa tiêm"}
-          </Tag>
-        ),
-      },
-    ];
+  const vaccinationColumns = [
+    {
+      title: "Tên vaccine",
+      dataIndex: "medicineName",
+      key: "medicineName",
+    },
+    {
+      title: "Ngày dự kiến",
+      dataIndex: "scheduleDate",
+      key: "scheduleDate",
+      render: (text) =>
+        text ? new Date(text).toLocaleDateString() : "Chưa lên lịch",
+    },
+    {
+      title: "Ngày tiêm",
+      dataIndex: "actualDate",
+      key: "actualDate",
+      render: (text) =>
+        text ? new Date(text).toLocaleDateString() : "Chưa tiêm",
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => (
+        <Tag color={status === "completed" ? "green" : "red"}>
+          {status === "completed" ? "Đã tiêm" : "Chưa tiêm"}
+        </Tag>
+      ),
+    },
+  ];
 
+  const examinationColumns = [
+    {
+      title: "Chẩn đoán",
+      dataIndex: "diagnosis",
+      key: "diagnosis",
+      render: (text) => <Tag color="blue">{text}</Tag>,
+    },
+    {
+      title: "Phương pháp điều trị",
+      dataIndex: "treatmentMethod",
+      key: "treatmentMethod",
+      render: (text) => <Tag color="green">{text}</Tag>,
+    },
+    {
+      title: "Thuốc đã dùng",
+      dataIndex: "pigExaminationMedicines",
+      key: "medicines",
+      render: (medicines) => (
+        <Space direction="vertical">
+          {medicines?.map((med) => (
+            <Tag
+              color="purple"
+              key={med.medicineId}
+              style={{ padding: "8px", margin: "4px 0" }}
+            >
+              <Space>
+                <span style={{ fontWeight: "bold" }}>{med.medicineName}</span>
+                <span>•</span>
+                <span>
+                  Liều lượng: {med.medicineQuantity} {med.medicineUnit}
+                </span>
+              </Space>
+            </Tag>
+          ))}
+        </Space>
+      ),
+    },
+  ];
+
+  const fetchExaminations = async (pigId) => {
+    if (examinations[pigId]) return; // If already fetched, don't fetch again
+
+    setExaminationLoading((prev) => ({ ...prev, [pigId]: true }));
+    try {
+      // Gọi API để lấy lịch sử khám bệnh của một con heo cụ thể
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/PigExamination/${pigId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      // Kiểm tra và xử lý dữ liệu
+      const examinationData = response.data.data;
+      if (examinationData && examinationData.pigExaminationDetails) {
+        setExaminations((prev) => ({
+          ...prev,
+          [pigId]: examinationData.pigExaminationDetails,
+        }));
+      } else {
+        setExaminations((prev) => ({
+          ...prev,
+          [pigId]: [],
+        }));
+      }
+    } catch (error) {
+      console.error(error);
+      message.error("Không thể tải dữ liệu khám bệnh");
+      setExaminations((prev) => ({
+        ...prev,
+        [pigId]: [],
+      }));
+    } finally {
+      setExaminationLoading((prev) => ({ ...prev, [pigId]: false }));
+    }
+  };
+
+  const expandedRowRender = (record) => {
     return (
       <div style={{ padding: "20px" }}>
-        <Table
-          columns={vaccinationColumns}
-          dataSource={record.pigVaccinations || []}
-          pagination={false}
-          rowKey={(record) => `${record.medicineId}-${record.scheduleDate}`}
-        />
+        <Tabs defaultActiveKey="1">
+          <Tabs.TabPane tab="Lịch sử tiêm vaccine" key="1">
+            <Table
+              columns={vaccinationColumns}
+              dataSource={
+                Array.isArray(record.pigVaccinations)
+                  ? record.pigVaccinations
+                  : []
+              }
+              pagination={false}
+              rowKey={(record) => `${record.medicineId}-${record.scheduleDate}`}
+            />
+          </Tabs.TabPane>
+          <Tabs.TabPane tab="Lịch sử khám bệnh" key="2">
+            <Table
+              columns={examinationColumns}
+              dataSource={
+                Array.isArray(examinations[record.id])
+                  ? examinations[record.id]
+                  : []
+              }
+              pagination={false}
+              loading={examinationLoading[record.id]}
+              rowKey="id"
+            />
+          </Tabs.TabPane>
+        </Tabs>
       </div>
     );
   };
@@ -434,6 +537,11 @@ const PigsManagement = () => {
           expandable={{
             expandedRowRender,
             expandRowByClick: true,
+            onExpand: (expanded, record) => {
+              if (expanded) {
+                fetchExaminations(record.id);
+              }
+            },
           }}
           onChange={handleTableChange}
           pagination={{

@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/no-unknown-property */
 import { useState, useEffect, useRef } from "react";
 import {
@@ -17,11 +19,13 @@ import {
   InputNumber,
   Tag,
   Alert,
+  notification,
 } from "antd";
 import {
   PrinterOutlined,
   SaveOutlined,
   HistoryOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
@@ -41,11 +45,42 @@ const WeighingSchedule = () => {
   const [weighingData, setWeighingData] = useState({});
   const [weighingNote, setWeighingNote] = useState("");
   const calendarRef = useRef(null);
+  const [hasShownNotification, setHasShownNotification] = useState(false);
+
+  // Hàm xử lý gom nhóm dữ liệu theo ngày
+  const groupWeighingDataByDate = (data) => {
+    const grouped = data.reduce((acc, item) => {
+      // Kiểm tra item và weighingDate có tồn tại không
+      if (!item || !item.weighingDate) return acc;
+
+      // Lấy ngày từ weighingDate (bỏ qua giờ phút giây)
+      const date = dayjs(item.weighingDate).format("YYYY-MM-DD");
+
+      if (!acc[date]) {
+        acc[date] = {
+          weighingDate: date,
+          weighingDetails: [],
+        };
+      }
+
+      // Kiểm tra weighingDetails trước khi gộp
+      const details = Array.isArray(item.weighingDetails)
+        ? item.weighingDetails
+        : [];
+
+      // Gộp weighingDetails
+      acc[date].weighingDetails = [...acc[date].weighingDetails, ...details];
+
+      return acc;
+    }, {});
+
+    // Chuyển object thành array
+    return Object.values(grouped);
+  };
 
   // Fetch danh sách kế hoạch cân
   const fetchWeighingPlans = async () => {
     try {
-      setLoading(true);
       const response = await axios.get(
         `${
           import.meta.env.VITE_API_URL
@@ -56,18 +91,102 @@ const WeighingSchedule = () => {
           },
         }
       );
-      console.log(response.data.data);
-      setWeighingPlans(response.data.data);
+
+      // Kiểm tra response.data.data có tồn tại không
+      const data = response.data.data || [];
+      console.log(data);
+
+      // Gom nhóm data theo ngày trước khi set state
+      const groupedData = groupWeighingDataByDate(data);
+      setWeighingPlans(groupedData);
     } catch (error) {
-      message.error("Lỗi khi tải dữ liệu: " + error.message);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching weighing plans:", error);
+      message.error("Không thể tải kế hoạch cân heo!");
     }
   };
 
   useEffect(() => {
     fetchWeighingPlans();
   }, []);
+
+  // Thêm useEffect để kiểm tra lịch cân hôm nay
+  useEffect(() => {
+    const checkTodaySchedule = () => {
+      if (hasShownNotification) return;
+
+      const today = dayjs().format("YYYY-MM-DD");
+      const todayPlans = weighingPlans?.filter(
+        (plan) => dayjs(plan.weighingDate).format("YYYY-MM-DD") === today
+      );
+
+      if (todayPlans?.length > 0) {
+        const totalPigs = todayPlans.reduce(
+          (sum, plan) => sum + (plan.weighingDetails?.length || 0),
+          0
+        );
+
+        // Chuẩn bị dữ liệu cho modal
+        const plan = todayPlans[0];
+        const formattedPigs = plan.weighingDetails.map((pig) => ({
+          key: pig.pigId,
+          pigId: pig.pigId,
+          stableName: pig.stableName,
+          areaId: pig.areaId,
+          areaName: pig.areaName,
+          weight: pig.weight || weighingData[pig.pigId] || "",
+          note: "",
+        }));
+
+        const notificationKey = `weighing-${today}`;
+
+        notification.info({
+          key: notificationKey,
+          message: "Lịch cân heo hôm nay",
+          description: `Có ${totalPigs} con heo cần được cân trong ngày hôm nay`,
+          placement: "topRight",
+          duration: 3,
+          style: {
+            backgroundColor: "#e6f7ff",
+            border: "1px solid #91d5ff",
+          },
+          icon: <CalendarOutlined style={{ color: "#1890ff" }} />,
+          btn: (
+            <Button
+              type="primary"
+              size="small"
+              onClick={() => {
+                notification.destroy(notificationKey);
+
+                if (calendarRef.current) {
+                  const todayElement = calendarRef.current.querySelector(
+                    ".ant-picker-calendar-date-today"
+                  );
+                  if (todayElement) {
+                    todayElement.scrollIntoView({
+                      behavior: "smooth",
+                      block: "center",
+                    });
+                  }
+                }
+
+                setSelectedDate(dayjs());
+                setSelectedPlanPigs(formattedPigs);
+                setIsWeighingModalVisible(true);
+              }}
+            >
+              Xem chi tiết
+            </Button>
+          ),
+        });
+
+        setHasShownNotification(true);
+      }
+    };
+
+    if (weighingPlans?.length > 0) {
+      checkTodaySchedule();
+    }
+  }, [weighingPlans, hasShownNotification]);
 
   // Xử lý dữ liệu cho calendar cell
   const getListData = (value) => {
@@ -122,11 +241,42 @@ const WeighingSchedule = () => {
   // Render nội dung cho calendar cell
   const dateCellRender = (value) => {
     const listData = getListData(value);
+    const isToday = value.format("YYYY-MM-DD") === dayjs().format("YYYY-MM-DD");
+    const hasPlanToday = listData.some((item) => item.type === "planned");
+
     return (
       <ul
         className="events"
-        style={{ listStyle: "none", padding: 0, margin: 0 }}
+        style={{
+          listStyle: "none",
+          padding: 0,
+          margin: 0,
+          position: "relative",
+        }}
       >
+        {isToday && hasPlanToday && (
+          <>
+            <div
+              style={{
+                position: "absolute",
+                left: 63,
+                top: "200%",
+                transform: "translateY(-50%) rotate(-90deg)",
+                transformOrigin: "right center",
+                backgroundColor: "#f50",
+                color: "white",
+                padding: "2px 8px",
+                borderRadius: "10px",
+                fontSize: "11px",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                animation: "pulse 2s infinite",
+                zIndex: 1,
+              }}
+            >
+              Cần cân hôm nay!
+            </div>
+          </>
+        )}
         {listData.map((item, index) => (
           <li key={index}>
             <Tooltip
@@ -225,110 +375,205 @@ const WeighingSchedule = () => {
 
     const printWindow = window.open("", "", "height=600,width=800");
     printWindow.document.write(`
-      <html>
+      <!DOCTYPE html>
+      <html lang="vi">
         <head>
+          <meta charset="utf-8">
           <title>Phiếu Cân Heo</title>
           <style>
+            @page {
+              size: A4;
+              margin: 1.5cm;
+            }
+            body { 
+              font-family: 'Times New Roman', serif;
+              margin: 0;
+              padding: 20px;
+              font-size: 13pt;
+              line-height: 1.6;
+              color: #333;
+            }
+            .container {
+              max-width: 21cm;
+              margin: 0 auto;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              padding-bottom: 20px;
+              border-bottom: 2px solid #333;
+            }
+            .company-name {
+              font-size: 22pt;
+              font-weight: bold;
+              margin: 0;
+              text-transform: uppercase;
+              color: #003366;
+            }
+            .document-title {
+              font-size: 18pt;
+              margin: 10px 0 0;
+              font-style: italic;
+              color: #006633;
+            }
+            .date-info {
+              text-align: right;
+              margin-bottom: 20px;
+              font-style: italic;
+            }
+            .area-section {
+              margin-bottom: 30px;
+            }
+            .area-title {
+              color: #003366;
+              font-size: 16pt;
+              font-weight: bold;
+              border-bottom: 2px solid #003366;
+              padding-bottom: 5px;
+              margin-bottom: 15px;
+            }
+            .stable-section {
+              margin-bottom: 20px;
+            }
+            .stable-title {
+              color: #006633;
+              font-size: 14pt;
+              margin: 10px 0;
+              padding-left: 10px;
+              border-left: 4px solid #006633;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 10px 0;
+              background: white;
+            }
+            th {
+              background: #003366;
+              color: white;
+              font-weight: bold;
+              padding: 12px;
+              text-align: center;
+              border: 1px solid #003366;
+            }
+            td {
+              padding: 10px;
+              border: 1px solid #ccc;
+              text-align: center;
+            }
+            tr:nth-child(even) {
+              background: #f8f9fa;
+            }
+            .total-section {
+              text-align: right;
+              margin: 20px 0;
+              padding: 10px;
+              background: #f8f9fa;
+              border-radius: 5px;
+              font-size: 14pt;
+              color: #003366;
+            }
+            .note-section {
+              margin: 20px 0;
+              padding: 15px;
+              background: #f8f9fa;
+              border-radius: 5px;
+            }
+            .note-section strong {
+              color: #003366;
+            }
+            .signature-section {
+              margin-top: 50px;
+              text-align: right;
+            }
+            .signature-title {s
+              font-weight: bold;
+              margin-bottom: 50px;
+            }
+            .signature-line {
+              width: 200px;
+              margin-left: auto;
+              border-top: 1px solid #333;
+            }
             @media print {
-              body { 
-                font-family: Arial, sans-serif;
-                padding: 20px;
-              }
-              table { 
-                width: 100%; 
-                border-collapse: collapse; 
-                margin-top: 10px;
-                margin-bottom: 20px;
-              }
-              th, td { 
-                border: 1px solid black; 
-                padding: 8px; 
-                text-align: left; 
-              }
-              h2, h3, h4 { 
-                margin: 10px 0;
-              }
-              h2 { 
-                text-align: center;
-                font-size: 24px;
-              }
-              h3 { 
-                color: #003366;
-                font-size: 20px;
-                border-bottom: 2px solid #003366;
-                padding-bottom: 5px;
-              }
-              h4 {
-                color: #666;
-                font-size: 16px;
-                margin-left: 10px;
-              }
+              body { -webkit-print-color-adjust: exact; }
             }
           </style>
         </head>
         <body>
-          <div class="print-header">
-            <h2>PHIẾU CÂN HEO</h2>
-          </div>
-          <div class="date-info">
-            Ngày: ${selectedDate?.format("DD/MM/YYYY")}
-          </div>
+          <div class="container">
+            <div class="header">
+              <div class="company-name">TRANG TRẠI CHĂN NUÔI NTNPIGFARM</div>
+              <div class="document-title">PHIẾU CÂN HEO</div>
+            </div>
 
-          ${Object.entries(pigsByArea)
-            .map(
-              ([areaName, stables]) => `
+            <div class="date-info">
+              Ngày: ${selectedDate?.format("DD/MM/YYYY")}
+            </div>
+
+            ${Object.entries(pigsByArea)
+              .map(
+                ([areaName, stables]) => `
               <div class="area-section">
-                <h3>Khu: ${areaName}</h3>
+                <div class="area-title">Khu: ${areaName}</div>
                 ${Object.entries(stables)
                   .map(
                     ([stableName, pigs]) => `
-                    <div class="stable-section">
-                      <h4>Chuồng: ${stableName}</h4>
-                      <table>
-                        <thead>
+                  <div class="stable-section">
+                    <div class="stable-title">Chuồng: ${stableName}</div>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th style="width: 10%">STT</th>
+                          <th style="width: 30%">Mã Heo</th>
+                          <th style="width: 20%">Cân nặng (kg)</th>
+                          <th style="width: 40%">Ghi chú</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${pigs
+                          .map(
+                            (pig, index) => `
                           <tr>
-                            <th style="width: 30%">Mã Heo</th>
-                            <th style="width: 20%">Cân nặng (kg)</th>
-                            <th style="width: 50%">Ghi chú</th>
+                            <td>${index + 1}</td>
+                            <td>${pig.pigId}</td>
+                            <td>${pig.weight || ""}</td>
+                            <td>${pig.note || ""}</td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          ${pigs
-                            .map(
-                              (pig) => `
-                            <tr>
-                              <td>${pig.pigId}</td>
-                              <td>${pig.weight}</td>
-                              <td>${pig.note || ""}</td>
-                            </tr>
-                          `
-                            )
-                            .join("")}
-                        </tbody>
-                      </table>
-                    </div>
-                  `
+                        `
+                          )
+                          .join("")}
+                      </tbody>
+                    </table>
+                  </div>
+                `
                   )
                   .join("")}
               </div>
             `
-            )
-            .join("")}
-          
-          <div style="text-align: right; margin: 20px 0;">
-            <strong>Tổng số heo: ${selectedPlanPigs.length} con</strong>
-          </div>
+              )
+              .join("")}
 
-          ${
-            weighingNote
-              ? `
-            <div class="note-section">
-              <strong>Ghi chú chung:</strong>
-              <p>${weighingNote}</p>
+            <div class="total-section">
+              <strong>Tổng số heo: ${selectedPlanPigs.length} con</strong>
             </div>
-          `
-              : ""
-          }
+
+            ${
+              weighingNote
+                ? `
+              <div class="note-section">
+                <strong>Ghi chú chung:</strong>
+                <p>${weighingNote}</p>
+              </div>
+            `
+                : ""
+            }
+
+            <div class="signature-section">
+              <div class="signature-title">Người Xuất Phiếu</div>
+              <div>(Ký và ghi rõ họ tên)</div>
+            </div>
+          </div>
 
           <script>
             window.onload = function() {
@@ -467,7 +712,7 @@ const WeighingSchedule = () => {
         >
           <Col>
             <Title level={3}>
-              <HistoryOutlined /> Lịch trình cân heo
+              <CalendarOutlined /> Kế hoạch cân heo định kỳ
             </Title>
           </Col>
           <Col>
@@ -494,7 +739,7 @@ const WeighingSchedule = () => {
                 icon={<HistoryOutlined />}
                 onClick={() => navigate("/dispatch/weighing-history")}
               >
-                Lịch sử cân
+                Lịch sử cân heo định kỳ
               </Button>
             </Space>
           </Col>
@@ -610,6 +855,30 @@ const WeighingSchedule = () => {
         }
         .stable-divider {
           border-top: 1px solid #d9d9d9;
+        }
+      `}</style>
+      <style jsx global>{`
+        @keyframes pulse {
+          0% {
+            transform: translateX(-50%) scale(1);
+          }
+          50% {
+            transform: translateX(-50%) scale(1.1);
+          }
+          100% {
+            transform: translateX(-50%) scale(1);
+          }
+        }
+        @keyframes pulseVertical {
+          0% {
+            transform: translateY(-50%) rotate(-90deg) scale(1);
+          }
+          50% {
+            transform: translateY(-50%) rotate(-90deg) scale(1.1);
+          }
+          100% {
+            transform: translateY(-50%) rotate(-90deg) scale(1);
+          }
         }
       `}</style>
     </div>

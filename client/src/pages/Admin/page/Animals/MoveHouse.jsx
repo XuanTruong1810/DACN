@@ -722,10 +722,12 @@ const MoveHouse = () => {
 
       // Lọc chỉ hiển thị những heo đạt chuẩn
       const allPigs = pigsResponse.data.data;
+      console.log("All Pigs:", allPigs);
       const qualifiedPigs = allPigs.filter((pig) => {
+        const isHealthy = pig.healthStatus === "good";
         const isVaccinated = pig.vaccinationStatus === "Đã tiêm";
         const isWeightQualified = checkWeightQualified(pig.weight, areaId);
-        return isVaccinated && isWeightQualified;
+        return isVaccinated && isWeightQualified && isHealthy;
       });
 
       console.log("Qualified Pigs:", qualifiedPigs);
@@ -780,7 +782,8 @@ const MoveHouse = () => {
             pig.weight,
             selectedSourceArea
           );
-          return isVaccinated && isWeightQualified;
+          const isHealthy = pig.status === "Healthy";
+          return isVaccinated && isWeightQualified && isHealthy;
         });
         setFilteredPigs(qualifiedPigs);
         return;
@@ -788,10 +791,10 @@ const MoveHouse = () => {
 
       // Fetch pigs theo chuồng
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/v1/Pigs/vaccination`, // Sửa lại endpoint
+        `${import.meta.env.VITE_API_URL}/api/v1/Pigs/vaccination`,
         {
           params: {
-            stableId: houseId, // Thêm tham số stableId
+            stableId: houseId,
           },
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -800,14 +803,15 @@ const MoveHouse = () => {
       );
 
       // Lọc chỉ hiển thị những heo đạt chuẩn
-      const allPigs = response.data.data; // Sửa lại cách lấy data
+      const allPigs = response.data.data;
       const qualifiedPigs = allPigs.filter((pig) => {
         const isVaccinated = pig.vaccinationStatus === "Đã tiêm";
         const isWeightQualified = checkWeightQualified(
           pig.weight,
           selectedSourceArea
         );
-        return isVaccinated && isWeightQualified;
+        const isHealthy = pig.status === "Healthy";
+        return isVaccinated && isWeightQualified && isHealthy;
       });
 
       console.log("Pigs in selected stable:", qualifiedPigs);
@@ -993,12 +997,6 @@ const MoveHouse = () => {
         </Space>
       </Space>
     </div>
-  );
-
-  const StableTag = ({ house }) => (
-    <Tag>
-      <HomeOutlined /> {house.name}
-    </Tag>
   );
 
   const showModal = () => {
@@ -1714,25 +1712,24 @@ const MoveHouse = () => {
                   >
                     <Select
                       placeholder="Chọn chuồng đích"
-                      onChange={(value) => {
-                        handleTargetHouseChange(value);
-                        // Tìm và set thông tin chi tiết của chuồng đích được chọn
-                        const selectedHouse = houses[
-                          form.getFieldValue("targetArea")
-                        ]?.find((house) => house.id === value);
-                        setSelectedTargetStableInfo(selectedHouse);
-                      }}
+                      onChange={handleTargetHouseChange}
                       disabled={!form.getFieldValue("targetArea")}
                       showSearch
                       optionFilterProp="children"
                     >
-                      {houses[form.getFieldValue("targetArea")]?.map(
-                        (house) => (
-                          <Option key={house.id} value={house.id}>
-                            {house.name}
-                          </Option>
+                      {houses[form.getFieldValue("targetArea")]
+                        ?.filter(
+                          (house) => house.currentOccupancy < house.capacity
                         )
-                      )}
+                        .map((house) => (
+                          <Select.Option key={house.id} value={house.id}>
+                            {house.name}{" "}
+                            <Badge
+                              count={`${house.currentOccupancy}/${house.capacity} chỗ`}
+                              style={{ backgroundColor: "#52c41a" }}
+                            />
+                          </Select.Option>
+                        ))}
                     </Select>
                   </Form.Item>
 
@@ -1778,6 +1775,15 @@ const MoveHouse = () => {
                                 ? "exception"
                                 : "active"
                             }
+                          />
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Còn trống">
+                          <Badge
+                            count={`${
+                              selectedTargetStableInfo.capacity -
+                              selectedTargetStableInfo.currentOccupancy
+                            } chỗ`}
+                            style={{ backgroundColor: "#52c41a" }}
                           />
                         </Descriptions.Item>
                         <Descriptions.Item label="Nhiệt độ">

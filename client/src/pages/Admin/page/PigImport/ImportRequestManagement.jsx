@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react/prop-types */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
@@ -19,22 +18,18 @@ import {
   Row,
   Col,
   Alert,
-  Tooltip,
   Descriptions,
   Spin,
   Statistic,
   Dropdown,
-  Menu,
 } from "antd";
 import {
   CheckCircleOutlined,
   ImportOutlined,
-  FilePdfOutlined,
   EyeOutlined,
   DollarOutlined,
   SearchOutlined,
   PrinterOutlined,
-  EllipsisOutlined,
   MoreOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -50,59 +45,6 @@ const pageVariants = {
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -20 },
 };
-
-const ACTION_CONFIG = {
-  check: {
-    key: "check",
-    text: "Kiểm tra",
-    icon: <CheckCircleOutlined />,
-    type: "primary",
-    color: "#1890ff",
-  },
-  import: {
-    key: "import",
-    text: "Nhập heo",
-    icon: <ImportOutlined />,
-    type: "default",
-    color: "#52c41a",
-  },
-  viewDetail: {
-    key: "viewDetail",
-    text: "Xem chi tiết",
-    icon: <EyeOutlined />,
-    type: "link",
-    color: "#666666",
-  },
-};
-
-const ActionButton = ({ config, onClick, disabled }) => (
-  <Tooltip
-    title={
-      disabled
-        ? config.key === "check"
-          ? "Yêu cầu chưa được xác nhận"
-          : "Heo chưa được giao"
-        : config.text
-    }
-  >
-    <Button
-      type={config.type}
-      icon={config.icon}
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        borderRadius: "6px",
-        display: "flex",
-        alignItems: "center",
-        gap: "4px",
-        opacity: disabled ? 0.5 : 1,
-        cursor: disabled ? "not-allowed" : "pointer",
-      }}
-    >
-      {config.text}
-    </Button>
-  </Tooltip>
-);
 
 const ImportRequestManagement = () => {
   const [loading, setLoading] = useState(false);
@@ -145,6 +87,14 @@ const ImportRequestManagement = () => {
   });
 
   const [sortedData, setSortedData] = useState([]);
+
+  const [paymentCalculation, setPaymentCalculation] = useState({
+    totalAmount:
+      (selectedRequest?.pricePerPig || 0) * (selectedRequest?.quantity || 0),
+    remainingAmount:
+      (selectedRequest?.pricePerPig || 0) * (selectedRequest?.quantity || 0) -
+      (selectedRequest?.deposit || 0),
+  });
 
   useEffect(() => {
     fetchAreaA();
@@ -250,11 +200,24 @@ const ImportRequestManagement = () => {
         detailInfo: response.data.data,
       });
 
-      // Reset form và set initial values với ngày hiện tại
+      // Reset form và set initial values
       checkForm.setFieldsValue({
         receivedQuantity: request.quantity || 0,
         acceptedQuantity: request.quantity || 0,
-        deliveryDate: dayjs(), // Set ngày giao hàng mặc định là ngày hiện tại
+        deliveryDate: dayjs(),
+      });
+
+      // Tính toán payment ngay khi mở modal
+      const pricePerPig = request?.pricePerPig || 0;
+      const deposit = request?.deposit || 0;
+      const quantity = request.quantity || 0;
+
+      const totalAmount = Number(quantity) * pricePerPig;
+      const remainingAmount = Math.max(0, totalAmount - deposit); // Đảm bảo không âm
+
+      setPaymentCalculation({
+        totalAmount,
+        remainingAmount,
       });
 
       setIsCheckModalVisible(true);
@@ -534,7 +497,7 @@ const ImportRequestManagement = () => {
             menuItems.push({
               key: "check",
               icon: <CheckCircleOutlined />,
-              label: "Kiểm tra",
+              label: "Xác nhận giao hàng",
               onClick: () => handleCheck(record),
             });
           }
@@ -695,13 +658,13 @@ const ImportRequestManagement = () => {
       {paymentInfo && (
         <div>
           <Descriptions bordered column={1}>
-            <Descriptions.Item label="Số lượng nhận">
+            <Descriptions.Item label="Số lượng giao hàng (con)">
               {paymentInfo.receivedQuantity} con
             </Descriptions.Item>
-            <Descriptions.Item label="Số lượng chấp nhận">
+            <Descriptions.Item label="Số lượng chấp nhận (con)">
               {paymentInfo.acceptedQuantity} con
             </Descriptions.Item>
-            <Descriptions.Item label="Đơn giá">
+            <Descriptions.Item label="Đơn giá (VNĐ/con)">
               {paymentInfo.pricePerPig?.toLocaleString("vi-VN")} VNĐ/con
             </Descriptions.Item>
             <Descriptions.Item label="Tổng tiền">
@@ -940,7 +903,7 @@ const ImportRequestManagement = () => {
                     <Descriptions.Item label="Số lượng dự kiến">
                       <Text strong>{detailData.expectedQuantity} con</Text>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Đơn giá">
+                    <Descriptions.Item label="Đơn giá (VNĐ/con)">
                       <Text type="success">
                         {detailData.unitPrice?.toLocaleString("vi-VN")} VNĐ/con
                       </Text>
@@ -955,15 +918,15 @@ const ImportRequestManagement = () => {
                 <Col span={12}>
                   {detailData.deliveryDate && (
                     <Descriptions column={1} size="small">
-                      <Descriptions.Item label="Số lượng nhận">
+                      <Descriptions.Item label="Số lượng nhận (con)">
                         <Text>{detailData.receivedQuantity} con</Text>
                       </Descriptions.Item>
-                      <Descriptions.Item label="Số lượng chấp nhận">
+                      <Descriptions.Item label="Số lượng chấp nhận (con)">
                         <Text type="success">
                           {detailData.acceptedQuantity} con
                         </Text>
                       </Descriptions.Item>
-                      <Descriptions.Item label="Số lượng từ chối">
+                      <Descriptions.Item label="Số lượng từ chối (con)">
                         <Text type="danger">
                           {detailData.rejectedQuantity} con
                         </Text>
@@ -1138,75 +1101,178 @@ const ImportRequestManagement = () => {
 
     const content = `
       <!DOCTYPE html>
-      <html>
+      <html lang="vi">
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>${fileName}</title>
           <style>
+            @page {
+              size: A4;
+              margin: 1.5cm;
+            }
             body { 
-              font-family: Arial, sans-serif;
+              font-family: 'Times New Roman', serif;
+              margin: 0;
+              padding: 0;
+              font-size: 13pt;
+              line-height: 1.6;
+              color: #333;
+            }
+            .container {
+              max-width: 21cm;
+              margin: 0 auto;
               padding: 20px;
             }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin-top: 20px;
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              padding-bottom: 20px;
+              border-bottom: 2px solid #333;
             }
-            th, td { 
-              border: 1px solid #ddd; 
-              padding: 8px; 
-              text-align: left;
+            .company-name {
+              font-size: 22pt;
+              font-weight: bold;
+              margin: 0;
+              text-transform: uppercase;
+              color: #003366;
             }
-            th { 
-              background-color: #f5f5f5;
+            .document-title {
+              font-size: 18pt;
+              margin: 10px 0 0;
+              font-style: italic;
+              color: #006633;
+            }
+            .info-section {
+              padding: 15px;
+              background: #f8f9fa;
+              border-radius: 5px;
+              margin-bottom: 20px;
+            }
+            .info-row {
+              display: flex;
+              margin-bottom: 8px;
+            }
+            .info-label {
+              font-weight: bold;
+              min-width: 140px;
+            }
+            .info-value {
+              flex: 1;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+              background: white;
+            }
+            th, td {
+              border: 1px solid #ddd;
+              padding: 12px;
+              text-align: center;
+            }
+            th {
+              background: #003366;
+              color: white;
               font-weight: bold;
             }
-            .header { 
-              text-align: center; 
-              margin-bottom: 20px;
+            tr:nth-child(even) {
+              background: #f8f9fa;
             }
-            .info { 
-              margin-bottom: 20px;
-              line-height: 1.5;
+            .total-pigs {
+              text-align: right;
+              font-weight: bold;
+              margin: 10px 0;
+              font-size: 14pt;
+              color: #003366;
+            }
+            .date-section {
+              text-align: right;
+              margin: 30px 0;
+              font-style: italic;
+            }
+            .signature {
+              text-align: right;
+              margin-top: 50px;
+              width: 200px;
+              float: right;
+            }
+            .signature-title {
+              font-weight: bold;
+              margin-bottom: 10px;
+            }
+            .signature-line {
+              margin-top: 60px;
+              border-top: 1px solid #333;
             }
             @media print {
-              @page {
-                size: auto;
-                margin: 20mm;
-              }
+              body { -webkit-print-color-adjust: exact; }
             }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h2>DANH SÁCH HEO ĐƯỢC PHÂN BỔ</h2>
-            <p>Ngày: ${dayjs().format("DD/MM/YYYY HH:mm:ss")}</p>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>STT</th>
-                <th>Mã heo</th>
-                <th>Chuồng</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${allocatedPigs
-                ?.map(
-                  (pig, index) => `
+          <div class="container">
+            <div class="header">
+              <h1 class="company-name">TRANG TRẠI CHĂN NUÔI NTN PIG FARM</h1>
+              <h2 class="document-title">PHIẾU NHẬP HEO</h2>
+            </div>
+
+            <div class="info-section">
+              <div class="info-row">
+                <span class="info-label">Mã phiếu:</span>
+                <span class="info-value">${selectedRequest?.id || "N/A"}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Ngày lập:</span>
+                <span class="info-value">${dayjs().format(
+                  "DD/MM/YYYY HH:mm"
+                )}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Nhà cung cấp:</span>
+                <span class="info-value">${
+                  selectedRequest?.supplier || "N/A"
+                }</span>
+              </div>
+            </div>
+
+            <h3>Danh sách heo được phân bổ:</h3>
+            <table>
+              <thead>
                 <tr>
-                  <td>${index + 1}</td>
-                  <td>${pig.id}</td>
-                  <td>${pig.stableName}</td>
+                  <th style="width: 60px">STT</th>
+                  <th>Mã heo</th>
+                  <th>Chuồng</th>
                 </tr>
-              `
-                )
-                .join("")}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                ${allocatedPigs
+                  ?.map(
+                    (pig, index) => `
+                  <tr>
+                    <td>${index + 1}</td>
+                    <td>${pig.id}</td>
+                    <td>${pig.stableName}</td>
+                  </tr>
+                `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+
+            <div class="total-pigs">
+              Tổng số: ${allocatedPigs?.length || 0} con
+            </div>
+
+            <div class="signature">
+              <div class="signature-title">Người Xuất Phiếu</div>
+              <div>(Ký, ghi rõ họ tên)</div>
+            </div>
+          </div>
+
           <script>
             document.title = "${fileName}";
+            window.onload = function() { window.print(); }
           </script>
         </body>
       </html>
@@ -1365,10 +1431,7 @@ const ImportRequestManagement = () => {
                   Tổng tiền
                 </Text>
               }
-              value={
-                (selectedRequest?.pricePerPig || 0) *
-                (selectedRequest?.quantity || 0)
-              }
+              value={paymentCalculation.totalAmount}
               precision={0}
               suffix="VNĐ"
               valueStyle={{ color: "#ff4d4f", fontSize: "16px" }}
@@ -1381,11 +1444,7 @@ const ImportRequestManagement = () => {
                   Còn phải trả
                 </Text>
               }
-              value={
-                (selectedRequest?.pricePerPig || 0) *
-                  (selectedRequest?.quantity || 0) -
-                (selectedRequest?.deposit || 0)
-              }
+              value={paymentCalculation.remainingAmount}
               precision={0}
               suffix="VNĐ"
               valueStyle={{ color: "#fa8c16", fontSize: "16px" }}
@@ -1406,15 +1465,15 @@ const ImportRequestManagement = () => {
           <Col span={12}>
             <Form.Item
               name="receivedQuantity"
-              label="Số lượng nhận"
+              label="Số lượng giao hàng (con)"
               rules={[
-                { required: true, message: "Vui lòng nhập số lượng nhận" },
+                { required: true, message: "Vui lòng nhập số lượng giao hàng" },
                 { type: "number", min: 0, message: "Số lượng không được âm" },
               ]}
             >
               <InputNumber
                 style={{ width: "100%" }}
-                placeholder="Nhập số lượng nhận"
+                placeholder="Nhập số lượng giao hàng"
                 onChange={(value) => {
                   const acceptedQuantity =
                     checkForm.getFieldValue("acceptedQuantity");
@@ -1427,26 +1486,36 @@ const ImportRequestManagement = () => {
           </Col>
           <Col span={12}>
             <Form.Item
-              name="acceptedQuantity"
               label="Số lượng chấp nhận"
+              name="acceptedQuantity"
               rules={[
                 { required: true, message: "Vui lòng nhập số lượng chấp nhận" },
-                { type: "number", min: 0, message: "Số lượng không được âm" },
-                ({ getFieldValue }) => ({
-                  validator(_, value) {
-                    if (value > getFieldValue("receivedQuantity")) {
-                      return Promise.reject(
-                        "Số lượng chấp nhận không được lớn hơn số lượng nhận"
-                      );
-                    }
-                    return Promise.resolve();
-                  },
-                }),
               ]}
             >
               <InputNumber
+                min={1}
+                max={selectedRequest?.quantity}
+                onChange={(value) => {
+                  if (!value) {
+                    setPaymentCalculation({
+                      totalAmount: 0,
+                      remainingAmount: 0,
+                    });
+                    return;
+                  }
+
+                  const pricePerPig = selectedRequest?.pricePerPig || 0;
+                  const deposit = selectedRequest?.deposit || 0;
+
+                  const totalAmount = Number(value) * pricePerPig;
+                  const remainingAmount = Math.max(0, totalAmount - deposit); // Đảm bảo không âm
+
+                  setPaymentCalculation({
+                    totalAmount,
+                    remainingAmount,
+                  });
+                }}
                 style={{ width: "100%" }}
-                placeholder="Nhập số lượng chấp nhận"
               />
             </Form.Item>
           </Col>
@@ -1459,8 +1528,11 @@ const ImportRequestManagement = () => {
         >
           <DatePicker
             style={{ width: "100%" }}
-            showTime
             format="DD/MM/YYYY HH:mm:ss"
+            disabledDate={(currentDate) => {
+              const today = dayjs();
+              return currentDate.isBefore(today, "day");
+            }}
             placeholder="Chọn ngày giờ giao hàng"
           />
         </Form.Item>

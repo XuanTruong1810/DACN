@@ -128,15 +128,22 @@ namespace Application.Services
                                 vaccinationPlan.ActualDate = vaccinationInsertDTO.ExaminationDate.DateTime;
                                 vaccinationPlan.Status = "completed";
 
-                                // Trừ số lượng vaccine trong kho
+                                // Kiểm tra và trừ số lượng vaccine trong kho
                                 Medicines? vaccine = await _unitOfWork.GetRepository<Medicines>()
                                     .GetEntities
                                     .FirstOrDefaultAsync(m => m.Id == vaccinationInsertDTO.MedicineId);
 
                                 if (vaccine != null)
                                 {
-                                    vaccine.QuantityInStock -= 1;
-                                    await _unitOfWork.GetRepository<Medicines>().UpdateAsync(vaccine);
+                                    if (vaccine.QuantityInStock >= 1)
+                                    {
+                                        vaccine.QuantityInStock -= 1;
+                                        await _unitOfWork.GetRepository<Medicines>().UpdateAsync(vaccine);
+                                    }
+                                    else
+                                    {
+                                        throw new Exception($"Số lượng vaccine {vaccine.MedicineName} trong kho không đủ để tiêm. Số lượng còn lại: {vaccine.QuantityInStock}");
+                                    }
                                 }
                             }
                             await _unitOfWork.GetRepository<VaccinationPlan>().UpdateAsync(vaccinationPlan);
@@ -155,12 +162,12 @@ namespace Application.Services
                             {
                                 if (medicine.QuantityInStock >= med.Quantity.Value)
                                 {
-                                    medicine.QuantityInStock -= med.Quantity.Value;
+                                    medicine.QuantityInStock -= 1;
                                     await _unitOfWork.GetRepository<Medicines>().UpdateAsync(medicine);
                                 }
                                 else
                                 {
-                                    throw new Exception($"Số lượng thuốc không đủ để thực hiện dùng cho heo số lượng còn lại là {medicine.QuantityInStock}");
+                                    throw new Exception($"Số lượng thuốc {medicine.MedicineName} không đủ để thực hiện dùng cho heo, số lượng còn lại là {medicine.QuantityInStock}");
                                 }
                             }
                         }
@@ -183,7 +190,7 @@ namespace Application.Services
                         PigId = detail.PigId,
                         IsHealthy = detail.IsHealthy,
                         Diagnosis = detail.Diagnosis,
-                        HealthNote = detail.IsHealthy ? "Tiêm chủng" : "Dời ngày tiêm",
+                        HealthNote = detail.HealthNote,
                         TreatmentMethod = detail.TreatmentMethod,
                         PigExaminationId = examinationId,
                         PigExaminationMedicines = detail.VaccinationInsertMedicationDetails?.Select(med =>

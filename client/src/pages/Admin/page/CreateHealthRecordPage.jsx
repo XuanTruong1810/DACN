@@ -148,6 +148,7 @@ const CreateHealthRecordPage = () => {
         healthNote: "",
         treatmentMethod: "",
         medicines: [],
+        symptoms: "",
       }));
       setPigData(pigs);
       setSelectedPigs(new Set());
@@ -240,12 +241,14 @@ const CreateHealthRecordPage = () => {
                   treatmentMethod: "",
                   medicines: [],
                   healthNote: "",
+                  symptoms: "",
                 }
               : {
                   diagnosis: "",
                   treatmentMethod: "",
                   medicines: [],
                   healthNote: "",
+                  symptoms: "",
                 }),
           };
         }
@@ -405,20 +408,44 @@ const CreateHealthRecordPage = () => {
       ),
     },
     {
+      title: "Triệu chứng",
+      width: 200,
+      render: (_, record) =>
+        record.isHealthy === "sick" && (
+          <Input.TextArea
+            placeholder="Nhập triệu chứng"
+            autoSize={{ minRows: 1, maxRows: 3 }}
+            value={record.symptoms}
+            onChange={(e) => {
+              setPigData((prevData) =>
+                prevData.map((pig) =>
+                  pig.id === record.id
+                    ? { ...pig, symptoms: e.target.value }
+                    : pig
+                )
+              );
+            }}
+          />
+        ),
+    },
+    {
       title: "Chẩn đoán",
       width: 200,
       render: (_, record) =>
         record.isHealthy === "sick" && (
-          <TextArea
-            placeholder="Nhập chẩn đoán..."
+          <Input.TextArea
+            placeholder="Nhập chẩn đoán"
+            autoSize={{ minRows: 1, maxRows: 3 }}
             value={record.diagnosis}
             onChange={(e) => {
-              const newData = [...pigData];
-              const index = newData.findIndex((item) => item.id === record.id);
-              newData[index].diagnosis = e.target.value;
-              setPigData(newData);
+              setPigData((prevData) =>
+                prevData.map((pig) =>
+                  pig.id === record.id
+                    ? { ...pig, diagnosis: e.target.value }
+                    : pig
+                )
+              );
             }}
-            autoSize={{ minRows: 2, maxRows: 4 }}
           />
         ),
     },
@@ -580,6 +607,7 @@ const CreateHealthRecordPage = () => {
           isHealthy: pig.isHealthy === "healthy",
           diagnosis: pig.diagnosis,
           treatmentMethod: pig.treatmentMethod,
+          healthNote: pig.symptoms,
           vaccineName: null, // Không cần trong trường hợp này
           lastModifiedTime: dayjs().toISOString(), // Thời gian hiện tại
           vaccinationInsertMedicationDetails:
@@ -606,7 +634,7 @@ const CreateHealthRecordPage = () => {
 
       if (response.status === 200) {
         message.success("Lưu phiếu khám bệnh thành công");
-        navigate(-1);
+        navigate("/veterinarian/health/medical-history");
       }
     } catch (error) {
       console.error("Error details:", error.response?.data);

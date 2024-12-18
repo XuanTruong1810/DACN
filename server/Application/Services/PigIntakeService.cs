@@ -173,6 +173,8 @@ namespace Application.Services
 
             await unitOfWork.GetRepository<PigIntakes>().UpdateAsync(pigIntake);
             await unitOfWork.SaveAsync();
+
+            // Gửi email cho người cung cấp
             string emailBody = $@"
                 <html>
                 <head>
@@ -180,97 +182,136 @@ namespace Application.Services
                         body {{
                             font-family: Arial, sans-serif;
                             line-height: 1.6;
-                            color: #333;
+                            color: #2c3e50;
                             max-width: 800px;
                             margin: 0 auto;
                             padding: 20px;
+                            background-color: #f8f9fa;
                         }}
                         .header {{
                             text-align: center;
-                            margin-bottom: 30px;
+                            margin-bottom: 35px;
+                            padding: 25px;
+                            background: #ffffff;
+                            border-radius: 10px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                         }}
                         .title {{
-                            color: #1a5f7a;
-                            font-size: 24px;
+                            color: #2c3e50;
+                            font-size: 28px;
                             font-weight: bold;
-                            text-transform: uppercase;
-                            margin-bottom: 10px;
+                            margin-bottom: 15px;
+                            letter-spacing: 1px;
                         }}
                         .document-id {{
                             font-size: 16px;
-                            color: #666;
+                            color: #5a6268;
+                            font-weight: 500;
                         }}
                         .content {{
-                            background: #fff;
-                            padding: 30px;
-                            border: 1px solid #ddd;
-                            border-radius: 5px;
+                            background: #ffffff;
+                            padding: 35px;
+                            border-radius: 10px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                            margin-bottom: 25px;
                         }}
                         .section {{
-                            margin-bottom: 25px;
+                            margin-bottom: 30px;
                         }}
                         .section-title {{
                             font-weight: bold;
-                            color: #1a5f7a;
-                            border-bottom: 2px solid #1a5f7a;
-                            padding-bottom: 5px;
-                            margin-bottom: 15px;
+                            color: #2c3e50;
+                            border-bottom: 2px solid #3498db;
+                            padding-bottom: 10px;
+                            margin-bottom: 20px;
+                            font-size: 20px;
                         }}
                         .details-grid {{
                             display: grid;
                             grid-template-columns: repeat(2, 1fr);
-                            gap: 15px;
+                            gap: 20px;
+                            margin-bottom: 15px;
                         }}
                         .details-item {{
-                            padding: 8px;
-                            background: #f9f9f9;
-                            border-radius: 4px;
+                            padding: 15px;
+                            background: #f8f9fa;
+                            border-radius: 8px;
+                            border: 1px solid #e9ecef;
+                            transition: all 0.3s ease;
+                        }}
+                        .details-item:hover {{
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                         }}
                         .details-label {{
-                            color: #666;
+                            color: #5a6268;
                             font-size: 14px;
+                            margin-bottom: 5px;
+                            font-weight: 500;
                         }}
                         .details-value {{
-                            font-weight: bold;
-                            color: #333;
+                            font-weight: 600;
+                            color: #2c3e50;
                             font-size: 16px;
                         }}
+                        .note-section {{
+                            padding: 20px;
+                            background: #f8f9fa;
+                            border-radius: 8px;
+                            border-left: 4px solid #3498db;
+                            margin: 25px 0;
+                        }}
                         .footer {{
-                            margin-top: 30px;
                             text-align: center;
-                            color: #666;
-                            font-size: 14px;
+                            padding: 25px;
+                            background: #ffffff;
+                            border-radius: 10px;
+                            margin-top: 35px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                         }}
                         .company-info {{
-                            margin-top: 20px;
-                            padding-top: 20px;
-                            border-top: 1px solid #ddd;
+                            margin-top: 25px;
+                            padding-top: 25px;
+                            border-top: 1px solid #e9ecef;
                             text-align: center;
-                            font-size: 12px;
-                            color: #999;
+                            font-size: 14px;
+                            color: #5a6268;
+                            line-height: 1.8;
+                        }}
+                        .greeting {{
+                            font-size: 16px;
+                            color: #2c3e50;
+                            line-height: 1.8;
+                            margin-bottom: 25px;
+                            padding: 0 15px;
                         }}
                     </style>
                 </head>
                 <body>
                     <div class='header'>
-                        <div class='title'>Phiếu Yêu Cầu Nhập Heo</div>
-                        <div class='document-id'>Mã phiếu: {pigIntake.Id}</div>
+                        <div class='title'>PHIẾU XÁC NHẬN ĐƠN HÀNG</div>
+                        <div class='document-id'>Mã đơn hàng: {pigIntake.Id}</div>
                     </div>
-                    
+
                     <div class='content'>
+                        <div class='greeting'>
+                            Kính gửi Quý đối tác,<br><br>
+                            Chúng tôi xin trân trọng thông báo đơn đặt hàng của Quý đối tác đã được xác nhận và đang được xử lý. 
+                            Chúng tôi rất vinh dự được phục vụ và cảm ơn sự tin tưởng của Quý đối tác.
+                        </div>
+
                         <div class='section'>
-                            <div class='section-title'>Thông Tin Chung</div>
+                            <div class='section-title'>Thông Tin Đơn Hàng</div>
                             <div class='details-grid'>
                                 <div class='details-item'>
-                                    <div class='details-label'>Ngày lập phiếu</div>
+                                    <div class='details-label'>Ngày Lập Phiếu</div>
                                     <div class='details-value'>{DateTimeOffset.Now:dd/MM/yyyy}</div>
                                 </div>
                                 <div class='details-item'>
-                                    <div class='details-label'>Trạng thái</div>
-                                    <div class='details-value'>Đã phê duyệt</div>
+                                    <div class='details-label'>Trạng Thái</div>
+                                    <div class='details-value'>Đã Xác Nhận</div>
                                 </div>
                                 <div class='details-item'>
-                                    <div class='details-label'>Ngày dự kiến giao</div>
+                                    <div class='details-label'>Ngày Dự Kiến Giao Hàng</div>
                                     <div class='details-value'>{pigIntake.ExpectedReceiveDate:dd/MM/yyyy}</div>
                                 </div>
                             </div>
@@ -280,42 +321,51 @@ namespace Application.Services
                             <div class='section-title'>Chi Tiết Đơn Hàng</div>
                             <div class='details-grid'>
                                 <div class='details-item'>
-                                    <div class='details-label'>Số lượng dự kiến</div>
+                                    <div class='details-label'>Số Lượng Heo Giống</div>
                                     <div class='details-value'>{pigIntake.ExpectedQuantity:N0} con</div>
                                 </div>
                                 <div class='details-item'>
-                                    <div class='details-label'>Đơn giá</div>
+                                    <div class='details-label'>Đơn Giá</div>
                                     <div class='details-value'>{pigIntake.UnitPrice:N0} VNĐ/con</div>
                                 </div>
                                 <div class='details-item'>
-                                    <div class='details-label'>Tiền cọc</div>
+                                    <div class='details-label'>Tiền Đặt Cọc</div>
                                     <div class='details-value'>{pigIntake.Deposit:N0} VNĐ</div>
                                 </div>
                                 <div class='details-item'>
-                                    <div class='details-label'>Tổng tiền</div>
+                                    <div class='details-label'>Tổng Giá Trị Đơn Hàng</div>
                                     <div class='details-value'>{pigIntake.ExpectedQuantity * pigIntake.UnitPrice:N0} VNĐ</div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class='section'>
-                            <div class='section-title'>Ghi Chú</div>
-                            <p>Vui lòng kiểm tra kỹ thông tin trên phiếu yêu cầu. Nếu có bất kỳ thắc mắc nào, xin vui lòng liên hệ với chúng tôi để được giải đáp.</p>
+                        <div class='note-section'>
+                            <div class='section-title'>Điều Khoản và Lưu Ý</div>
+                            <p style='color: #2c3e50; line-height: 1.8;'>
+                                Kính đề nghị Quý đối tác kiểm tra kỹ các thông tin chi tiết được nêu trong phiếu xác nhận này. 
+                                Trong trường hợp cần điều chỉnh hoặc làm rõ bất kỳ thông tin nào, xin vui lòng liên hệ với 
+                                chúng tôi theo thông tin được cung cấp bên dưới.<br><br>
+                                Chúng tôi cam kết sẽ đảm bảo chất lượng dịch vụ tốt nhất và mong muốn tiếp tục nhận được sự 
+                                hợp tác từ Quý đối tác.
+                            </p>
                         </div>
                     </div>
 
                     <div class='footer'>
-                        <p>Phiếu này được tạo tự động từ hệ thống Pig Management.</p>
-                        <p>Vui lòng không trả lời email này.</p>
+                        <p>Đây là email tự động từ hệ thống Pig Management.<br>
+                        Vui lòng không phản hồi email này.</p>
                     </div>
 
                     <div class='company-info'>
-                        <p>© 2024 Pig Management. All rights reserved.</p>
-                        <p>Số 2, đường N1, khu dân cư phục vụ tái định cư, khu phố Nhị Hòa, phường Hiệp Hòa, thành phố Biên Hòa, tỉnh Đồng Nai</p>
-                        <p>Hotline: 0971758902 | Email: truongtamcobra@gmail.com</p>
+                        <p><strong>CÔNG TY TNHH PIG FARM</strong></p>
+                        <p>Địa chỉ: Số 2, đường N1, khu dân cư phục vụ tái định cư, khu phố Nhị Hòa,<br>
+                        phường Hiệp Hòa, thành phố Biên Hòa, tỉnh Đồng Nai</p>
+                        <p>Hotline: 0971.758.902 | Email: truongtamcobra@gmail.com</p>
+                        <p>© 2024 Pig Management. Bảo lưu mọi quyền.</p>
                     </div>
                 </body>
                 </html>";
+
 
             Suppliers? supplier = await unitOfWork.GetRepository<Suppliers>().GetByIdAsync(pigIntake.SuppliersId)
             ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy nhà cung cấp");

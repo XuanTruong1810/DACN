@@ -25,7 +25,7 @@ namespace Application.DTOs.Vaccination
 
         public bool IsHealthy { get; set; } // trạng thái sức khỏe
         public string? Diagnosis { get; set; } // chuẩn đoán
-
+        public string? HealthNote { get; set; } // ghi chú
         public string? TreatmentMethod { get; set; } // cách điều trị
 
         public string? VaccineName { get; set; } // tên vaccine
