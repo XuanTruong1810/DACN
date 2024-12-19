@@ -48,155 +48,120 @@ const PerformanceStatistics = () => {
   ]);
   const [stableStats, setStableStats] = useState([]);
   const [overallStats, setOverallStats] = useState(null);
+  const [radarData, setRadarData] = useState(null);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0,
   });
-
-  const fetchStatistics = async (page = 1, pageSize = 10) => {
+ const customRanges = {
+    "Tháng này": [dayjs().startOf("month"), dayjs().endOf("month")],
+    "Tháng trước": [
+      dayjs().subtract(1, "month").startOf("month"),
+      dayjs().subtract(1, "month").endOf("month"),
+    ],
+    "Quý này": [dayjs().startOf("quarter"), dayjs().endOf("quarter")],
+    "Quý trước": [
+      dayjs().subtract(1, "quarter").startOf("quarter"),
+      dayjs().subtract(1, "quarter").endOf("quarter"),
+    ],
+    "Năm nay": [dayjs().startOf("year"), dayjs().endOf("year")],
+    "Năm trước": [
+      dayjs().subtract(1, "year").startOf("year"),
+      dayjs().subtract(1, "year").endOf("year"),
+    ],
+  };
+  const fetchStatistics = async () => {
     try {
       setLoading(true);
-
-      const token = localStorage.getItem("token");
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const stablesResponse = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/v1/Stables`,
+      
+      // 1. Lấy thống kê hiệu suất tổng quan
+      const performanceResponse = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/StatisticPerformance/performance`,
         {
-          headers,
           params: {
-            pageIndex: page,
-            pageSize: pageSize,
+            fromDate: dateRange[0].toISOString(),
+            toDate: dateRange[1].toISOString(),
           },
         }
       );
 
-      const responseData = stablesResponse.data.data;
-      const stables = responseData.items;
-
-      setPagination({
-        current: responseData.currentPage,
-        pageSize: responseData.pageSize,
-        total: responseData.totalCount,
+      const performanceData = performanceResponse.data.data;
+      setOverallStats({
+        totalPigs: performanceData.totalPigs,
+        averageWeight: performanceData.averageWeight,
+        averageFCR: performanceData.fcr,
+        averageEfficiency: performanceData.efficiency,
       });
 
-      if (
-        dateRange[0].isSame(dayjs().subtract(30, "days")) &&
-        dateRange[1].isSame(dayjs())
-      ) {
-        const stableStats = stables.map((stable) => ({
-          stableId: stable.id,
-          stableName: stable.name,
-          areaName: stable.areaName || "Chưa có khu vực",
-          totalPigs: stable.currentOccupancy,
-          averageWeight: 0,
-          fcr: 0,
-          capacity: stable.capacity,
-          currentOccupancy: stable.currentOccupancy,
-          mortalityRate: 0,
-          efficiency:
-            stable.capacity > 0
-              ? parseFloat(
-                  ((stable.currentOccupancy / stable.capacity) * 100).toFixed(2)
-                )
-              : 0,
-        }));
+      // 2. Lấy dữ liệu biểu đồ Radar
+      const radarResponse = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/StatisticPerformance/radar-chart`,
+        {
+          params: {
+            fromDate: dateRange[0].toISOString(),
+            toDate: dateRange[1].toISOString(),
+          },
+        }
+      );
 
-        setStableStats(stableStats);
+      const radarData = radarResponse.data.data;
+      setRadarData([
+        {
+          subject: "Tăng trọng",
+          current: radarData.current.weightGain || 0,
+          previous: radarData.previous.weightGain || 0,
+          fullMark: 100,
+        },
+        {
+          subject: "FCR",
+          current: (radarData.current.fcr || 0) * 20, // Scale FCR value
+          previous: (radarData.previous.fcr || 0) * 20,
+          fullMark: 100,
+        },
+        {
+          subject: "Tỷ lệ sống",
+          current: radarData.current.survivalRate || 0,
+          previous: radarData.previous.survivalRate || 0,
+          fullMark: 100,
+        },
+        {
+          subject: "Hiệu suất",
+          current: radarData.current.efficiency || 0,
+          previous: radarData.previous.efficiency || 0,
+          fullMark: 100,
+        },
+      ]);
 
-        const totalPigs = stables.reduce(
-          (sum, stable) => sum + stable.currentOccupancy,
-          0
-        );
-        const nonEmptyStables = stables.filter((stable) => stable.capacity > 0);
+      // 3. Lấy thống kê theo khu vực
+      const areaResponse = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/StatisticPerformance/area-performance`,
+        {
+          params: {
+            fromDate: dateRange[0].toISOString(),
+            toDate: dateRange[1].toISOString(),
+          },
+        }
+      );
 
-        setOverallStats({
-          totalPigs,
-          averageWeight: 0,
-          averageFCR: 0,
-          averageEfficiency:
-            nonEmptyStables.length > 0
-              ? parseFloat(
-                  (
-                    nonEmptyStables.reduce(
-                      (sum, stable) =>
-                        sum + (stable.currentOccupancy / stable.capacity) * 100,
-                      0
-                    ) / nonEmptyStables.length
-                  ).toFixed(2)
-                )
-              : 0,
-          overallMortalityRate: 0,
-          previousAverageWeight: 0,
-          previousFCR: 0,
-          previousEfficiency: 0,
-          previousMortalityRate: 0,
-        });
-      } else {
-        const daysDiff = dateRange[1].diff(dateRange[0], "days");
+      const areaData = areaResponse.data.data;
+      setStableStats(
+        areaData.map((area) => ({
+          key: area.areaName,
+          areaName: area.areaName,
+          totalPigs: area.totalPigs,
+          averageWeight: area.averageWeight,
+          fcr: area.fcr,
+          mortalityRate: area.deathRate,
+          efficiency: area.efficiency,
+        }))
+      );
 
-        const stableStats = stables.map((stable) => {
-          const seed = stable.id.charCodeAt(stable.id.length - 1) + daysDiff;
-          const fakePigCount = Math.floor(
-            Math.random() * (stable.capacity - 10) + 10
-          );
+      setPagination(prev => ({
+        ...prev,
+        total: areaData.length
+      }));
 
-          return {
-            stableId: stable.id,
-            stableName: stable.name,
-            areaName: stable.areaName || "Chưa có khu vực",
-            totalPigs: fakePigCount,
-            averageWeight: parseFloat((Math.random() * 20 + 50).toFixed(2)),
-            fcr: parseFloat((Math.random() * 0.4 + 2.5).toFixed(2)),
-            capacity: stable.capacity,
-            currentOccupancy: fakePigCount,
-            mortalityRate: parseFloat((Math.random() * 1.5).toFixed(2)),
-            efficiency: parseFloat(
-              ((fakePigCount / stable.capacity) * 100).toFixed(2)
-            ),
-          };
-        });
-
-        setStableStats(stableStats);
-
-        const totalPigs = stableStats.reduce(
-          (sum, stable) => sum + stable.totalPigs,
-          0
-        );
-        const averageWeight = parseFloat(
-          (
-            stableStats.reduce((sum, stable) => sum + stable.averageWeight, 0) /
-            stableStats.length
-          ).toFixed(2)
-        );
-        const overallFCR = parseFloat(
-          (
-            stableStats.reduce((sum, stable) => sum + stable.fcr, 0) /
-            stableStats.length
-          ).toFixed(2)
-        );
-        const overallEfficiency = parseFloat(
-          (
-            stableStats.reduce((sum, stable) => sum + stable.efficiency, 0) /
-            stableStats.length
-          ).toFixed(2)
-        );
-
-        setOverallStats({
-          totalPigs,
-          averageWeight,
-          averageFCR: overallFCR,
-          averageEfficiency: overallEfficiency,
-          overallMortalityRate: parseFloat((Math.random() * 1.5).toFixed(2)),
-          previousAverageWeight: averageWeight - 5,
-          previousFCR: overallFCR + 0.1,
-          previousEfficiency: overallEfficiency - 5,
-          previousMortalityRate: parseFloat((Math.random() * 2).toFixed(2)),
-        });
-      }
     } catch (error) {
       console.error("Error fetching statistics:", error);
       message.error("Không thể tải dữ liệu thống kê");
@@ -205,20 +170,15 @@ const PerformanceStatistics = () => {
     }
   };
 
+  useEffect(() => {
+    fetchStatistics();
+  }, [dateRange]);
+
   const handleTableChange = (pagination, filters, sorter) => {
     fetchStatistics(pagination.current, pagination.pageSize);
   };
 
-  useEffect(() => {
-    fetchStatistics(1, 10);
-  }, [dateRange]);
-
   const columns = [
-    {
-      title: "Chuồng",
-      dataIndex: "stableName",
-      key: "stableName",
-    },
     {
       title: "Khu vực",
       dataIndex: "areaName",
@@ -277,6 +237,7 @@ const PerformanceStatistics = () => {
             <Col>
               <RangePicker
                 value={dateRange}
+                ranges={customRanges}
                 onChange={(dates) => setDateRange(dates)}
                 allowClear={false}
               />
@@ -349,34 +310,7 @@ const PerformanceStatistics = () => {
                 >
                   <ResponsiveContainer width="100%" height={400}>
                     <RadarChart
-                      data={[
-                        {
-                          subject: "Tăng trọng",
-                          current: overallStats?.averageWeight || 0,
-                          previous: overallStats?.previousAverageWeight || 0,
-                          fullMark: 100,
-                        },
-                        {
-                          subject: "FCR",
-                          current: (overallStats?.averageFCR || 0) * 20,
-                          previous: (overallStats?.previousFCR || 0) * 20,
-                          fullMark: 100,
-                        },
-                        {
-                          subject: "Tỷ lệ sống",
-                          current:
-                            100 - (overallStats?.overallMortalityRate || 0),
-                          previous:
-                            100 - (overallStats?.previousMortalityRate || 0),
-                          fullMark: 100,
-                        },
-                        {
-                          subject: "Hiệu suất",
-                          current: overallStats?.averageEfficiency || 0,
-                          previous: overallStats?.previousEfficiency || 0,
-                          fullMark: 100,
-                        },
-                      ]}
+                      data={radarData}
                     >
                       <PolarGrid />
                       <PolarAngleAxis dataKey="subject" />
@@ -396,6 +330,15 @@ const PerformanceStatistics = () => {
                         fillOpacity={0.6}
                       />
                       <Legend />
+                      <RechartsTooltip 
+                        formatter={(value, name, props) => {
+                          const subject = props;
+                          if (subject === "FCR") {
+                            return [(value / 20).toFixed(2), name]; // Convert back from scaled value
+                          }
+                          return [value.toFixed(2) + '%', name];
+                        }}
+                      />
                     </RadarChart>
                   </ResponsiveContainer>
                 </Card>
@@ -406,7 +349,7 @@ const PerformanceStatistics = () => {
                   title={
                     <Space>
                       <BarChartOutlined />
-                      <Text strong>FCR theo chuồng</Text>
+                      <Text strong>FCR theo khu vực</Text>
                     </Space>
                   }
                 >
@@ -440,7 +383,7 @@ const PerformanceStatistics = () => {
               title={
                 <Space>
                   <DashboardOutlined />
-                  <span>Chi tiết hiệu suất theo chuồng</span>
+                  <span>Chi tiết hiệu suất theo khu vực</span>
                 </Space>
               }
             >
@@ -451,6 +394,7 @@ const PerformanceStatistics = () => {
                 pagination={pagination}
                 onChange={handleTableChange}
                 scroll={{ x: true }}
+                loading={loading}
               />
             </Card>
           </>

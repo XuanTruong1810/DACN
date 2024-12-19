@@ -14,6 +14,7 @@ import {
   DatePicker,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
+import moment from "moment";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -229,8 +230,14 @@ const DeadPigsPage = () => {
                 name="deathDate"
                 label="Ngày chết"
                 rules={[{ required: true, message: "Vui lòng chọn ngày chết" }]}
+                initialValue={moment()}
               >
                 <DatePicker
+                  disabledDate={(current) =>
+                    current &&
+                    (current < moment().startOf("day") ||
+                      current > moment().endOf("day"))
+                  }
                   style={{ width: "100%", borderRadius: "6px" }}
                   format="DD/MM/YYYY"
                   placeholder="Chọn ngày"
@@ -249,10 +256,19 @@ const DeadPigsPage = () => {
               />
             </Form.Item>
 
-            <Form.Item name="deathNote" label="Ghi chú nguyên nhân">
+            <Form.Item
+              name="deathNote"
+              label="Ghi chú nguyên nhân"
+              rules={[
+                {
+                  required: true,
+                  message: "Vui lòng nhập ghi chú nguyên nhân",
+                },
+              ]}
+            >
               <TextArea
                 rows={4}
-                placeholder="Nhập ghi chú về nguyên nhân (nếu có)"
+                placeholder="Nhập ghi chú về nguyên nhân"
                 style={{ borderRadius: "6px" }}
               />
             </Form.Item>
@@ -273,10 +289,19 @@ const DeadPigsPage = () => {
               </Select>
             </Form.Item>
 
-            <Form.Item name="handlingNotes" label="Ghi chú xử lý">
+            <Form.Item
+              name="handlingNotes"
+              label="Ghi chú xử lý"
+              rules={[
+                {
+                  required: true,
+                  message: "Vui lòng nhập ghi chú xử lý",
+                },
+              ]}
+            >
               <TextArea
                 rows={4}
-                placeholder="Nhập ghi chú về cách xử lý (nếu có)"
+                placeholder="Nhập ghi chú về cách xử lý"
                 style={{ borderRadius: "6px" }}
               />
             </Form.Item>

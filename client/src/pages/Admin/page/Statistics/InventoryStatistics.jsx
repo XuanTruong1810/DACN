@@ -10,6 +10,7 @@ import {
   Progress,
   Tag,
   Spin,
+  DatePicker,
 } from "antd";
 import {
   InboxOutlined,
@@ -28,8 +29,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import dayjs from "dayjs";
 
 const { Text, Title } = Typography;
+const { RangePicker } = DatePicker;
 
 const InventoryStatistics = () => {
   const [statistics, setStatistics] = useState({
@@ -44,184 +47,135 @@ const InventoryStatistics = () => {
   const [lowStockData, setLowStockData] = useState([]);
   const [loadingTable, setLoadingTable] = useState(true);
 
+  const [dateRange, setDateRange] = useState([
+    dayjs().subtract(30, "days"),
+    dayjs(),
+  ]);
+   const customRanges = {
+    "Tháng này": [dayjs().startOf("month"), dayjs().endOf("month")],
+    "Tháng trước": [
+      dayjs().subtract(1, "month").startOf("month"),
+      dayjs().subtract(1, "month").endOf("month"),
+    ],
+    "Quý này": [dayjs().startOf("quarter"), dayjs().endOf("quarter")],
+    "Quý trước": [
+      dayjs().subtract(1, "quarter").startOf("quarter"),
+      dayjs().subtract(1, "quarter").endOf("quarter"),
+    ],
+    "Năm nay": [dayjs().startOf("year"), dayjs().endOf("year")],
+    "Năm trước": [
+      dayjs().subtract(1, "year").startOf("year"),
+      dayjs().subtract(1, "year").endOf("year"),
+    ],
+  };
+
+  const handleDateRangeChange = (dates) => {
+    if (dates) {
+      setDateRange(dates);
+      fetchStatistics(dates[0].toDate(), dates[1].toDate());
+      fetchTrendData(dates[0].toDate(), dates[1].toDate());
+      fetchLowStockItems(dates[0].toDate(), dates[1].toDate());
+    }
+  };
+
+  const fetchStatistics = async (fromDate, toDate) => {
+    try {
+      setStatistics((prev) => ({ ...prev, loading: true }));
+      const response = await axios.get(
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/StatisticInventory/inventory-statistics`,
+        {
+          params: {
+            fromDate: fromDate.toISOString(),
+            toDate: toDate.toISOString(),
+          },
+        }
+      );
+
+      const data = response.data.data;
+      setStatistics({
+        totalInventoryValue: data.current.value,
+        recentImportValue: data.latest.value,
+        loading: false,
+        error: null,
+        currentGrowth: parseFloat(data.current.growthRate),
+        latestGrowth: parseFloat(data.latest.growthRate),
+      });
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      setStatistics((prev) => ({
+        ...prev,
+        loading: false,
+        error: error.message || "Có lỗi xảy ra khi tải dữ liệu",
+      }));
+    }
+  };
+
+  const fetchTrendData = async (fromDate, toDate) => {
+    try {
+      const response = await axios.get(
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/StatisticInventory/inventory-trend`,
+        {
+          params: {
+            fromDate: fromDate.toISOString(),
+            toDate: toDate.toISOString(),
+          },
+        }
+      );
+
+      const data = response.data.data;
+      const transformedData = data.labels.map((month, index) => ({
+        month: month,
+        medicine: data.medicineValues[index],
+        food: data.foodValues[index],
+      }));
+
+      setChartData(transformedData);
+    } catch (error) {
+      console.error("Error fetching trend data:", error);
+    }
+  };
+
+  const fetchLowStockItems = async (fromDate, toDate) => {
+    try {
+      setLoadingTable(true);
+      const response = await axios.get(
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/StatisticInventory/low-stock-items`,
+        {
+          params: {
+            fromDate: fromDate.toISOString(),
+            toDate: toDate.toISOString(),
+          },
+        }
+      );
+
+      const items = response.data.data;
+      const transformedData = items.map((item, index) => ({
+        key: `${item.type}-${index}`,
+        name: item.name,
+        type: item.type.toLowerCase(),
+        currentStock: item.currentStock,
+        minStock: item.minimumStock,
+        status: item.isLow ? "danger" : "warning",
+      }));
+
+      setLowStockData(transformedData);
+      setLoadingTable(false);
+    } catch (error) {
+      console.error("Error fetching low stock items:", error);
+      setLoadingTable(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchStatistics = async () => {
-      try {
-        // Gọi API lấy danh sách phiếu nhập thuốc và thức ăn
-        const [medicineResponse, foodResponse] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_URL}/api/MedicineImports`),
-          axios.get(`${import.meta.env.VITE_API_URL}/api/FoodImport`),
-        ]);
-
-        // Lấy data từ response (do server trả về dạng BaseResponse)
-        const medicineImports = medicineResponse.data.data;
-        const foodImports = foodResponse.data.data;
-        console.log("medicineImports", medicineImports);
-        console.log("foodImports", foodImports);
-
-        // Tính tổng giá trị tồn kho
-        let totalMedicineValue = 0;
-        let totalFoodValue = 0;
-
-        // Tính giá trị tồn thuốc - sử dụng actualQuantity và unitPrice từ details
-        medicineImports.forEach((importItem) => {
-          totalMedicineValue += importItem.totalPrice;
-        });
-
-        // Tính giá trị tồn thức ăn - sử dụng actualQuantity và unitPrice từ details
-        foodImports.forEach((importItem) => {
-          totalFoodValue += importItem.totalAmount;
-        });
-        // Tính giá trị nhập kho gần nhất
-        const latestMedicineImport = medicineImports
-          .filter((imp) => imp.status === "Stocked")
-          .sort((a, b) => new Date(b.createTime) - new Date(a.createTime))[0];
-
-        console.log("latestMedicineImport", latestMedicineImport);
-
-        const latestFoodImport = foodImports
-          .filter((imp) => imp.status === "stocked")
-          .sort((a, b) => new Date(b.createTime) - new Date(a.createTime))[0];
-        console.log("latestFoodImport", latestFoodImport);
-
-        const recentImportValue =
-          (latestMedicineImport?.totalPrice || 0) +
-          (latestFoodImport?.totalAmount || 0);
-
-        console.log("recentImportValue", recentImportValue);
-
-        // Tạo map để lưu trữ dữ liệu theo tháng
-        const monthlyData = new Map();
-
-        // Xử lý dữ liệu thuốc
-        medicineImports.forEach((imp) => {
-          const date = new Date(imp.createTime);
-          const monthKey = `T${date.getMonth() + 1}`;
-
-          if (!monthlyData.has(monthKey)) {
-            monthlyData.set(monthKey, {
-              month: monthKey,
-              medicine: 0,
-              food: 0,
-            });
-          }
-
-          const monthData = monthlyData.get(monthKey);
-          imp.details.forEach((detail) => {
-            monthData.medicine += detail.actualQuantity * detail.unitPrice;
-          });
-        });
-
-        // Xử lý dữ liệu thức ăn
-        foodImports.forEach((imp) => {
-          const date = new Date(imp.createTime);
-          const monthKey = `T${date.getMonth() + 1}`;
-
-          if (!monthlyData.has(monthKey)) {
-            monthlyData.set(monthKey, {
-              month: monthKey,
-              medicine: 0,
-              food: 0,
-            });
-          }
-
-          const monthData = monthlyData.get(monthKey);
-          imp.details.forEach((detail) => {
-            monthData.food += detail.actualQuantity * detail.unitPrice;
-          });
-        });
-
-        // Chuyển Map thành mảng và sắp xếp theo tháng
-        const sortedData = Array.from(monthlyData.values()).sort((a, b) => {
-          const monthA = parseInt(a.month.substring(1));
-          const monthB = parseInt(b.month.substring(1));
-          return monthA - monthB;
-        });
-
-        setChartData(sortedData);
-
-        setStatistics({
-          totalInventoryValue: totalMedicineValue + totalFoodValue,
-          recentImportValue,
-          loading: false,
-          error: null,
-        });
-      } catch (error) {
-        console.error("Error fetching statistics:", error);
-        setStatistics({
-          ...statistics,
-          loading: false,
-          error: error.message || "Có lỗi xảy ra khi tải dữ liệu",
-        });
-      }
-    };
-
-    fetchStatistics();
-  }, []);
-
-  // Thêm useEffect mới để fetch data cho bảng
-  useEffect(() => {
-    const fetchLowStockData = async () => {
-      try {
-        setLoadingTable(true);
-        // Gọi API lấy danh sách thuốc và thức ăn
-        const [medicineResponse, foodResponse] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_URL}/api/v1/Medicine`),
-          axios.get(`${import.meta.env.VITE_API_URL}/api/Food`),
-        ]);
-
-        const medicines = medicineResponse.data.data;
-        const foods = foodResponse.data.data.items;
-        console.log("medicines", medicines);
-        console.log("foods", foods);
-
-        const THRESHOLD = 100; // Ngưỡng cố định cho hàng sắp hết
-
-        // Xử lý và kết hợp dữ liệu
-        const medicineItems = medicines
-          .filter((med) => med.quantityInStock <= THRESHOLD && med.isActive) // Dưới 100 là sắp hết
-          .map((med) => ({
-            key: `med-${med.id}`,
-            name: med.medicineName,
-            type: "medicine",
-            currentStock: med.quantityInStock,
-            minStock: THRESHOLD,
-            unit: med.unit,
-            status: med.quantityInStock < THRESHOLD / 2 ? "danger" : "warning", // Dưới 50 là danger
-          }));
-
-        const foodItems = foods
-          .filter(
-            (food) => food.quantityInStock <= 500 && food.status === "active"
-          ) // Dưới 100 là sắp hết
-          .map((food) => ({
-            key: `food-${food.id}`,
-            name: food.name,
-            type: "food",
-            currentStock: food.quantityInStock,
-            minStock: 500,
-            unit: "kg",
-            status: food.quantityInStock < 500 / 2 ? "danger" : "warning", // Dưới 50 là danger
-          }));
-
-        // Kết hợp và sắp xếp theo mức độ cảnh báo
-        const combinedData = [...medicineItems, ...foodItems].sort((a, b) => {
-          // Sắp xếp danger lên trước
-          if (a.status === "danger" && b.status !== "danger") return -1;
-          if (a.status !== "danger" && b.status === "danger") return 1;
-          // Sau đó sắp xếp theo tỷ lệ tồn kho/min stock
-          return a.currentStock / a.minStock - b.currentStock / b.minStock;
-        });
-
-        setLowStockData(combinedData);
-        setLoadingTable(false);
-      } catch (error) {
-        console.error(error);
-        setLoadingTable(false);
-      }
-    };
-
-    fetchLowStockData();
+    fetchStatistics(dateRange[0].toDate(), dateRange[1].toDate());
+    fetchTrendData(dateRange[0].toDate(), dateRange[1].toDate());
+    fetchLowStockItems(dateRange[0].toDate(), dateRange[1].toDate());
   }, []);
 
   // Format số tiền thành tỷ/triệu
@@ -266,8 +220,8 @@ const InventoryStatistics = () => {
       dataIndex: "type",
       key: "type",
       render: (type) => (
-        <Tag color={type === "food" ? "green" : "blue"}>
-          {type === "food" ? "Thức ăn" : "Thuốc"}
+        <Tag color={type === "Thuốc" ? "blue" : "green"}>
+          {type === "Thức ăn" ? "Thức ăn" : "Thuốc"}
         </Tag>
       ),
     },
@@ -275,13 +229,13 @@ const InventoryStatistics = () => {
       title: "Tồn kho",
       dataIndex: "currentStock",
       key: "currentStock",
-      render: (stock, record) => `${stock.toLocaleString()} ${record.unit}`,
+      render: (stock) => `${stock.toLocaleString()}`,
     },
     {
       title: "Mức tối thiểu",
       dataIndex: "minStock",
       key: "minStock",
-      render: (min, record) => `${min.toLocaleString()} ${record.unit}`,
+      render: (min) => `${min.toLocaleString()}`,
     },
     {
       title: "Trạng thái",
@@ -316,6 +270,16 @@ const InventoryStatistics = () => {
               </Tag>
             </div>
           </div>
+        </Col>
+        <Col>
+          <RangePicker
+            value={dateRange}
+            onChange={handleDateRangeChange}
+            format="DD/MM/YYYY"
+            allowClear={false}
+            ranges={customRanges}
+            style={{ marginBottom: 16 }}
+          />
         </Col>
       </Row>
 

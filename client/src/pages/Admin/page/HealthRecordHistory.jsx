@@ -213,14 +213,18 @@ const HealthRecordHistory = () => {
       key: "examinationDate",
       width: 200,
       render: (date) => dayjs(date).format("DD/MM/YYYY"),
-      sorter: (a, b) =>
-        dayjs(a.examinationDate).unix() - dayjs(b.examinationDate).unix(),
+      sorter: (a, b) => {
+        const dateA = dayjs(a.examinationDate);
+        const dateB = dayjs(b.examinationDate);
+        return dateB.diff(dateA);
+      },
+      defaultSortOrder: "ascend",
     },
     {
       title: "Người khám",
       dataIndex: "createdByName",
       key: "createdByName",
-      width: 200,
+      width: 400,
     },
     {
       title: "Số heo",

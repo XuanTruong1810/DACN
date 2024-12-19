@@ -433,8 +433,8 @@ const FoodImportList = () => {
       if (detail.actualQuantity > detail.expectedQuantity) {
         return true;
       }
-      // Số lượng nhận không được vượt quá số lượng thực tế
-      if (detail.receivedQuantity > detail.actualQuantity) {
+      // Số lượng nhận không được vượt quá số lượng giao tới
+      if (detail.receivedQuantity < detail.actualQuantity) {
         return true;
       }
       // Các số lượng phải được nhập
@@ -811,6 +811,8 @@ const FoodImportList = () => {
         open={showDeliveryModal}
         onOk={handleDeliveryConfirm}
         onCancel={() => setShowDeliveryModal(false)}
+        okText="Xác nhận"
+        cancelText="Hủy"
         okButtonProps={{
           disabled: formErrors.deliveryDate || formErrors.quantities,
         }}
@@ -869,6 +871,9 @@ const FoodImportList = () => {
                           }));
                         }}
                         format="DD/MM/YYYY"
+                        disabledDate={(current) =>
+                          current && current.date() !== moment().date()
+                        }
                         style={{ width: "100%" }}
                       />
                     </Descriptions.Item>
@@ -881,8 +886,8 @@ const FoodImportList = () => {
               <Alert
                 message="Lỗi nhập số lượng"
                 description="Vui lòng kiểm tra lại:
-                  - Số lượng thực tế không được vượt quá số lượng yêu cầu
-                  - Số lượng nhận không được vượt quá số lượng thực tế
+                  - Số lượng giao tới không được vượt quá số lượng yêu cầu
+                  - Số lượng nhận không được vượt quá số lượng giao tới
                   - Phải nhập đầy đủ các số lượng"
                 type="error"
                 showIcon
@@ -903,6 +908,31 @@ const FoodImportList = () => {
                   render: (value) => `${value.toLocaleString()} kg`,
                 },
                 {
+                  title: "Số lượng giao tới",
+                  dataIndex: "receivedQuantity",
+                  render: (_, record, index) => (
+                    <InputNumber
+                      min={0}
+                      max={record.expectedQuantity}
+                      value={record.receivedQuantity}
+                      onChange={(value) => {
+                        const newDetails = [...deliveryDetails];
+                        newDetails[index].receivedQuantity = value;
+                        // Cập nhật số lượng chấp nhận bằng với số lượng giao tới
+                        newDetails[index].actualQuantity = value || 0;
+                        setDeliveryDetails(newDetails);
+                        validateDeliveryForm();
+                      }}
+                      status={
+                        record.receivedQuantity > record.expectedQuantity
+                          ? "error"
+                          : ""
+                      }
+                      addonAfter="kg"
+                    />
+                  ),
+                },
+                {
                   title: "Số lượng chấp nhận",
                   dataIndex: "actualQuantity",
                   render: (_, record, index) => (
@@ -913,38 +943,12 @@ const FoodImportList = () => {
                       onChange={(value) => {
                         const newDetails = [...deliveryDetails];
                         newDetails[index].actualQuantity = value;
-                        newDetails[index].receivedQuantity = Math.min(
-                          value || 0,
-                          newDetails[index].receivedQuantity || 0
-                        );
                         setDeliveryDetails(newDetails);
                         validateDeliveryForm();
                       }}
                       status={
-                        record.actualQuantity > record.expectedQuantity
-                          ? "error"
-                          : ""
-                      }
-                      addonAfter="kg"
-                    />
-                  ),
-                },
-                {
-                  title: "Số lượng giao tới",
-                  dataIndex: "receivedQuantity",
-                  render: (_, record, index) => (
-                    <InputNumber
-                      min={0}
-                      max={record.actualQuantity}
-                      value={record.receivedQuantity}
-                      onChange={(value) => {
-                        const newDetails = [...deliveryDetails];
-                        newDetails[index].receivedQuantity = value;
-                        setDeliveryDetails(newDetails);
-                        validateDeliveryForm();
-                      }}
-                      status={
-                        record.receivedQuantity > record.actualQuantity
+                        record.actualQuantity > record.expectedQuantity ||
+                        record.actualQuantity > record.receivedQuantity
                           ? "error"
                           : ""
                       }
@@ -997,7 +1001,7 @@ const FoodImportList = () => {
                     {deliveryDetails
                       .reduce(
                         (sum, item) =>
-                          sum + item.receivedQuantity * item.unitPrice,
+                          sum + item.actualQuantity * item.unitPrice,
                         0
                       )
                       .toLocaleString()}
@@ -1019,10 +1023,11 @@ const FoodImportList = () => {
                     type="danger"
                     style={{ fontSize: 18, fontWeight: "bold" }}
                   >
-                    {(
+                    {Math.max(
+                      0,
                       deliveryDetails.reduce(
                         (sum, item) =>
-                          sum + item.receivedQuantity * item.unitPrice,
+                          sum + item.actualQuantity * item.unitPrice,
                         0
                       ) - (selectedDelivery.depositAmount || 0)
                     ).toLocaleString()}

@@ -34,6 +34,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
 import locale from "antd/es/date-picker/locale/vi_VN";
+import moment from "moment";
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -396,7 +397,7 @@ const CreateHealthRecordPage = () => {
           style={{ width: "100%" }}
           value={record.isHealthy}
           onChange={(value) => handleHealthStatusChange(record, value)}
-          onClick={(e) => e.stopPropagation()} // Ngăn chặn sự kiện nổi bọt
+          onClick={(e) => e.stopPropagation()} // Ngăn chặn sự kiện n��i bọt
         >
           <Select.Option value="healthy">
             <Tag color="success">Khỏe mạnh</Tag>
@@ -598,18 +599,18 @@ const CreateHealthRecordPage = () => {
 
       // Chuẩn bị payload theo VaccinationInsertDTO
       const payload = {
-        examinationDate: dayjs(examDate).toISOString(), // Chuyển sang ISO string
+        examinationDate: dayjs(examDate).format("YYYY-MM-DD[T]HH:mm:ss.SSS[Z]"),
         examinationNote: form.getFieldValue("examinationNote"),
         examinationType: "Regular",
-        medicineId: null, // Có thể thêm field chọn thuốc chính nếu cần
+        medicineId: null,
         vaccinationInsertDetails: selectedPigData.map((pig) => ({
           pigId: pig.id,
           isHealthy: pig.isHealthy === "healthy",
           diagnosis: pig.diagnosis,
           treatmentMethod: pig.treatmentMethod,
           healthNote: pig.symptoms,
-          vaccineName: null, // Không cần trong trường hợp này
-          lastModifiedTime: dayjs().toISOString(), // Thời gian hiện tại
+          vaccineName: null,
+          lastModifiedTime: dayjs().toISOString(),
           vaccinationInsertMedicationDetails:
             pig.medicines
               ?.filter((med) => med.medicineId && med.quantity)
@@ -795,6 +796,11 @@ const CreateHealthRecordPage = () => {
                       onChange={setExamDate}
                       format="DD/MM/YYYY"
                       locale={locale}
+                      disabledDate={(current) =>
+                        current &&
+                        (current < moment().startOf("day") ||
+                          current > moment().endOf("day"))
+                      }
                     />
                   </Form.Item>
                 </Col>

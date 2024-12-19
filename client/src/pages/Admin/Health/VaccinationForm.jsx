@@ -424,7 +424,7 @@ const VaccinationForm = () => {
                 </Select>
                 <InputNumber
                   style={{ width: 100 }}
-                  min={0}
+                  min={1}
                   value={medicine.quantity}
                   onChange={(value) =>
                     handleMedicineChange(record, index, "quantity", value)

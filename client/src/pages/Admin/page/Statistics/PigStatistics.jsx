@@ -11,6 +11,9 @@ import {
   Space,
   Table,
   Tag,
+  Alert,
+  Spin,
+  Button,
 } from "antd";
 import {
   LineChart,
@@ -25,6 +28,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Cell,
 } from "recharts";
 import {
   ArrowUpOutlined,
@@ -37,37 +41,172 @@ import {
   FieldTimeOutlined,
   AlertOutlined,
   DashboardOutlined,
+  HomeOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import { message } from "antd";
+import dayjs from "dayjs";
+import locale from "antd/es/date-picker/locale/vi_VN";
 
 const { Title, Text } = Typography;
+const { RangePicker } = DatePicker;
 
 const PigStatistics = () => {
-  const [stableStats, setStableStats] = useState([]);
-  const [overallStats, setOverallStats] = useState({
-    totalPigs: 0,
-    totalCapacity: 0,
-    occupiedStables: 0,
-    totalStables: 0,
-    occupancyRate: "0.0",
-    recentIntakes: 0,
-    recentExports: 0,
-  });
+  // States for data
   const [loading, setLoading] = useState(false);
-  const [weightDistribution, setWeightDistribution] = useState([
-    { range: "0-30kg", count: 0 },
-    { range: "30-80kg", count: 0 },
-    { range: "80-100kg", count: 0 },
-    { range: ">100kg", count: 0 },
+  const [dateRange, setDateRange] = useState([
+    dayjs().subtract(30, "days"),
+    dayjs(),
   ]);
-  const [pigTrends, setPigTrends] = useState([]);
-  const [statistics, setStatistics] = useState({
+  const [isDateSelected, setIsDateSelected] = useState(true);
+  const [basicStats, setBasicStats] = useState({
     totalPigs: 0,
-    importedPigs: { quantity: 0, value: 0 },
-    exportedPigs: { quantity: 0, value: 0 },
-    deadRate: { rate: 0, count: 0 },
+    growthRate: 0,
+    import: { quantity: 0, totalValue: 0 },
+    export: { quantity: 0, totalValue: 0 },
+    death: { quantity: 0, rate: 0 },
   });
+  const [performanceMetrics, setPerformanceMetrics] = useState({
+    weightGain: { value: 0, growthRate: 0 },
+    fcr: { value: 0, difference: 0 },
+    survival: { rate: 0, difference: 0 },
+    efficiency: { rate: 0, reachedTarget: false },
+  });
+  const [pigTrends, setPigTrends] = useState([]);
+  const [weightDistribution, setWeightDistribution] = useState([]);
+  const [areaEfficiency, setAreaEfficiency] = useState([]);
+  const [trendData, setTrendData] = useState([]);
+
+  // Giới hạn chọn ngày
+  const disabledDate = (current) => {
+    // Không cho chọn ngày sau năm 2057
+    if (current && current > dayjs("2057-12-31")) {
+      return true;
+    }
+    return false;
+  };
+
+  // Các preset ranges
+  const customRanges = {
+    "Tháng này": [dayjs().startOf("month"), dayjs().endOf("month")],
+    "Tháng trước": [
+      dayjs().subtract(1, "month").startOf("month"),
+      dayjs().subtract(1, "month").endOf("month"),
+    ],
+    "Quý này": [dayjs().startOf("quarter"), dayjs().endOf("quarter")],
+    "Quý trước": [
+      dayjs().subtract(1, "quarter").startOf("quarter"),
+      dayjs().subtract(1, "quarter").endOf("quarter"),
+    ],
+    "Năm nay": [dayjs().startOf("year"), dayjs().endOf("year")],
+    "Năm trước": [
+      dayjs().subtract(1, "year").startOf("year"),
+      dayjs().subtract(1, "year").endOf("year"),
+    ],
+  };
+
+  // Fetch all data
+  const fetchAllData = async (fromDate, toDate) => {
+    if (!fromDate || !toDate) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      setLoading(true);
+
+      const [
+        basicStatsRes,
+        trendRes,
+        weightDistRes,
+        performanceRes,
+        areaEfficiencyRes,
+      ] = await Promise.all([
+        axios.get(
+          `${import.meta.env.VITE_API_URL}/api/StatisticPig/pig-statistic`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+              fromDate: fromDate.format("YYYY-MM-DD"),
+              toDate: toDate.format("YYYY-MM-DD"),
+            },
+          }
+        ),
+        axios.get(
+          `${import.meta.env.VITE_API_URL}/api/StatisticPig/pig-trend`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+              fromDate: fromDate.format("YYYY-MM-DD"),
+              toDate: toDate.format("YYYY-MM-DD"),
+            },
+          }
+        ),
+        axios.get(
+          `${
+            import.meta.env.VITE_API_URL
+          }/api/StatisticPig/pig-weight-distribution`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+              fromDate: fromDate.format("YYYY-MM-DD"),
+              toDate: toDate.format("YYYY-MM-DD"),
+            },
+          }
+        ),
+        axios.get(
+          `${
+            import.meta.env.VITE_API_URL
+          }/api/StatisticPig/pig-fcr-distribution`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+              fromDate: fromDate.format("YYYY-MM-DD"),
+              toDate: toDate.format("YYYY-MM-DD"),
+            },
+          }
+        ),
+        axios.get(
+          `${
+            import.meta.env.VITE_API_URL
+          }/api/StatisticPig/pig-area-efficiency`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+              fromDate: fromDate.format("YYYY-MM-DD"),
+              toDate: toDate.format("YYYY-MM-DD"),
+            },
+          }
+        ),
+      ]);
+
+      // Update all states with API data
+      setBasicStats(basicStatsRes.data.data);
+      setPigTrends(trendRes.data.data);
+      setWeightDistribution(weightDistRes.data.data);
+      setPerformanceMetrics(performanceRes.data.data);
+      setAreaEfficiency(areaEfficiencyRes.data.data);
+      setTrendData(trendRes.data.data);
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      message.error("Không thể tải dữ liệu thống kê");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle date range change
+  const handleDateRangeChange = (dates) => {
+    if (dates) {
+      setDateRange(dates);
+      fetchAllData(dates[0], dates[1]);
+    }
+  };
+
+  // Fetch data when date range changes
+  useEffect(() => {
+    if (dateRange[0] && dateRange[1]) {
+      fetchAllData(dateRange[0], dateRange[1]);
+    }
+  }, []);
 
   // Định nghĩa columns cho Table
   const columns = [
@@ -75,33 +214,41 @@ const PigStatistics = () => {
       title: "Khu vực",
       dataIndex: "areaName",
       key: "areaName",
-      render: (text) => <Text strong>{text || "N/A"}</Text>,
+      render: (text) => (
+        <Space>
+          <HomeOutlined style={{ color: "#1890ff" }} />
+          <Text strong>{text}</Text>
+        </Space>
+      ),
     },
     {
       title: "Mô tả",
       dataIndex: "description",
       key: "description",
-      render: (text) => text || "Không có mô tả",
+      ellipsis: true,
     },
     {
       title: "Tổng số heo",
       dataIndex: "totalPigs",
       key: "totalPigs",
-      render: (value) => (value ? value.toLocaleString() : "0"),
+      align: "center",
+      render: (value) => <Text strong>{value}</Text>,
     },
     {
       title: "Số chuồng",
-      dataIndex: "stableCount",
-      key: "stableCount",
-      render: (value, record) => `${record.occupiedStables}/${value}`,
+      dataIndex: "stableUsage",
+      key: "stableUsage",
+      align: "center",
+      render: (text) => <Tag color="blue">{text}</Tag>,
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
+      align: "center",
       render: (status) => (
-        <Tag color={status === "active" ? "green" : "red"}>
-          {status === "active" ? "Đang hoạt động" : "Ngưng hoạt động"}
+        <Tag color={status === "Đang hoạt động" ? "green" : "red"}>
+          {status}
         </Tag>
       ),
     },
@@ -109,154 +256,68 @@ const PigStatistics = () => {
       title: "Tỷ lệ lấp đầy (%)",
       dataIndex: "occupancyRate",
       key: "occupancyRate",
-      render: (value) => (
-        <Text
-          type={
-            !value
-              ? "default"
-              : value >= 95
-              ? "success"
-              : value >= 90
-              ? "warning"
-              : "danger"
-          }
-        >
-          {value || "0"}%
-        </Text>
-      ),
+      align: "center",
+      render: (rate) => {
+        const color =
+          rate > 80
+            ? "red"
+            : rate > 50
+            ? "orange"
+            : rate > 0
+            ? "green"
+            : "gray";
+        return <Text style={{ color }}>{rate}%</Text>;
+      },
     },
   ];
 
-  const fetchStatistics = async () => {
+  // Hàm fetch data
+  const fetchTrendData = async () => {
     try {
-      setLoading(true);
       const token = localStorage.getItem("token");
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
+      const [fromDate, toDate] = dateRange;
 
-      // 1. Lấy danh sách khu vực
-      const areasResponse = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/v1/Areas`,
-        { headers }
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/StatisticPig/pig-trend`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            fromDate: fromDate.format("YYYY-MM-DD"),
+            toDate: toDate.format("YYYY-MM-DD"),
+          },
+        }
       );
 
-      if (!areasResponse.data?.data?.items) {
-        throw new Error("Không thể lấy dữ liệu khu vực");
+      if (response.data?.data) {
+        setTrendData(response.data.data);
       }
-
-      const areas = areasResponse.data.data.items;
-      // 2. Lấy thông tin chuồng cho từng khu vực
-      const areaStatsPromises = areas.map(async (area) => {
-        console.log("area", area);
-        const stablesResponse = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/v1/Stables`,
-          {
-            headers,
-            params: {
-              areaId: area.id,
-              pageIndex: 1,
-              pageSize: 100,
-            },
-          }
-        );
-
-        const stables = stablesResponse.data.data.items || [];
-        console.log("stables", stables);
-        // Tính tổng số heo trong các chuồng của khu vực
-        let totalPigsInArea = 0;
-        stables.forEach((stable) => {
-          console.log("stable in area", stable);
-          totalPigsInArea += stable.currentOccupancy || 0;
-        });
-
-        return {
-          areaId: area.id,
-          areaName: area.name || "N/A",
-          description: area.description || "Không có mô tả",
-          totalPigs: totalPigsInArea,
-          capacity: area.totalHouses * 20, // Giả sử mỗi chuồng chứa được 20 con
-          stableCount: stables.length,
-          occupiedStables: area.occupiedHouses,
-          status: area.status,
-          occupancyRate: stables.length
-            ? ((totalPigsInArea / (stables.length * 20)) * 100).toFixed(1)
-            : "0",
-        };
-      });
-
-      const areaStats = await Promise.all(areaStatsPromises);
-
-      // Tính toán tổng thể
-      const overallStatistics = {
-        totalPigs: areaStats.reduce((sum, area) => sum + area.totalPigs, 0),
-        totalCapacity: areaStats.reduce((sum, area) => sum + area.capacity, 0),
-        totalStables: areaStats.reduce(
-          (sum, area) => sum + area.stableCount,
-          0
-        ),
-        occupiedStables: areaStats.reduce(
-          (sum, area) => sum + area.occupiedStables,
-          0
-        ),
-        occupancyRate: (
-          (areaStats.reduce((sum, area) => sum + area.totalPigs, 0) /
-            areaStats.reduce((sum, area) => sum + area.capacity, 0)) *
-          100
-        ).toFixed(1),
-      };
-
-      setStableStats(areaStats);
-      setOverallStats(overallStatistics);
     } catch (error) {
-      console.error(error);
-      message.error("Không thể tải dữ liệu thống kê");
-    } finally {
-      setLoading(false);
+      console.error("Error fetching trend data:", error);
+      message.error("Không thể tải dữ liệu biểu đồ");
     }
   };
 
-  const calculateWeightDistribution = (pigs) => {
-    const distribution = {
-      "0-30kg": 0,
-      "30-80kg": 0,
-      "80-100kg": 0,
-      ">100kg": 0,
-    };
-
-    pigs.forEach((pig) => {
-      const weight = pig.weight;
-      if (weight <= 30) {
-        distribution["0-30kg"]++;
-      } else if (weight <= 80) {
-        distribution["30-80kg"]++;
-      } else if (weight <= 100) {
-        distribution["80-100kg"]++;
-      } else {
-        distribution[">100kg"]++;
-      }
-    });
-
-    return [
-      { range: "0-30kg", count: distribution["0-30kg"] },
-      { range: "30-80kg", count: distribution["30-80kg"] },
-      { range: "80-100kg", count: distribution["80-100kg"] },
-      { range: ">100kg", count: distribution[">100kg"] },
-    ];
-  };
-
+  // Fetch data
   const fetchWeightDistribution = async () => {
     try {
       const token = localStorage.getItem("token");
+      const [fromDate, toDate] = dateRange;
+
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/v1/Pigs`,
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/StatisticPig/pig-weight-distribution`,
         {
           headers: { Authorization: `Bearer ${token}` },
+          params: {
+            fromDate: fromDate.format("YYYY-MM-DD"),
+            toDate: toDate.format("YYYY-MM-DD"),
+          },
         }
       );
+
       if (response.data?.data) {
-        const distribution = calculateWeightDistribution(response.data.data);
-        setWeightDistribution(distribution);
+        setWeightDistribution(response.data.data);
       }
     } catch (error) {
       console.error("Error fetching weight distribution:", error);
@@ -264,240 +325,199 @@ const PigStatistics = () => {
     }
   };
 
-  const fetchPigTrends = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
+  // Phần render Performance Metrics Cards
+  const renderPerformanceCards = () => {
+    const cards = [
+      {
+        title: "Tăng trọng TB/ngày",
+        value: performanceMetrics.weightGain.value,
+        suffix: "kg/ngày",
+        trend: performanceMetrics.weightGain.growthRate,
+        trendSuffix: "% so với tháng trước",
+        icon: <RiseOutlined style={{ color: "#1890ff" }} />,
+        color: "#1890ff",
+      },
+      {
+        title: "FCR trung bình",
+        value: performanceMetrics.fcr.value,
+        suffix: "kg/kg",
+        subTitle: `${
+          performanceMetrics.fcr.difference > 0 ? "Tốt hơn" : "Kém hơn"
+        } ${Math.abs(performanceMetrics.fcr.difference)} so với chuẩn`,
+        icon: <FieldTimeOutlined style={{ color: "#52c41a" }} />,
+        color: "#52c41a",
+      },
+      {
+        title: "Tỷ lệ xuất chuồng đạt",
+        value: performanceMetrics.survival.rate,
+        suffix: "%",
+        trend: performanceMetrics.survival.difference,
+        trendSuffix: "% so với mục tiêu",
+        icon: <AlertOutlined style={{ color: "#faad14" }} />,
+        color: "#faad14",
+      },
+      {
+        title: "Hiệu suất chuồng",
+        value: performanceMetrics.efficiency.rate,
+        suffix: "%",
+        subTitle: performanceMetrics.efficiency.reachedTarget
+          ? "Đạt mục tiêu"
+          : "Chưa đạt mục tiêu",
+        icon: <DashboardOutlined style={{ color: "#ff4d4f" }} />,
+        color: "#ff4d4f",
+      },
+    ];
 
-      // Fetch 2 API
-      const [intakesRes, exportsRes] = await Promise.all([
-        // Lấy danh sách nhập heo
-        axios.get(`${import.meta.env.VITE_API_URL}/api/v1/PigIntakes`, {
-          headers,
-        }),
-        // Lấy danh sách xuất heo
-        axios.get(`${import.meta.env.VITE_API_URL}/api/v1/PigExport/export`, {
-          headers,
-        }),
-      ]);
-
-      // Khởi tạo dữ liệu cho 12 tháng
-      const monthlyData = {};
-      for (let i = 1; i <= 12; i++) {
-        monthlyData[`T${i}`] = {
-          name: `T${i}`,
-          total: 0,
-          import: 0,
-          export: 0,
-          dead: 0, // Khởi tạo số heo chết là 0
-        };
-      }
-
-      // Xử lý dữ liệu nhập
-      const intakes = intakesRes.data?.data || [];
-      intakes.forEach((intake) => {
-        if (intake.stokeDate) {
-          const date = new Date(intake.stokeDate);
-          const month = `T${date.getMonth() + 1}`;
-          const importQuantity = intake.acceptedQuantity || 0;
-          monthlyData[month].import += importQuantity;
-          monthlyData[month].total += importQuantity;
-
-          // Chỉ tính heo chết khi có nhập heo (10% số lượng nhập)
-          monthlyData[month].dead = Math.round(importQuantity * 0.1); // 10% số lượng nhập
-          monthlyData[month].total -= monthlyData[month].dead; // Trừ số heo chết khỏi tổng đàn
-        }
-      });
-
-      // Xử lý dữ liệu xuất
-      const exports = exportsRes.data?.data || [];
-      exports.forEach((export_) => {
-        if (export_.exportDate) {
-          const date = new Date(export_.exportDate);
-          const month = `T${date.getMonth() + 1}`;
-          const exportQuantity = export_.details?.length || 0;
-          monthlyData[month].export += exportQuantity;
-          monthlyData[month].total -= exportQuantity;
-        }
-      });
-
-      // Chuyển đổi object thành mảng và sắp xếp theo tháng
-      const chartData = Object.values(monthlyData);
-
-      setPigTrends(chartData);
-      console.log("Chart data:", chartData);
-    } catch (error) {
-      console.error("Error fetching pig trends:", error);
-      message.error("Không thể tải dữ liệu biến động đàn heo");
-    }
+    return (
+      <Row gutter={[24, 24]} style={{ marginTop: "32px" }}>
+        {cards.map((card, index) => (
+          <Col xs={24} sm={12} lg={6} key={index}>
+            <Card bordered={false} className="statistic-card">
+              <Statistic
+                title={<Text strong>{card.title}</Text>}
+                value={card.value}
+                suffix={card.suffix}
+                prefix={card.icon}
+                valueStyle={{ color: card.color }}
+              />
+              <div style={{ marginTop: 8 }}>
+                {card.trend !== undefined ? (
+                  <Text
+                    type={card.trend > 0 ? "success" : "danger"}
+                    style={{ fontSize: "14px" }}
+                  >
+                    <span>
+                      {card.trend > 0 ? "+" : ""}
+                      {card.trend}
+                      {card.trendSuffix}
+                    </span>
+                  </Text>
+                ) : (
+                  <Text
+                    type={
+                      card.subTitle.includes("Đạt") ||
+                      card.subTitle.includes("Tốt")
+                        ? "success"
+                        : "danger"
+                    }
+                    style={{ fontSize: "14px" }}
+                  >
+                    {card.subTitle}
+                  </Text>
+                )}
+              </div>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+    );
   };
-
-  const fetchOverviewStatistics = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
-
-      // Fetch tất cả API cần thiết
-      const [pigsRes, intakesRes, exportsRes] = await Promise.all([
-        // Tổng đàn hiện tại
-        axios.get(`${import.meta.env.VITE_API_URL}/api/v1/Pigs`, {
-          headers,
-          params: { status: "alive" },
-        }),
-        // Nhập trong kỳ
-        axios.get(`${import.meta.env.VITE_API_URL}/api/v1/PigIntakes`, {
-          headers,
-          params: { pageSize: 1 },
-        }),
-        // Xuất trong kỳ
-        axios.get(`${import.meta.env.VITE_API_URL}/api/v1/PigExport/export`, {
-          headers,
-        }),
-      ]);
-
-      const totalPigs = pigsRes.data?.data?.length || 0;
-
-      // Lấy thông tin nhập gần nhất
-      const latestIntake = intakesRes.data?.data?.[0] || {};
-      const importedPigs = {
-        quantity: latestIntake.acceptedQuantity || 0,
-        value: latestIntake.totalPrice || 0, // Lấy totalPrice từ API
-      };
-
-      // Tổng hợp thông tin xuất
-      const exports = exportsRes.data?.data || [];
-      console.log("exports", exports);
-
-      // Lấy phiếu xuất gần nhất dựa trên exportDate
-      const latestExport = exports.reduce((latest, current) => {
-        if (
-          !latest ||
-          (current.exportDate &&
-            new Date(current.exportDate) > new Date(latest.exportDate))
-        ) {
-          return current;
-        }
-        return latest;
-      }, null);
-
-      const exportedPigs = {
-        quantity: latestExport?.details?.length || 0,
-        value: latestExport?.totalAmount || 0,
-      };
-
-      // Tính tỷ lệ chết từ dữ liệu biểu đồ
-      const deadRate = {
-        rate: 0.33,
-        count: 5,
-      };
-
-      setStatistics({
-        totalPigs,
-        importedPigs,
-        exportedPigs,
-        deadRate,
-      });
-
-      console.log("Latest intake:", latestIntake); // Log để kiểm tra dữ liệu
-    } catch (error) {
-      console.error("Error fetching overview statistics:", error);
-      message.error("Không thể tải dữ liệu thống kê tổng quan");
-    }
-  };
-
-  useEffect(() => {
-    fetchStatistics();
-    fetchWeightDistribution();
-    fetchPigTrends();
-    fetchOverviewStatistics();
-  }, []);
 
   return (
     <div className="statistics-container" style={{ padding: "24px" }}>
-      {/* Enhanced Header Section */}
-      <div className="stats-header">
-        <Row justify="space-between" align="middle" gutter={[16, 16]}>
-          <Col>
-            <div className="header-content">
-              <Title level={2} className="page-title">
-                <PieChartOutlined className="title-icon" /> Thống kê đàn heo
-              </Title>
-            </div>
-          </Col>
-        </Row>
-      </div>
-
-      {/* Overview Statistics Cards */}
-      <Row gutter={[24, 24]} style={{ marginBottom: "32px" }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card
-            bordered={false}
-            className="statistic-card"
-            style={{ background: "#fff" }}
-          >
-            <Statistic
-              title={<Text strong>Tổng đàn hiện tại</Text>}
-              value={statistics.totalPigs}
-              suffix="con"
-              prefix={<PieChartOutlined style={{ color: "#1890ff" }} />}
-              valueStyle={{ color: "#1890ff" }}
-            />
-            <div style={{ marginTop: 8 }}>
-              <Text type="success">
-                <ArrowUpOutlined /> 12% so với tháng trước
-              </Text>
-            </div>
-          </Card>
+      {/* Header with date range picker */}
+      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        <Col>
+          <Title level={2}>
+            <PieChartOutlined /> Thống kê đàn heo
+          </Title>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="statistic-card">
-            <Statistic
-              title={<Text strong>Nhập trong kỳ</Text>}
-              value={statistics.importedPigs.quantity}
-              suffix="con"
-              prefix={<ArrowUpOutlined style={{ color: "#52c41a" }} />}
-              valueStyle={{ color: "#52c41a" }}
+        <Col>
+          <div style={{ marginBottom: 16, padding: "8px 0" }}>
+            <RangePicker
+              ranges={customRanges}
+              value={dateRange}
+              onChange={handleDateRangeChange}
+              format="DD/MM/YYYY"
+              allowClear={false}
+              locale={locale}
+              size="middle"
+              style={{ width: 240 }}
+              disabledDate={disabledDate}
             />
-            <div style={{ marginTop: 8 }}>
-              <Text type="secondary">
-                Tổng giá trị: {statistics.importedPigs.value.toLocaleString()}đ
-              </Text>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="statistic-card">
-            <Statistic
-              title={<Text strong>Xuất trong kỳ</Text>}
-              value={statistics.exportedPigs.quantity}
-              suffix="con"
-              prefix={<ArrowDownOutlined style={{ color: "#faad14" }} />}
-              valueStyle={{ color: "#faad14" }}
-            />
-            <div style={{ marginTop: 8 }}>
-              <Text type="secondary">
-                Tổng giá trị: {statistics.exportedPigs.value.toLocaleString()}đ
-              </Text>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="statistic-card">
-            <Statistic
-              title={<Text strong>Tỷ lệ heo chết</Text>}
-              value={statistics.deadRate.rate}
-              suffix="%"
-              prefix={<WarningOutlined style={{ color: "#ff4d4f" }} />}
-              valueStyle={{ color: "#ff4d4f" }}
-            />
-            <div style={{ marginTop: 8 }}>
-              <Text type="danger">
-                {statistics.deadRate.count} con trong kỳ
-              </Text>
-            </div>
-          </Card>
+          </div>
         </Col>
       </Row>
+
+      {/* Loading state */}
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "50px" }}>
+          <Spin size="large" />
+        </div>
+      ) : (
+        // Overview Statistics Cards
+        <Row gutter={[24, 24]} style={{ marginBottom: "32px" }}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card
+              bordered={false}
+              className="statistic-card"
+              style={{ background: "#fff" }}
+            >
+              <Statistic
+                title={<Text strong>Tổng đàn hiện tại</Text>}
+                value={basicStats.totalPigs}
+                suffix="con"
+                prefix={<PieChartOutlined style={{ color: "#1890ff" }} />}
+                valueStyle={{ color: "#1890ff" }}
+              />
+              <div style={{ marginTop: 8 }}>
+                <Text type="success">
+                  <ArrowUpOutlined /> {basicStats.growthRate}% so với tháng
+                  trước
+                </Text>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} className="statistic-card">
+              <Statistic
+                title={<Text strong>Nhập trong kỳ</Text>}
+                value={basicStats.import.quantity}
+                suffix="con"
+                prefix={<ArrowUpOutlined style={{ color: "#52c41a" }} />}
+                valueStyle={{ color: "#52c41a" }}
+              />
+              <div style={{ marginTop: 8 }}>
+                <Text type="secondary">
+                  Tổng giá trị: {basicStats.import.totalValue.toLocaleString()}đ
+                </Text>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} className="statistic-card">
+              <Statistic
+                title={<Text strong>Xuất trong kỳ</Text>}
+                value={basicStats.export.quantity}
+                suffix="con"
+                prefix={<ArrowDownOutlined style={{ color: "#faad14" }} />}
+                valueStyle={{ color: "#faad14" }}
+              />
+              <div style={{ marginTop: 8 }}>
+                <Text type="secondary">
+                  Tổng giá trị: {basicStats.export.totalValue.toLocaleString()}đ
+                </Text>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} className="statistic-card">
+              <Statistic
+                title={<Text strong>Tỷ lệ heo chết</Text>}
+                value={basicStats.death.rate}
+                suffix="%"
+                prefix={<WarningOutlined style={{ color: "#ff4d4f" }} />}
+                valueStyle={{ color: "#ff4d4f" }}
+              />
+              <div style={{ marginTop: 8 }}>
+                <Text type="danger">
+                  {basicStats.death.quantity} con trong kỳ
+                </Text>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       {/* Charts Section */}
       <Row
@@ -511,208 +531,197 @@ const PigStatistics = () => {
           <Card
             title={
               <Space>
-                <LineChartOutlined />
+                <LineChartOutlined style={{ color: "#1890ff" }} />
                 <Text strong>Biến động đàn heo theo thời gian</Text>
               </Space>
             }
             bordered={false}
           >
-            <ResponsiveContainer width="100%" height={400}>
-              <LineChart
-                data={pigTrends}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="name"
-                  ticks={["T1", "T12"]} // Chỉ hiển thị T1 và T12
-                  interval={0} // Đảm bảo hiển thị tất cả các tick được chỉ định
-                />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="total"
-                  stroke="#1890ff"
-                  name="Tổng đàn"
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="import"
-                  stroke="#52c41a"
-                  name="Nhập"
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="export"
-                  stroke="#faad14"
-                  name="Xuất"
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="dead"
-                  stroke="#ff4d4f"
-                  name="Chết"
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div style={{ width: "100%", height: 400 }}>
+              <ResponsiveContainer>
+                <LineChart
+                  data={trendData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    axisLine={{ stroke: "#E5E5E5" }}
+                  />
+                  <YAxis tickLine={false} axisLine={{ stroke: "#E5E5E5" }} />
+                  <Tooltip />
+                  <Legend verticalAlign="top" height={36} />
+                  <Line
+                    name="Tổng đàn"
+                    type="monotone"
+                    dataKey="totalPigs"
+                    stroke="#1890ff"
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line
+                    name="Nhập"
+                    type="monotone"
+                    dataKey="importQuantity"
+                    stroke="#52c41a"
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line
+                    name="Xuất"
+                    type="monotone"
+                    dataKey="exportQuantity"
+                    stroke="#faad14"
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line
+                    name="Chết"
+                    type="monotone"
+                    dataKey="deathQuantity"
+                    stroke="#ff4d4f"
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
         </Col>
       </Row>
 
       {/* Distribution Charts */}
-      <Row gutter={[24, 24]} style={{ marginBottom: "40px" }}>
+      <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
+        {/* Biểu đồ phân bố theo khu vực */}
         <Col xs={24} lg={12}>
           <Card
             title={
               <Space>
-                <PieChartOutlined />
+                <PieChartOutlined style={{ color: "#1890ff" }} />
                 <Text strong>Phân bố theo khu vực</Text>
               </Space>
             }
-            bordered={false}
+            style={{ height: "100%" }}
           >
-            <ResponsiveContainer width="100%" height={400}>
-              <PieChart>
-                <Pie
-                  data={stableStats.map((area, index) => ({
-                    name: area.areaName,
-                    value: area.totalPigs,
-                    fill: [
-                      "#1890ff",
-                      "#52c41a",
-                      "#faad14",
-                      "#13c2c2",
-                      "#722ed1",
-                      "#eb2f96",
-                    ][index % 6], // Rotate through 6 different colors
-                  }))}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  label={({ name, percent }) =>
-                    `${name} (${(percent * 100).toFixed(1)}%)`
-                  }
-                />
-                <Tooltip formatter={(value) => `${value} con`} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <div style={{ height: 400 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={areaEfficiency.map((area, index) => ({
+                      name: area.areaName,
+                      value: area.totalPigs,
+                      fill: [
+                        "#1890ff",
+                        "#52c41a",
+                        "#faad14",
+                        "#13c2c2",
+                        "#722ed1",
+                        "#eb2f96",
+                      ][index % 6], // Rotate through 6 different colors
+                    }))}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    label={({ name, percent }) =>
+                      `${name} (${(percent * 100).toFixed(1)}%)`
+                    }
+                  />
+                  <Tooltip formatter={(value) => `${value} con`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
         </Col>
 
+        {/* Biểu đồ phân bố theo trọng lượng */}
         <Col xs={24} lg={12}>
           <Card
             title={
               <Space>
-                <BarChartOutlined />
+                <BarChartOutlined style={{ color: "#1890ff" }} />
                 <Text strong>Phân bố theo trọng lượng</Text>
               </Space>
             }
-            bordered={false}
+            style={{ height: "100%" }}
           >
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart
-                data={weightDistribution}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="range" />
-                <YAxis domain={[0, 200]} />
-                <Tooltip />
-                <Legend />
-                <Bar
-                  dataKey="count"
-                  name="Số lượng heo"
-                  fill="#1890ff"
-                  label={{ position: "top" }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ height: 400 }}>
+              <ResponsiveContainer>
+                <BarChart
+                  data={weightDistribution}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="range"
+                    tickLine={false}
+                    axisLine={{ stroke: "#E5E5E5" }}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={{ stroke: "#E5E5E5" }}
+                    label={{
+                      value: "Số lượng heo",
+                      angle: -90,
+                      position: "insideLeft",
+                    }}
+                  />
+                  <Tooltip
+                    formatter={(value) => [`${value} con`, "Số lượng"]}
+                  />
+                  <Bar dataKey="pigCount" fill="#1890ff">
+                    {weightDistribution.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.pigCount > 0 ? "#1890ff" : "#f0f0f0"}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Hiển thị legend tự tạo */}
+            <div style={{ marginTop: 16, textAlign: "center" }}>
+              <Space size="large">
+                {weightDistribution.map((item, index) => (
+                  <Space key={index}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 12,
+                        height: 12,
+                        backgroundColor:
+                          item.pigCount > 0 ? "#1890ff" : "#f0f0f0",
+                        marginRight: 8,
+                      }}
+                    />
+                    <Text>
+                      {item.range}: {item.pigCount} con
+                    </Text>
+                  </Space>
+                ))}
+              </Space>
+            </div>
           </Card>
         </Col>
       </Row>
 
-      {/* Performance Metrics Cards */}
-      <Row
-        gutter={[24, 24]}
-        style={{
-          marginTop: "32px",
-          marginBottom: "40px",
-        }}
-      >
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="stat-card">
-            <Statistic
-              title={<Text strong>Tăng trọng TB/ngày</Text>}
-              value={0.85}
-              suffix="kg/ngày"
-              prefix={<RiseOutlined style={{ color: "#1890ff" }} />}
-              valueStyle={{ color: "#1890ff" }}
-            />
-            <div style={{ marginTop: 8 }}>
-              <Text type="success">+5% so với tháng trước</Text>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="stat-card">
-            <Statistic
-              title={<Text strong>FCR trung bình</Text>}
-              value={2.7}
-              precision={1}
-              suffix="kg/kg"
-              prefix={<FieldTimeOutlined style={{ color: "#52c41a" }} />}
-              valueStyle={{ color: "#52c41a" }}
-            />
-            <div style={{ marginTop: 8 }}>
-              <Text type="success">Tốt hơn 0.1 so với chuẩn</Text>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="stat-card">
-            <Statistic
-              title={<Text strong>Tỷ lệ xuất chuồng đạt</Text>}
-              value={96.5}
-              suffix="%"
-              prefix={<AlertOutlined style={{ color: "#faad14" }} />}
-              valueStyle={{ color: "#faad14" }}
-            />
-            <div style={{ marginTop: 8 }}>
-              <Text type="warning">-0.5% so với mục tiêu</Text>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="stat-card">
-            <Statistic
-              title={<Text strong>Hiệu suất chuồng</Text>}
-              value={94.8}
-              suffix="%"
-              prefix={<DashboardOutlined style={{ color: "#ff4d4f" }} />}
-              valueStyle={{ color: "#ff4d4f" }}
-            />
-            <div style={{ marginTop: 8 }}>
-              <Text type="secondary">Đạt mục tiêu</Text>
-            </div>
-          </Card>
-        </Col>
-      </Row>
+      {renderPerformanceCards()}
 
       <div style={{ marginTop: "48px" }}>
         <Card
           title={
             <Space>
-              <DashboardOutlined style={{ color: "#1890ff" }} />
+              <HomeOutlined style={{ color: "#1890ff" }} />
               <Text strong>Chi tiết hiệu suất theo khu vực</Text>
             </Space>
           }
@@ -720,10 +729,10 @@ const PigStatistics = () => {
         >
           <Table
             columns={columns}
-            dataSource={stableStats}
+            dataSource={areaEfficiency}
             loading={loading}
             pagination={{
-              total: stableStats.length,
+              total: areaEfficiency.length,
               pageSize: 5,
               showSizeChanger: true,
               showQuickJumper: true,

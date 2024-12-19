@@ -55,6 +55,10 @@ public static class DependencyInjection
         services.AddScoped<ICalenderWeighingService, CalenderWeighingService>();
         services.AddScoped<IPerformanceStatisticsService, PerformanceStatisticsService>();
         services.AddScoped<IPigExaminationService, PigExaminationService>();
+
+        services.AddScoped<StatisticPerformanceService>();
+        services.AddScoped<StatisticPigService>();
+        services.AddScoped<StatisticInventoryService>();
     }
     public static void AddMapping(this IServiceCollection services)
     {

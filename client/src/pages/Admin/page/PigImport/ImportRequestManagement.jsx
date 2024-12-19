@@ -194,7 +194,6 @@ const ImportRequestManagement = () => {
           },
         }
       );
-
       setSelectedRequest({
         ...request,
         detailInfo: response.data.data,
@@ -1469,11 +1468,17 @@ const ImportRequestManagement = () => {
               rules={[
                 { required: true, message: "Vui lòng nhập số lượng giao hàng" },
                 { type: "number", min: 0, message: "Số lượng không được âm" },
+                {
+                  type: "number",
+                  max: selectedRequest?.quantity,
+                  message: "Số lượng không được vượt quá số lượng dự kiến",
+                },
               ]}
             >
               <InputNumber
                 style={{ width: "100%" }}
                 placeholder="Nhập số lượng giao hàng"
+                min={0}
                 onChange={(value) => {
                   const acceptedQuantity =
                     checkForm.getFieldValue("acceptedQuantity");
@@ -1493,7 +1498,7 @@ const ImportRequestManagement = () => {
               ]}
             >
               <InputNumber
-                min={1}
+                min={0}
                 max={selectedRequest?.quantity}
                 onChange={(value) => {
                   if (!value) {
@@ -1531,7 +1536,10 @@ const ImportRequestManagement = () => {
             format="DD/MM/YYYY HH:mm:ss"
             disabledDate={(currentDate) => {
               const today = dayjs();
-              return currentDate.isBefore(today, "day");
+              return (
+                currentDate.isBefore(today, "day") ||
+                currentDate.isAfter(today, "day")
+              );
             }}
             placeholder="Chọn ngày giờ giao hàng"
           />

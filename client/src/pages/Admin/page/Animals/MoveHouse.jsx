@@ -96,7 +96,6 @@ const MoveHouse = () => {
             },
           }
         );
-        console.log("Houses:", housesResponse.data.data);
         const housesData = housesResponse.data.data.items.reduce(
           (acc, house) => {
             if (!acc[house.areaId]) {
@@ -804,15 +803,17 @@ const MoveHouse = () => {
           }
         );
         const allPigs = pigsResponse.data.data;
+        console.log("All Pigs in source stable:", allPigs);
         const qualifiedPigs = allPigs.filter((pig) => {
           const isVaccinated = pig.vaccinationStatus === "Đã tiêm";
           const isWeightQualified = checkWeightQualified(
             pig.weight,
             selectedSourceArea
           );
-          const isHealthy = pig.status === "Healthy";
+          const isHealthy = pig.healthStatus === "good";
           return isVaccinated && isWeightQualified && isHealthy;
         });
+        console.log("Qualified Pigs in source stable:", qualifiedPigs);
         setFilteredPigs(qualifiedPigs);
         return;
       }
@@ -838,7 +839,7 @@ const MoveHouse = () => {
           pig.weight,
           selectedSourceArea
         );
-        const isHealthy = pig.status === "Healthy";
+        const isHealthy = pig.healthStatus === "good";
         return isVaccinated && isWeightQualified && isHealthy;
       });
 
@@ -905,7 +906,7 @@ const MoveHouse = () => {
       const selectedHouse = houses[form.getFieldValue("targetArea")]?.find(
         (house) => house.id === houseId
       );
-
+      console.log("Selected House:", selectedHouse);
       if (selectedHouse) {
         setSelectedTargetStableInfo(selectedHouse);
       }
@@ -1543,6 +1544,9 @@ const MoveHouse = () => {
                       format="DD/MM/YYYY"
                       placeholder="Chọn ngày chuyển"
                       showTime={false}
+                      disabledDate={(current) =>
+                        current && current > moment().endOf("day")
+                      }
                     />
                   </Form.Item>
 

@@ -156,11 +156,17 @@ const MedicineImportList = () => {
         record.supplierName.toLowerCase().includes(value.toLowerCase()),
     },
     {
-      title: "Ngày tạo",
+      title: "Ngày lập phiếu",
       dataIndex: "createTime",
       key: "createTime",
       width: 180,
       render: (date) => moment(date).format("DD/MM/YYYY HH:mm"),
+      sorter: (a, b) => {
+        const dateA = moment(a.createTime).valueOf();
+        const dateB = moment(b.createTime).valueOf();
+        return dateB - dateA;
+      },
+      defaultSortOrder: "ascend",
       filterDropdown: ({ setSelectedKeys, confirm, clearFilters }) => (
         <div style={{ padding: 16, maxWidth: 400 }}>
           <Space direction="vertical" style={{ width: "100%" }}>
@@ -704,7 +710,7 @@ const MedicineImportList = () => {
       message.success("Nhập kho thành công");
       getMedicineImports();
     } catch (error) {
-      message.error("Lỗi khi nhập kho");
+      message.error("Lỗi khi nh���p kho");
     }
   };
 
@@ -858,6 +864,8 @@ const MedicineImportList = () => {
       open={showDeliveryModal}
       onOk={handleDeliveryConfirm}
       onCancel={() => setShowDeliveryModal(false)}
+      okText="Xác nhận"
+      cancelText="Hủy"
       width={1000}
     >
       <Form layout="vertical">
@@ -937,6 +945,7 @@ const MedicineImportList = () => {
               render: (_, record, index) => (
                 <InputNumber
                   min={0}
+                  max={record.expectedQuantity}
                   value={record.receivedQuantity}
                   onChange={(value) =>
                     handleQuantityChange(index, value, "receivedQuantity")
@@ -979,7 +988,7 @@ const MedicineImportList = () => {
             return (
               <Table.Summary.Row>
                 <Table.Summary.Cell index={0} colSpan={5}>
-                  <Text strong>Tổng cộng</Text>
+                  <Text strong>T���ng cộng</Text>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={1}>
                   <Text strong>{totalAmount.toLocaleString()}đ</Text>
