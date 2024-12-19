@@ -71,6 +71,7 @@ const VaccinationForm = () => {
           ...pig,
           isHealthy: "healthy",
           diagnosis: "Khỏe mạnh",
+          symptoms: "",
           healthNote: "",
           treatmentMethod: "Tiêm vaccine",
         }));
@@ -93,7 +94,7 @@ const VaccinationForm = () => {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           params: {
-            isVaccine: true,
+            isVaccine: false,
           },
         }
       );
@@ -157,14 +158,14 @@ const VaccinationForm = () => {
     try {
       const invalidPigs = pigData.filter((pig) => {
         if (pig.isHealthy === "sick") {
-          return !pig.diagnosis || !pig.treatmentMethod;
+          return !pig.diagnosis || !pig.treatmentMethod || !pig.symptoms;
         }
         return false;
       });
 
       if (invalidPigs.length > 0) {
         message.error(
-          "Vui lòng nhập đầy đủ thông tin chẩn đoán và phương pháp điều trị cho các heo không khỏe"
+          "Vui lòng nhập đầy đủ thông tin triệu chứng, chẩn đoán và phương pháp điều trị cho các heo không khỏe"
         );
         return;
       }
@@ -182,6 +183,7 @@ const VaccinationForm = () => {
         vaccinationInsertDetails: pigData.map((pig) => ({
           pigId: pig.pigId,
           isHealthy: pig.isHealthy === "healthy",
+          symptoms: pig.isHealthy === "sick" ? pig.symptoms : null,
           diagnosis: pig.isHealthy === "sick" ? pig.diagnosis : null,
           treatmentMethod:
             pig.isHealthy === "sick" ? pig.treatmentMethod : null,
@@ -284,24 +286,26 @@ const VaccinationForm = () => {
         {
           title: "Mã heo",
           dataIndex: "pigId",
-          width: 100,
+          width: 120,
           fixed: "left",
           render: (id) => <Tag color="blue">{id}</Tag>,
         },
         {
           title: "Chuồng",
           dataIndex: "stableName",
-          width: 100,
+          width: 80,
+          fixed: "left",
         },
         {
           title: "Tình trạng",
-          width: 120,
+          width: 140,
+          fixed: "left",
           render: (_, record) => (
             <Select
               style={{ width: "100%" }}
               value={record.isHealthy}
               onChange={(value) => handleHealthStatusChange(record, value)}
-              size="small"
+              size="middle"
             >
               <Select.Option value="healthy">
                 <Tag color="success">Khỏe mạnh</Tag>
@@ -318,8 +322,32 @@ const VaccinationForm = () => {
       title: "Thông tin khám bệnh",
       children: [
         {
+          title: "Triệu chứng",
+          width: 200,
+          render: (_, record) =>
+            record.isHealthy === "sick" && (
+              <TextArea
+                placeholder="Nhập triệu chứng..."
+                value={record.symptoms}
+                onChange={(e) => {
+                  const newData = [...pigData];
+                  const index = newData.findIndex(
+                    (item) => item.pigId === record.pigId
+                  );
+                  newData[index] = {
+                    ...newData[index],
+                    symptoms: e.target.value,
+                  };
+                  setPigData(newData);
+                }}
+                rows={2}
+                size="small"
+              />
+            ),
+        },
+        {
           title: "Chẩn đoán",
-          width: 180,
+          width: 200,
           render: (_, record) =>
             record.isHealthy === "sick" && (
               <TextArea
@@ -343,7 +371,7 @@ const VaccinationForm = () => {
         },
         {
           title: "Phương pháp điều trị",
-          width: 180,
+          width: 200,
           render: (_, record) =>
             record.isHealthy === "sick" && (
               <TextArea
@@ -369,7 +397,7 @@ const VaccinationForm = () => {
     },
     {
       title: "Thuốc điều trị",
-      width: 250,
+      width: 260,
       render: (_, record) =>
         record.isHealthy === "sick" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -379,7 +407,7 @@ const VaccinationForm = () => {
                 style={{ display: "flex", gap: "4px", alignItems: "center" }}
               >
                 <Select
-                  style={{ width: 120 }}
+                  style={{ width: 150 }}
                   placeholder="Chọn thuốc"
                   value={medicine.medicineId}
                   onChange={(value) =>
@@ -395,15 +423,16 @@ const VaccinationForm = () => {
                   ))}
                 </Select>
                 <InputNumber
-                  style={{ width: 70 }}
+                  style={{ width: 100 }}
                   min={0}
-                  placeholder="Liều"
                   value={medicine.quantity}
                   onChange={(value) =>
                     handleMedicineChange(record, index, "quantity", value)
                   }
-                  addonAfter="ml"
-                  size="small"
+                  size="middle"
+                  addonAfter={
+                    medicines.find((m) => m.id === medicine.medicineId)?.unit
+                  }
                 />
                 <Button
                   type="text"
@@ -449,6 +478,9 @@ const VaccinationForm = () => {
             format="DD/MM/YYYY"
             placeholder="Chọn ngày"
             size="small"
+            disabledDate={(current) => {
+              return current && current.isBefore(dayjs());
+            }}
           />
         ),
     },
@@ -456,13 +488,17 @@ const VaccinationForm = () => {
 
   return (
     <Layout className="fade-in">
-      <Layout style={{ padding: "24px", minHeight: "calc(100vh - 64px)" }}>
-        <Card className="custom-card">
-          <Space direction="vertical" style={{ width: "100%" }} size="large">
+      <Layout style={{ padding: "16px", minHeight: "calc(100vh - 64px)" }}>
+        <Card className="custom-card" size="small">
+          <Space direction="vertical" style={{ width: "100%" }} size="middle">
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Card size="small" title="Thông tin tiêm chủng">
-                  <Space direction="vertical" style={{ width: "100%" }}>
+                  <Space
+                    direction="vertical"
+                    style={{ width: "100%" }}
+                    size="small"
+                  >
                     <div>
                       <Text strong>Ngày tiêm:</Text>{" "}
                       <Text>{dayjs(date).format("DD/MM/YYYY")}</Text>
@@ -487,12 +523,6 @@ const VaccinationForm = () => {
                           <div>
                             <Text strong>Cách dùng:</Text>{" "}
                             <Text>{vaccineInfo.usage}</Text>
-                          </div>
-                        )}
-                        {vaccineInfo.unit && (
-                          <div>
-                            <Text strong>Đơn vị:</Text>{" "}
-                            <Text>{vaccineInfo.unit}</Text>
                           </div>
                         )}
                       </>
@@ -524,9 +554,9 @@ const VaccinationForm = () => {
               </Col>
             </Row>
 
-            <Form form={form} layout="vertical">
+            <Form form={form} layout="vertical" size="small">
               <Form.Item name="examinationNote" label="Ghi chú chung">
-                <TextArea rows={4} placeholder="Nhập ghi chú chung..." />
+                <TextArea rows={3} placeholder="Nhập ghi chú chung..." />
               </Form.Item>
             </Form>
 
@@ -541,7 +571,8 @@ const VaccinationForm = () => {
               }}
               bordered
               size="small"
-              scroll={{ y: 500 }}
+              scroll={{ x: 1230, y: 500 }}
+              style={{ width: "100%" }}
             />
 
             <div style={{ textAlign: "right" }}>

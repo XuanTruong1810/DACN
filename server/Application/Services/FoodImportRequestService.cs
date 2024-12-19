@@ -219,7 +219,7 @@ namespace Application.Services
                 {
                     FoodImportRequestDetails? detail = request.FoodImportRequestDetails.FirstOrDefault(x => x.FoodId == reject.FoodId)
                         ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound,
-                            "Kh��ng tìm thấy chi tiết thực phẩm trong phiếu đề xuất");
+                            "Không tìm thấy chi tiết thực phẩm trong phiếu đề xuất");
                     detail.Status = "rejected";
                     detail.Note = reject.Reason;
                     await _unitOfWork.GetRepository<FoodImportRequestDetails>().UpdateAsync(detail);
@@ -345,29 +345,38 @@ namespace Application.Services
                         </head>
                         <body>
                             <div class='header'>
-                                <div class='logo'>PigManagement System</div>
-                                <h2>PHIẾU ĐẶT THỨC ĂN</h2>
+                                <h2>PHIẾU ĐẶT HÀNG THỨC ĂN CHĂN NUÔI</h2>
                             </div>
 
                             <div class='order-info'>
-                                <h3>Thông tin đơn hàng</h3>
-                                <p><strong>Mã đơn hàng:</strong> #{foodImportId}</p>
-                                <p><strong>Ngày đặt hàng:</strong> {DateTime.Now:dd/MM/yyyy HH:mm}</p>
-                                <p><strong>Ngày giao dự kiến:</strong> {accept.ExpectedDeliveryTime:dd/MM/yyyy}</p>
-                                <p><strong>Nhà cung cấp:</strong> {supplier.Name}</p>
-                                <p><strong>Địa chỉ:</strong> {supplier.Address}</p>
-                                <p><strong>Số điện thoại:</strong> {supplier.Phone}</p>
-                                <p><strong>Email:</strong> {supplier.Email}</p>
+                                <h3>Kính gửi: Quý đối tác {supplier.Name},</h3>
+                                <p style='margin: 20px 0; line-height: 1.8;'>
+                                    Căn cứ theo nhu cầu của trang trại và thỏa thuận giữa hai bên, NTNPIGFARM xin gửi đến Quý đối tác 
+                                    đơn đặt hàng với các nội dung chi tiết như sau:
+                                </p>
+                                
+                                <div style='background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;'>
+                                    <h4 style='margin-bottom: 15px; color: #2c3e50;'>THÔNG TIN ĐƠN HÀNG</h4>
+                                    <p><strong>Mã đơn hàng:</strong> #{foodImportId}</p>
+                                    <p><strong>Ngày đặt hàng:</strong> {DateTime.Now:dd/MM/yyyy HH:mm}</p>
+                                    <p><strong>Ngày giao hàng dự kiến:</strong> {accept.ExpectedDeliveryTime:dd/MM/yyyy}</p>
+                                    
+                                    <h4 style='margin: 20px 0 15px 0; color: #2c3e50;'>THÔNG TIN NHÀ CUNG CẤP</h4>
+                                    <p><strong>Đơn vị cung cấp:</strong> {supplier.Name}</p>
+                                    <p><strong>Địa chỉ:</strong> {supplier.Address}</p>
+                                    <p><strong>Điện thoại:</strong> {supplier.Phone}</p>
+                                    <p><strong>Email:</strong> {supplier.Email}</p>
+                                </div>
                             </div>
 
                             <div class='order-details'>
-                                <h3>Chi tiết đơn hàng</h3>
+                                <h3>CHI TIẾT ĐƠN HÀNG</h3>
                                 <table>
                                     <tr>
-                                        <th style='width: 40%;'>Tên thức ăn</th>
-                                        <th style='width: 20%;'>Số lượng dự kiến</th>
-                                        <th style='width: 20%;'>Đơn giá</th>
-                                        <th style='width: 20%;'>Thành tiền</th>
+                                        <th style='width: 40%; text-align: left;'>Tên Sản Phẩm</th>
+                                        <th style='width: 20%; text-align: right;'>Số Lượng</th>
+                                        <th style='width: 20%; text-align: right;'>Đơn Giá</th>
+                                        <th style='width: 20%; text-align: right;'>Thành Tiền</th>
                                     </tr>";
 
                         decimal total = 0;
@@ -382,33 +391,48 @@ namespace Application.Services
 
                             emailBody += $@"
                                     <tr>
-                                        <td>{food?.Name}</td>
-                                        <td>{detail.ExpectedQuantity:N0} kg</td>
-                                        <td>{detail.UnitPrice:N0} VND</td>
-                                        <td>{amount:N0} VND</td>
+                                        <td style='text-align: left;'>{food?.Name}</td>
+                                        <td style='text-align: right;'>{detail.ExpectedQuantity:N0} kg</td>
+                                        <td style='text-align: right;'>{detail.UnitPrice:N0} VNĐ</td>
+                                        <td style='text-align: right;'>{amount:N0} VNĐ</td>
                                     </tr>";
                         }
 
                         emailBody += $@"
                                     <tr class='total-row'>
-                                        <td colspan='3' style='text-align: right;'><strong>Tổng giá trị:</strong></td>
-                                        <td><strong>{total:N0} VND</strong></td>
+                                        <td colspan='3' style='text-align: right; padding-right: 20px;'><strong>Tổng Giá Trị Đơn Hàng:</strong></td>
+                                        <td style='text-align: right;'><strong>{total:N0} VNĐ</strong></td>
                                     </tr>
                                     <tr class='total-row'>
-                                        <td colspan='3' style='text-align: right;'><strong>Tiền đặt cọc:</strong></td>
-                                        <td><span class='highlight'>{accept.Deposit:N0} VND</span></td>
+                                        <td colspan='3' style='text-align: right; padding-right: 20px;'><strong>Tiền Đặt Cọc (Đã Thỏa Thuận):</strong></td>
+                                        <td style='text-align: right;'><span class='highlight'>{accept.Deposit:N0} VNĐ</span></td>
                                     </tr>
                                     <tr class='total-row'>
-                                        <td colspan='3' style='text-align: right;'><strong>Còn lại:</strong></td>
-                                        <td><strong>{(total - accept.Deposit):N0} VND</strong></td>
+                                        <td colspan='3' style='text-align: right; padding-right: 20px;'><strong>Số Tiền Còn Lại:</strong></td>
+                                        <td style='text-align: right;'><strong>{(total - accept.Deposit):N0} VNĐ</strong></td>
                                     </tr>
                                 </table>
                             </div>
 
+                            <div style='background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;'>
+                                <p style='margin-bottom: 15px;'><strong>Điều khoản và lưu ý:</strong></p>
+                                <ul style='list-style: none; padding-left: 20px; line-height: 1.8;'>
+                                    <li>1. Đề nghị Quý đối tác giao hàng đúng thời gian và địa điểm đã thỏa thuận</li>
+                                    <li>2. Chất lượng hàng hóa phải đảm bảo theo tiêu chuẩn đã thống nhất</li>
+                                    <li>3. Mọi thay đổi về số lượng hoặc thời gian giao hàng vui lòng thông báo trước 24h</li>
+                                    <li>4. Đơn hàng có hiệu lực kể từ thời điểm gửi email này</li>
+                                </ul>
+                            </div>
+
                             <div class='footer'>
-                                <p>Vui lòng kiểm tra kỹ thông tin đơn hàng và liên hệ với chúng tôi nếu có bất kỳ thắc mắc nào.</p>
-                                <p>Email này được gửi tự động từ hệ thống PigManagement - Vui lòng không phản hồi lại email này.</p>
-                                <p>© {DateTime.Now.Year} PigManagement. All rights reserved.</p>
+                                <p style='margin-bottom: 15px;'>Trân trọng cảm ơn sự hợp tác của Quý đối tác.</p>
+                                <strong>TRANG TRẠI CHĂN NUÔI NTNPIGFARM</strong><br>
+                                Địa chỉ: Số 2, đường N1, KDC Nhị Hòa, P.Hiệp Hòa, TP.Biên Hòa, Đồng Nai<br>
+                                Hotline: 0971.758.902 | Email: truongtamcobra@gmail.com<br>
+                                <p style='margin-top: 15px; font-size: 12px; color: #666;'>
+                                    Đây là email tự động - Vui lòng không phản hồi lại email này.<br>
+                                    © {DateTime.Now.Year} NTNPIGFARM. All rights reserved.
+                                </p>
                             </div>
                         </body>
                         </html>";

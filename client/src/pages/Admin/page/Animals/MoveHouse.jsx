@@ -674,15 +674,43 @@ const MoveHouse = () => {
     );
     if (targetHouse) {
       const remainingCapacity =
-        targetHouse.capacity - targetHouse.currentQuantity;
+        targetHouse.capacity - targetHouse.currentOccupancy;
       if (selectedPigs.length > remainingCapacity) {
         message.error(`Chuồng đích chỉ còn trống ${remainingCapacity} chỗ!`);
         return;
       }
+      // Thêm Modal xác nhận
+      Modal.confirm({
+        title: "Xác nhận chuyển chuồng",
+        content: (
+          <div>
+            <p>
+              Đã chọn: <strong>{selectedPigs.length}</strong> con heo
+            </p>
+            <p>
+              Chưa chọn:{" "}
+              <strong>{filteredPigs.length - selectedPigs.length}</strong> con
+              heo
+            </p>
+            <p>
+              Sau khi chuyển, chuồng đích sẽ còn trống:{" "}
+              <strong>{remainingCapacity - selectedPigs.length}</strong> chỗ
+            </p>
+            <Alert
+              message="Bạn có chắc chắn muốn thực hiện chuyển chuồng không?"
+              type="warning"
+              showIcon
+              style={{ marginTop: "16px" }}
+            />
+          </div>
+        ),
+        okText: "Xác nhận",
+        cancelText: "Hủy",
+        onOk() {
+          handleMove(values);
+        },
+      });
     }
-
-    // Gọi API tạo phiếu
-    handleMove(values);
   };
 
   const getAvailableTargetAreas = (sourceAreaId) => {

@@ -295,7 +295,11 @@ namespace Application.Services
                     <div class='content'>
                         <div class='greeting'>
                             Kính gửi Quý đối tác,<br><br>
-                            Chúng tôi xin trân trọng thông báo đơn đặt hàng của Quý đối tác đã được xác nhận và đang được xử lý. 
+                            Trang trại chăn nuôi NTNPIGFARM xin trân trọng thông báo đơn đặt hàng của chúng tôi đến Quý đối tác. Chúng tôi rất mong nhận được sự phản hồi sớm từ phía Quý đối tác.<br><br>
+                            Địa chỉ: Số 2, đường N1, khu dân cư phục vụ tái định cư, khu phố Nhị Hòa,<br>
+                            phường Hiệp Hòa, thành phố Biên Hòa, tỉnh Đồng Nai<br>
+                            Điện thoại: 0971.758.902<br>
+                            Email: truongtamcobra@gmail.com<br><br>
                             Chúng tôi rất vinh dự được phục vụ và cảm ơn sự tin tưởng của Quý đối tác.
                         </div>
 
@@ -357,7 +361,7 @@ namespace Application.Services
                     </div>
 
                     <div class='company-info'>
-                        <p><strong>CÔNG TY TNHH PIG FARM</strong></p>
+                        <p><strong>TRANG TRẠI CHĂN NUÔI NTNPIGFARM</strong></p>
                         <p>Địa chỉ: Số 2, đường N1, khu dân cư phục vụ tái định cư, khu phố Nhị Hòa,<br>
                         phường Hiệp Hòa, thành phố Biên Hòa, tỉnh Đồng Nai</p>
                         <p>Hotline: 0971.758.902 | Email: truongtamcobra@gmail.com</p>

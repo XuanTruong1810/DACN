@@ -1055,7 +1055,7 @@ const ExportRequestList = () => {
       <Card
         title={
           <Title level={4} style={{ margin: 0 }}>
-            <ExportOutlined /> Danh sách phiếu đề xuất xuất
+            <ExportOutlined /> Quản lý phiếu đề xuất xuất heo
           </Title>
         }
         className="custom-card"

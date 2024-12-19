@@ -296,6 +296,12 @@ const WeighingHistory = () => {
           recordDate.isBefore(value[1], "day")
         );
       },
+      sorter: (a, b) => {
+        const dateA = dayjs(a.weighingDate);
+        const dateB = dayjs(b.weighingDate);
+        return dateB.diff(dateA);
+      },
+      defaultSortOrder: "ascend",
     },
     {
       title: "Số lượng heo",

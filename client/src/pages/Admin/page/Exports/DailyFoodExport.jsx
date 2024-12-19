@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useCallback } from "react";
 import {
@@ -21,6 +22,8 @@ import {
   Alert,
   Input,
   Empty,
+  Result,
+  Badge,
 } from "antd";
 import {
   SaveOutlined,
@@ -58,68 +61,77 @@ const DailyFoodExport = () => {
   const [remainingFood, setRemainingFood] = useState(0);
   const [pigStats, setPigStats] = useState({
     totalPigs: 0,
-    remainingPigs: 0,
   });
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
   const [exportedData, setExportedData] = useState(null);
 
-  // Sử dụng dữ liệu từ API
-  const calculateFoodForPigs = (numberOfPigs, food) => {
-    const foodPerDayPerPig = parseFloat(
-      (food.mealsPerDay * food.quantityPerMeal).toFixed(1)
-    );
-    return parseFloat((numberOfPigs * foodPerDayPerPig).toFixed(1));
-  };
+  // Sửa lại useEffect khởi tạo
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/v1/Areas`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        setAreas(response.data.data.items);
 
-  const calculatePigsFromFood = (foodQuantity, food) => {
-    const foodPerDayPerPig = parseFloat(
-      (food.mealsPerDay * food.quantityPerMeal).toFixed(1)
-    );
-    return Math.floor(foodQuantity / foodPerDayPerPig);
-  };
+        // Chỉ set khu vực mặc định khi lần đầu load
+        if (response.data.data.items.length > 0 && !selectedArea) {
+          const firstArea = response.data.data.items[0];
+          setSelectedArea(firstArea.id);
+          form.setFieldsValue({
+            area: firstArea.id,
+            date: moment(),
+          });
 
-  // Fetch danh sách khu vực
-  const fetchAreas = async () => {
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/v1/Areas`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          // Fetch initial data for first area
+          await fetchAreaData(firstArea.id);
         }
-      );
-      setAreas(response.data.data.items);
+      } catch (error) {
+        message.error("Không thể tải danh sách khu vực");
+      }
+    };
 
-      // Nếu có khu vực, tự động chọn khu vực đầu tiên
-      if (response.data.data.items.length > 0) {
-        const firstArea = response.data.data.items[0];
-        setSelectedArea(firstArea.id);
-        handleAreaChange(firstArea.id); // Tự động load thức ăn của khu vực đầu tiên
+    fetchInitialData();
+  }, []); // Chỉ chạy một lần khi component mount
 
-        // Set giá trị cho form field area
-        form.setFieldsValue({
-          area: firstArea.id,
+  // Sửa lại hàm tính toán thức ăn tự động
+  const calculateAutoFoodDistribution = (foodList, totalPigs) => {
+    if (!foodList || !totalPigs) return [];
+
+    const distributedFoods = [];
+
+    foodList.forEach((food) => {
+      // Chỉ tính toán cho những thức ăn còn trong kho
+      if (food.quantityInStock > 0) {
+        const foodPerDayPerPig = food.quantityPerMeal;
+        const totalFoodNeeded = parseFloat(
+          (totalPigs * foodPerDayPerPig).toFixed(1)
+        );
+
+        // Chỉ thêm vào danh sách nếu còn đủ trong kho
+        distributedFoods.push({
+          foodId: food.id,
+          foodName: food.name,
+          quantity: totalFoodNeeded,
+          pigsCount: totalPigs,
+          note: `Phân bổ cho ${totalPigs} con (${foodPerDayPerPig} kg/con)`,
         });
       }
-    } catch (error) {
-      message.error("Không thể tải danh sách khu vực");
-    }
+    });
+
+    return distributedFoods;
   };
 
-  useEffect(() => {
-    fetchAreas();
-    // Set ngày mặc định là ngày hiện tại
-    form.setFieldsValue({
-      date: moment(),
-    });
-  }, []);
-
-  const handleAreaChange = async (areaId) => {
-    setSelectedFoods([]);
-    setSelectedArea(areaId);
+  // Sửa lại hàm fetchAreaData để sử dụng logic mới
+  const fetchAreaData = async (areaId) => {
     try {
+      // Lấy thông tin heo trong khu vực
       const pigsResponse = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/v1/Pigs/area/${areaId}`,
         {
@@ -134,13 +146,11 @@ const DailyFoodExport = () => {
         : [];
 
       const totalPigs = pigsData.length;
-
       setPigStats({
-        totalPigs,
-        remainingPigs: totalPigs,
+        totalPigs: totalPigs,
       });
 
-      // Fetch và set foodList như cũ
+      // Fetch thức ăn cho khu vực được chọn
       const foodResponse = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/Food?areaId=${areaId}`,
         {
@@ -149,34 +159,27 @@ const DailyFoodExport = () => {
           },
         }
       );
-      setFoodList(foodResponse.data.data.items || []);
+
+      const foodList = foodResponse.data.data.items || [];
+      setFoodList(foodList);
+
+      // Tự động tính toán và phân bổ thức ăn cho tất cả heo
+      const distributedFoods = calculateAutoFoodDistribution(
+        foodList,
+        totalPigs
+      );
+      setSelectedFoods(distributedFoods);
     } catch (error) {
       console.error("Error:", error);
       message.error("Có lỗi xảy ra khi tải dữ liệu");
     }
   };
 
-  const handleOpenModal = (food) => {
-    const foodPerDayPerPig = parseFloat(
-      (food.mealsPerDay * food.quantityPerMeal).toFixed(1)
-    );
-    const totalFoodNeeded = parseFloat(
-      (pigStats.remainingPigs * foodPerDayPerPig).toFixed(1)
-    );
-    const maxQuantity = Math.min(totalFoodNeeded, food.quantityInStock);
-
-    const possiblePigs = Math.floor(maxQuantity / foodPerDayPerPig);
-    const exactFoodNeeded = calculateFoodForPigs(possiblePigs, food);
-
-    setSelectedFood(food);
-    setModalData({
-      quantity: exactFoodNeeded,
-      maxQuantity: parseFloat(maxQuantity.toFixed(1)),
-      initialQuantity: parseFloat(maxQuantity.toFixed(1)),
-      pigsCount: possiblePigs,
-      note: "",
-    });
-    setIsModalVisible(true);
+  // Sửa lại hàm handleAreaChange
+  const handleAreaChange = async (areaId) => {
+    setSelectedArea(areaId);
+    setSelectedFoods([]); // Reset selected foods
+    await fetchAreaData(areaId);
   };
 
   const handleAddFood = () => {
@@ -194,12 +197,12 @@ const DailyFoodExport = () => {
 
     setSelectedFoods([...selectedFoods, newFood]);
 
-    const remainingPigs = pigStats.remainingPigs - pigsCanFeed;
+    const remainingPigs = pigStats.totalPigs - pigsCanFeed;
     const remainingFoodNeeded = remainingPigs * mealsPerPig;
 
     setPigStats((prev) => ({
       ...prev,
-      remainingPigs: remainingPigs,
+      totalPigs: remainingPigs,
     }));
     setRemainingFood(remainingFoodNeeded);
     setIsModalVisible(false);
@@ -214,35 +217,31 @@ const DailyFoodExport = () => {
         return;
       }
 
-      // Set dữ liệu để hiển thị trong modal xác nhận
-      setExportedData({
-        area: areas.find((area) => area.id === selectedArea)?.name,
-        date: formValues.date.format("DD/MM/YYYY"),
-        foods: selectedFoods,
-        exportData: {
-          exportDate: formValues.date.format("YYYY-MM-DD"),
-          areaId: selectedArea,
-          note: modalData.note?.trim(),
-          details: selectedFoods.map((food) => ({
-            foodId: food.foodId,
-            quantity: food.quantity,
-          })),
-        },
-      });
-
       setIsConfirmModalVisible(true);
     } catch (error) {
-      message.error("Vui lòng kiểm tra lại thông tin!");
+      console.error("Error:", error);
+      message.error("Vui lòng kiểm tra l���i thông tin!");
     }
   };
 
-  const handleConfirmExport = async () => {
+  const handleConfirm = async () => {
     try {
       setSubmitting(true);
+      const formValues = await form.validateFields();
 
-      await axios.post(
+      const exportData = {
+        exportDate: formValues.date.toISOString(),
+        areaId: selectedArea,
+        note: `Phiếu xuất thức ăn ngày ${formValues.date.format("DD/MM/YYYY")}`,
+        details: selectedFoods.map((food) => ({
+          foodId: food.foodId,
+          quantity: food.quantity,
+        })),
+      };
+
+      const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/v1/FoodExport`,
-        exportedData.exportData,
+        exportData,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -250,31 +249,17 @@ const DailyFoodExport = () => {
         }
       );
 
-      setIsConfirmModalVisible(false);
-      setIsSuccessModalVisible(true);
+      if (response.status === 200) {
+        setExportedData(response.data.data);
+        setIsConfirmModalVisible(false);
+        message.success("Tạo phiếu xuất thành công!");
+      }
     } catch (error) {
-      console.log(error);
+      console.error("Error:", error);
       message.error(error.response.data.message);
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleRemoveFood = (foodId) => {
-    const removedFood = selectedFoods.find((food) => food.foodId === foodId);
-    if (removedFood) {
-      const updatedRemainingPigs =
-        pigStats.remainingPigs + removedFood.pigsCount;
-      const updatedRemainingFood =
-        updatedRemainingPigs * pigStats.mealsPerDay * pigStats.quantityPerMeal;
-
-      setPigStats((prev) => ({
-        ...prev,
-        remainingPigs: updatedRemainingPigs,
-      }));
-      setRemainingFood(updatedRemainingFood);
-    }
-    setSelectedFoods(selectedFoods.filter((food) => food.foodId !== foodId));
   };
 
   const columns = [
@@ -282,57 +267,68 @@ const DailyFoodExport = () => {
       title: "Tên thức ăn",
       dataIndex: "name",
       key: "name",
-    },
-    {
-      title: "Loại",
-      dataIndex: "foodTypeName",
-      key: "type",
-    },
-    {
-      title: "Tồn kho",
-      dataIndex: "quantityInStock",
-      key: "stock",
-      render: (value) => (
-        <Tag color={value > 0 ? "green" : "red"}>{value} kg</Tag>
+      render: (text, record) => (
+        <Space>
+          {text}
+          {record.quantityInStock <= 0 ? (
+            <Badge status="error" text="Hết hàng" />
+          ) : (
+            <Badge status="success" text="Còn hàng" />
+          )}
+        </Space>
       ),
     },
     {
-      title: "Định mức/con",
-      dataIndex: "quantityPerMeal",
-      key: "recommendedPerPig",
-      render: (value) => `${value} kg/con`,
+      title: "Số lượng tồn",
+      dataIndex: "quantityInStock",
+      key: "quantityInStock",
+      render: (quantity) => (
+        <Text type={quantity <= 0 ? "danger" : undefined}>{quantity} kg</Text>
+      ),
     },
     {
       title: "Số bữa/ngày",
       dataIndex: "mealsPerDay",
       key: "mealsPerDay",
-      render: (value) => `${value} bữa`,
+      render: (meals) => (
+        <Badge
+          count={`${meals} bữa`}
+          style={{
+            backgroundColor: "#108ee9",
+            fontSize: "12px",
+            padding: "0 8px",
+          }}
+        />
+      ),
     },
     {
-      title: "Thao tác",
-      key: "action",
-      render: (_, record) => {
-        const isSelected = selectedFoods.some(
-          (food) => food.foodId === record.id
-        );
-        const hasStock = record.quantityInStock > 0;
-        const hasPigs = pigStats.totalPigs > 0;
-        const hasRemainingPigs = pigStats.remainingPigs > 0;
-
-        if (!hasRemainingPigs) {
-          return null;
-        }
-
-        return (
-          <Button
-            type="primary"
-            onClick={() => handleOpenModal(record)}
-            disabled={isSelected || !hasStock || !hasPigs}
-          >
-            {!hasStock ? "Hết hàng" : !hasPigs ? "Không có heo" : "Chọn xuất"}
-          </Button>
-        );
-      },
+      title: "Định mức/bữa",
+      dataIndex: "quantityPerMeal",
+      key: "quantityPerMeal",
+      render: (quantity, record) => (
+        <Badge
+          count={`${(quantity / record.mealsPerDay).toFixed(1)} kg`}
+          style={{
+            backgroundColor: "#87d068",
+            fontSize: "12px",
+            padding: "0 8px",
+          }}
+        />
+      ),
+    },
+    {
+      title: "Tổng định mức/ngày",
+      key: "totalPerDay",
+      render: (_, record) => (
+        <Badge
+          count={`${record.quantityPerMeal.toFixed(1)} kg`}
+          style={{
+            backgroundColor: "#722ed1",
+            fontSize: "12px",
+            padding: "0 8px",
+          }}
+        />
+      ),
     },
   ];
 
@@ -386,7 +382,7 @@ const DailyFoodExport = () => {
 
                 if (value !== requiredFood) {
                   message.warning(
-                    `Lượng thức ăn ${parseFloat(
+                    `Lượng th��c ăn ${parseFloat(
                       value.toFixed(1)
                     )}kg không đủ cho số con nguyên. ` +
                       `Hãy nhập ${requiredFood}kg (cho ${possiblePigs} con) hoặc ` +
@@ -425,7 +421,7 @@ const DailyFoodExport = () => {
               type="warning"
               showIcon
               message={
-                `Lượng thức ăn ${modalData.warning.current}kg không đủ cho số con nguyên. ` +
+                `Lư���ng thức ăn ${modalData.warning.current}kg không đủ cho số con nguyên. ` +
                 `Hãy nhập ${modalData.warning.lower}kg (cho ${modalData.warning.lowerPigs} con) hoặc ` +
                 `${modalData.warning.upper}kg (cho ${modalData.warning.upperPigs} con)`
               }
@@ -461,71 +457,42 @@ const DailyFoodExport = () => {
     </Modal>
   );
 
-  const renderSelectedFoodsTable = () =>
-    selectedFoods.length > 0 && (
-      <Card title="Thức ăn đã chọn" style={{ marginBottom: 16 }}>
-        <Table
-          dataSource={selectedFoods}
-          pagination={false}
-          columns={[
-            {
-              title: "Tên thức ăn",
-              dataIndex: "foodName",
-              key: "foodName",
-            },
-            {
-              title: "Số lượng (kg)",
-              dataIndex: "quantity",
-              key: "quantity",
-              render: (quantity, record) => (
-                <Tooltip
-                  title={`Khuyến nghị: ${
-                    areaFoodLimits[record.foodId]?.recommendedDaily
-                  } kg/ngày`}
-                >
-                  <span
-                    style={{
-                      color:
-                        quantity >
-                        areaFoodLimits[record.foodId]?.recommendedDaily
-                          ? "#faad14"
-                          : "inherit",
-                    }}
-                  >
-                    {quantity}
-                  </span>
-                </Tooltip>
-              ),
-            },
-            {
-              title: "Tồn kho",
-              dataIndex: "foodId",
-              key: "stock",
-              render: (foodId) =>
-                `${areaFoodLimits[foodId]?.maxQuantity || 0} kg`,
-            },
-            {
-              title: "Ghi chú",
-              dataIndex: "note",
-              key: "note",
-            },
-            {
-              title: "Thao tác",
-              key: "action",
-              render: (_, record) => (
-                <Button
-                  type="link"
-                  danger
-                  onClick={() => handleRemoveFood(record.foodId)}
-                >
-                  Xóa
-                </Button>
-              ),
-            },
-          ]}
-        />
-      </Card>
-    );
+  const renderSelectedFoodsTable = () => (
+    <Table
+      dataSource={selectedFoods}
+      pagination={false}
+      columns={[
+        {
+          title: "Tên thức ăn",
+          dataIndex: "foodName",
+          key: "foodName",
+        },
+        {
+          title: "SL (kg)",
+          dataIndex: "quantity",
+          key: "quantity",
+          render: (value) => `${parseFloat(value.toFixed(2))} kg`,
+        },
+      ]}
+      summary={(pageData) => (
+        <Table.Summary.Row>
+          <Table.Summary.Cell>
+            <strong>Tổng cộng</strong>
+          </Table.Summary.Cell>
+          <Table.Summary.Cell>
+            <strong>
+              {parseFloat(
+                pageData
+                  .reduce((sum, food) => sum + food.quantity, 0)
+                  .toFixed(2)
+              )}{" "}
+              kg
+            </strong>
+          </Table.Summary.Cell>
+        </Table.Summary.Row>
+      )}
+    />
+  );
 
   // Thêm style cho chế độ in
   const printStyles = `
@@ -620,108 +587,284 @@ const DailyFoodExport = () => {
     </div>
   );
 
-  // Sửa lại Modal xác nhận
-  const renderConfirmModal = () => (
-    <Modal
-      title="Xác nhận tạo phiếu xuất"
-      open={isConfirmModalVisible}
-      width={800} // Tăng kích thước modal
-      footer={[
-        <Button
-          key="print"
-          icon={<FileTextOutlined />}
-          onClick={() => {
-            window.print();
-          }}
-        >
-          In phiếu
-        </Button>,
-        <Button
-          key="submit"
-          type="primary"
-          loading={submitting}
-          onClick={handleConfirmExport}
-        >
-          Xác nhận
-        </Button>,
-        <Button key="cancel" onClick={() => setIsConfirmModalVisible(false)}>
-          Hủy
-        </Button>,
-      ]}
-      onCancel={() => setIsConfirmModalVisible(false)}
-    >
-      {renderPrintContent()}
-    </Modal>
-  );
+  // Sa lại Modal xác nhận
+  const renderConfirmModal = () => {
+    return (
+      <Modal
+        title="Xác nhận tạo phiếu xuất thức ăn"
+        open={isConfirmModalVisible}
+        footer={[
+          <Button key="print" icon={<FileTextOutlined />} onClick={handlePrint}>
+            In phiếu
+          </Button>,
+          <Button key="cancel" onClick={() => setIsConfirmModalVisible(false)}>
+            Hủy
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={submitting}
+            onClick={handleConfirm}
+          >
+            Xác nhận
+          </Button>,
+        ]}
+        width={600}
+      >
+        <div>
+          <Row gutter={[0, 16]}>
+            <Col span={24}>
+              <Card>
+                <Statistic
+                  title={<Text strong>Tổng số heo</Text>}
+                  value={pigStats.totalPigs}
+                  suffix="con"
+                  valueStyle={{ color: "#1890ff" }}
+                />
+              </Card>
+            </Col>
+          </Row>
 
-  const renderSuccessModal = () => (
-    <Modal
-      title="Tạo phiếu xuất thành công"
-      open={isSuccessModalVisible}
-      footer={[
-        <Button
-          key="back"
-          onClick={() => {
-            setIsSuccessModalVisible(false);
-          }}
-        >
-          Đóng
-        </Button>,
-      ]}
-    >
-      <div style={{ marginBottom: 16 }}>
-        <p>
-          <strong>Khu vực:</strong> {exportedData?.area}
-        </p>
-        <p>
-          <strong>Ngày xuất:</strong> {exportedData?.date}
-        </p>
-      </div>
-      <div>
-        <strong>Danh sách thức ăn:</strong>
-        <Table
-          dataSource={exportedData?.foods}
-          pagination={false}
-          columns={[
-            {
-              title: "Tên thức ăn",
-              dataIndex: "foodName",
-              key: "foodName",
-            },
-            {
-              title: "Số lượng",
-              dataIndex: "quantity",
-              key: "quantity",
-              render: (quantity) => `${quantity} kg`,
-            },
-            {
-              title: "Số con heo",
-              dataIndex: "pigsCount",
-              key: "pigsCount",
-              render: (pigsCount) => `${pigsCount} con`,
-            },
-          ]}
-          summary={(pageData) => (
-            <Table.Summary.Row>
-              <Table.Summary.Cell>
-                <strong>Tổng cộng</strong>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell>
-                <strong>
-                  {pageData.reduce((sum, food) => sum + food.quantity, 0)} kg
-                </strong>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell>
-                <strong>
-                  {pageData.reduce((sum, food) => sum + food.pigsCount, 0)} con
-                </strong>
-              </Table.Summary.Cell>
-            </Table.Summary.Row>
-          )}
+          <Table
+            dataSource={selectedFoods}
+            pagination={false}
+            columns={[
+              {
+                title: "Tên thức ăn",
+                dataIndex: "foodName",
+                key: "foodName",
+              },
+              {
+                title: "Số lượng (kg)",
+                dataIndex: "quantity",
+                key: "quantity",
+                render: (quantity) => `${quantity} kg`,
+              },
+            ]}
+            summary={(pageData) => (
+              <Table.Summary.Row>
+                <Table.Summary.Cell>
+                  <strong>Tổng cộng</strong>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell>
+                  <strong>
+                    {parseFloat(
+                      pageData
+                        .reduce((sum, food) => sum + food.quantity, 0)
+                        .toFixed(1)
+                    )}{" "}
+                    kg
+                  </strong>
+                </Table.Summary.Cell>
+              </Table.Summary.Row>
+            )}
+          />
+        </div>
+      </Modal>
+    );
+  };
+
+  // Thêm hàm handlePrint
+  const handlePrint = () => {
+    const printContent = `
+      <html>
+        <head>
+          <title>Phiếu Xuất Thức Ăn</title>
+          <style>
+            @page { size: A4; margin: 2cm; }
+            body { 
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #000;
+            }
+            .container {
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 2px solid #000;
+              padding-bottom: 20px;
+            }
+            .company-name {
+              font-size: 24px;
+              font-weight: bold;
+              margin-bottom: 5px;
+            }
+            .document-title {
+              font-size: 24px;
+              font-weight: bold;
+              text-transform: uppercase;
+              margin: 20px 0;
+              text-align: center;
+            }
+            .info-section {
+              margin-bottom: 30px;
+            }
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 10px;
+            }
+            .info-label {
+              font-weight: bold;
+              min-width: 150px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+            }
+            th, td {
+              border: 1px solid #000;
+              padding: 12px;
+              text-align: left;
+            }
+            th {
+              background-color: #f0f0f0;
+              font-weight: bold;
+            }
+            .total-row {
+              font-weight: bold;
+              background-color: #f8f8f8;
+            }
+            .footer {
+              margin-top: 50px;
+              text-align: right;
+            }
+            .signature-section {
+              display: inline-block;
+              text-align: center;
+              margin-left: 50px;
+            }
+            .signature-title {
+              font-weight: bold;
+              margin-bottom: 60px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="company-name">TRANG TRẠI CHĂN NUÔI NTNPIGFARM</div>
+              <div>Địa chỉ: Số 2, đường N1, khu dân cư phục vụ tái định cư, khu phố Nhị Hòa, phường Hiệp Hòa, thành phố Biên Hòa, tỉnh Đồng Nai</div>
+              <div>Điện thoại: 0971758902 - Email: truongtamcobra@gmail.com</div>
+            </div>
+
+            <div class="document-title">PHIẾU XUẤT THỨC ĂN</div>
+
+            <div class="info-section">
+              <div class="info-row">
+                <span class="info-label">Ngày xuất:</span>
+                <span>${moment().format("DD/MM/YYYY")}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Khu vực:</span>
+                <span>${areas.find((a) => a.id === selectedArea)?.name}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Tổng số heo:</span>
+                <span>${pigStats.totalPigs} con</span>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 50px;">STT</th>
+                  <th>Tên thức ăn</th>
+                  <th style="width: 120px;">Số lượng (kg)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${selectedFoods
+                  .map(
+                    (food, index) => `
+                  <tr>
+                    <td style="text-align: center;">${index + 1}</td>
+                    <td>${food.foodName}</td>
+                    <td style="text-align: right;">${food.quantity.toFixed(
+                      1
+                    )}</td>
+                  </tr>
+                `
+                  )
+                  .join("")}
+                <tr class="total-row">
+                  <td colspan="2" style="text-align: right;">Tổng cộng:</td>
+                  <td style="text-align: right;">${parseFloat(
+                    selectedFoods
+                      .reduce((sum, food) => sum + food.quantity, 0)
+                      .toFixed(1)
+                  )}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="footer">
+              <div class="signature-section">
+                <div class="signature-title">Người lập phiếu</div>
+                <div>(Ký và ghi rõ họ tên)</div>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  // Sửa lại renderSuccessModal để sử dụng hàm handlePrint mới
+  const renderSuccessModal = () => {
+    return (
+      <Modal
+        title="Tạo phiếu xuất thành công"
+        open={isSuccessModalVisible}
+        footer={[
+          <Button
+            key="print"
+            type="primary"
+            icon={<FileTextOutlined />}
+            onClick={handlePrint}
+          >
+            In phiếu xuất
+          </Button>,
+          <Button
+            key="close"
+            onClick={() => {
+              setIsSuccessModalVisible(false);
+              form.resetFields(["date"]);
+              setSelectedFoods([]);
+              fetchAreaData(selectedArea);
+            }}
+          >
+            Đóng
+          </Button>,
+        ]}
+        width={600}
+      >
+        <Result
+          status="success"
+          title="Tạo phiếu xuất thành công!"
+          subTitle={`Mã phiếu xuất: ${exportedData?.id}`}
         />
-      </div>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
+
+  // Thêm useEffect để theo dõi selectedFoods
+  useEffect(() => {
+    console.log("selectedFoods changed:", selectedFoods);
+  }, [selectedFoods]);
+
+  // Kiểm tra render của bảng thức ăn đã chọn
+  console.log("Rendering selected foods table:", selectedFoods);
 
   return (
     <div style={{ padding: "24px" }}>
@@ -770,9 +913,10 @@ const DailyFoodExport = () => {
                     ]}
                   >
                     <Select
-                      placeholder="Chọn khu vực"
+                      placeholder="Ch���n khu vực"
                       style={{ width: "100%" }}
                       onChange={handleAreaChange}
+                      value={selectedArea}
                     >
                       {areas.map((area) => (
                         <Option key={area.id} value={area.id}>
@@ -788,23 +932,13 @@ const DailyFoodExport = () => {
             {/* Thêm thông tin thống kê */}
             {selectedArea && (
               <Row gutter={16} style={{ marginBottom: 16 }}>
-                <Col span={12}>
+                <Col span={24}>
                   <Card>
                     <Statistic
                       title={<Text strong>Tổng số heo</Text>}
                       value={pigStats.totalPigs}
                       suffix="con"
                       valueStyle={{ color: "#1890ff" }}
-                    />
-                  </Card>
-                </Col>
-                <Col span={12}>
-                  <Card>
-                    <Statistic
-                      title={<Text strong>Số heo còn lại</Text>}
-                      value={pigStats.remainingPigs}
-                      suffix="con"
-                      valueStyle={{ color: "#722ed1" }}
                     />
                   </Card>
                 </Col>
@@ -825,7 +959,7 @@ const DailyFoodExport = () => {
 
         <Col span={8}>
           <Card
-            title="Thức ăn đã chọn"
+            title="Danh sách thức ăn để xuất"
             extra={
               <Button
                 type="primary"
@@ -869,20 +1003,6 @@ const DailyFoodExport = () => {
                         </span>
                       ),
                     },
-                    {
-                      title: "Thao tác",
-                      key: "action",
-                      width: "30%",
-                      render: (_, record) => (
-                        <Button
-                          type="link"
-                          danger
-                          onClick={() => handleRemoveFood(record.foodId)}
-                        >
-                          Xóa
-                        </Button>
-                      ),
-                    },
                   ]}
                 />
                 <Divider />
@@ -892,9 +1012,10 @@ const DailyFoodExport = () => {
                   <br />
                   <Text strong>Tổng khối lượng: </Text>
                   <Text>
-                    {selectedFoods.reduce(
-                      (sum, food) => sum + food.quantity,
-                      0
+                    {parseFloat(
+                      selectedFoods
+                        .reduce((sum, food) => sum + food.quantity, 0)
+                        .toFixed(2)
                     )}{" "}
                     kg
                   </Text>

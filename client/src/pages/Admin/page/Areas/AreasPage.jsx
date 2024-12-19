@@ -457,7 +457,7 @@ const AreasPage = () => {
           >
             <Input
               prefix={<EnvironmentOutlined />}
-              placeholder="Ví dụ: Khu A - Heo nái"
+              placeholder="Nhập tên khu vực"
             />
           </Form.Item>
 

@@ -75,7 +75,9 @@ const MedicineSchedule = () => {
 
       const today = dayjs().format("YYYY-MM-DD");
       const todayPlans = scheduleData.filter(
-        (item) => dayjs(item.examinationDate).format("YYYY-MM-DD") === today
+        (item) =>
+          dayjs(item.examinationDate).format("YYYY-MM-DD") === today &&
+          item.status !== "completed"
       );
 
       if (todayPlans.length > 0) {
@@ -95,66 +97,69 @@ const MedicineSchedule = () => {
           return acc;
         }, {});
 
-        const totalVaccines = Object.keys(groupedVaccines).length;
-        const totalPigs = Object.values(groupedVaccines).reduce(
-          (sum, item) => sum + item.totalQuantity,
-          0
-        );
+        if (Object.keys(groupedVaccines).length > 0) {
+          const totalVaccines = Object.keys(groupedVaccines).length;
+          const totalPigs = Object.values(groupedVaccines).reduce(
+            (sum, item) => sum + item.totalQuantity,
+            0
+          );
 
-        // Tạo danh sách tên vaccine
-        const vaccineNames = Object.values(groupedVaccines)
-          .map((item) => item.medicineName)
-          .join(", ");
+          // Tạo danh sách tên vaccine
+          const vaccineNames = Object.values(groupedVaccines)
+            .map((item) => item.medicineName)
+            .join(", ");
 
-        const notificationKey = `vaccination-${today}`;
+          const notificationKey = `vaccination-${today}`;
 
-        notification.info({
-          key: notificationKey,
-          message: "Lịch tiêm vaccine hôm nay",
-          description: (
-            <div>
-              <p>
-                Có {totalVaccines} loại vaccine cần tiêm cho {totalPigs} con heo
-              </p>
-              <p>Vaccine cần tiêm: {vaccineNames}</p>
-            </div>
-          ),
-          placement: "topRight",
-          duration: 3,
-          style: {
-            backgroundColor: "#e6f7ff",
-            border: "1px solid #91d5ff",
-          },
-          icon: <MedicineBoxOutlined style={{ color: "#1890ff" }} />,
-          btn: (
-            <Button
-              type="primary"
-              size="small"
-              onClick={() => {
-                notification.destroy(notificationKey);
+          notification.info({
+            key: notificationKey,
+            message: "Lịch tiêm vaccine hôm nay",
+            description: (
+              <div>
+                <p>
+                  Có {totalVaccines} loại vaccine cần tiêm cho {totalPigs} con
+                  heo
+                </p>
+                <p>Vaccine cần tiêm: {vaccineNames}</p>
+              </div>
+            ),
+            placement: "topRight",
+            duration: 3,
+            style: {
+              backgroundColor: "#e6f7ff",
+              border: "1px solid #91d5ff",
+            },
+            icon: <MedicineBoxOutlined style={{ color: "#1890ff" }} />,
+            btn: (
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => {
+                  notification.destroy(notificationKey);
 
-                if (calendarRef.current) {
-                  const todayElement = calendarRef.current.querySelector(
-                    ".ant-picker-calendar-date-today"
-                  );
-                  if (todayElement) {
-                    todayElement.scrollIntoView({
-                      behavior: "smooth",
-                      block: "center",
-                    });
+                  if (calendarRef.current) {
+                    const todayElement = calendarRef.current.querySelector(
+                      ".ant-picker-calendar-date-today"
+                    );
+                    if (todayElement) {
+                      todayElement.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
+                    }
                   }
-                }
 
-                setSelectedDate(dayjs());
-                setIsPrintModalVisible(true);
-              }}
-            >
-              Xem chi tiết
-            </Button>
-          ),
-        });
+                  setSelectedDate(dayjs());
+                  setIsPrintModalVisible(true);
+                }}
+              >
+                Xem chi tiết
+              </Button>
+            ),
+          });
 
-        setHasShownNotification(true);
+          setHasShownNotification(true);
+        }
       }
     };
 

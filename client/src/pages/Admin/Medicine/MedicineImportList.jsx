@@ -912,6 +912,9 @@ const MedicineImportList = () => {
             onChange={setDeliveryDate}
             format="DD/MM/YYYY"
             style={{ width: "100%" }}
+            disabledDate={(current) => {
+              return !current || !current.isSame(moment(), "day");
+            }}
           />
         </Form.Item>
         <Table

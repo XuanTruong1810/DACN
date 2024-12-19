@@ -377,7 +377,7 @@ const FoodsPage = () => {
       sorter: (a, b) => a.mealsPerDay - b.mealsPerDay,
     },
     {
-      title: "Định lượng/bữa",
+      title: "Định lượng/ngày",
       dataIndex: "quantityPerMeal",
       key: "quantityPerMeal",
       render: (value) => `${value} kg`,
@@ -492,7 +492,7 @@ const FoodsPage = () => {
             <Descriptions.Item label="Số bữa/ngày">
               {selectedFood.mealsPerDay}
             </Descriptions.Item>
-            <Descriptions.Item label="Định lượng/bữa">
+            <Descriptions.Item label="Định lượng/ngày">
               {selectedFood.quantityPerMeal?.toFixed(2)} kg
             </Descriptions.Item>
             <Descriptions.Item label="Trạng thái" span={2}>
@@ -627,14 +627,10 @@ const FoodsPage = () => {
           </Col>
 
           <Col span={12}>
-            <Form.Item
-              name="mealsPerDay"
-              label="Số bữa/ngày"
-              rules={[{ required: true, message: "Vui lòng nhập số bữa/ngày" }]}
-            >
+            <Form.Item name="mealsPerDay" label="Số bữa/ngày" initialValue={3}>
               <InputNumber
-                min={1}
-                placeholder="Nhập số bữa/ngày"
+                disabled
+                value={3}
                 size="large"
                 style={{ width: "100%" }}
               />
@@ -644,15 +640,15 @@ const FoodsPage = () => {
           <Col span={12}>
             <Form.Item
               name="quantityPerMeal"
-              label="Định lượng/bữa (kg)"
+              label="Định lượng/ngày (kg)"
               rules={[
-                { required: true, message: "Vui lòng nhập định lượng/bữa" },
+                { required: true, message: "Vui lòng nhập định lượng/ngày" },
               ]}
             >
               <InputNumber
                 min={0}
                 step={0.1}
-                placeholder="Nhập định lượng/bữa"
+                placeholder="Nhập định lượng/ngày"
                 size="large"
                 style={{ width: "100%" }}
               />

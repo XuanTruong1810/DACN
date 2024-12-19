@@ -25,7 +25,7 @@ namespace Application.Services
         public async Task<List<VaccinationPlanModelView>> GetVaccinationPlanAsync()
         {
             var vaccinationPlans = await _unitOfWork.GetRepository<VaccinationPlan>().GetEntities
-                .Where(vp => vp.DeleteTime == null && vp.IsActive)
+                .Where(vp => vp.DeleteTime == null && vp.IsActive && vp.Status != "cancelled")
                 .Include(vp => vp.Pigs)
                     .ThenInclude(p => p.Stables)
                 .Include(vp => vp.Medicine)
@@ -262,12 +262,12 @@ namespace Application.Services
         public async Task<List<PigSchedule>> GetPigScheduleByVaccineIdAsync(string vaccineId, DateTimeOffset date)
         {
             // Lấy ngày đầu và cuối của ngày cần so sánh
-            var startDate = date.Date;
-            var endDate = startDate.AddDays(1);
+            DateTime startDate = date.Date;
+            DateTime endDate = startDate.AddDays(1);
 
             List<VaccinationPlan>? vaccinationPlans = await _unitOfWork.GetRepository<VaccinationPlan>()
                 .GetEntities
-                .Where(vp => vp.MedicineId == vaccineId &&
+                .Where(vp => vp.MedicineId == vaccineId && vp.Status != "cancelled" &&
                     (vp.LastModifiedTime.HasValue
                         ? vp.LastModifiedTime.Value >= startDate && vp.LastModifiedTime.Value < endDate
                         : vp.ScheduledDate >= startDate && vp.ScheduledDate < endDate))

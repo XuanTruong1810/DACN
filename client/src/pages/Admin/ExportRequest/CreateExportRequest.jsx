@@ -88,7 +88,7 @@ const CreateExportRequest = () => {
       console.log(response);
       message.success("Tạo đề xuất vật nuôi thành công");
       setIsModalVisible(false);
-      navigate("/admin/exports/animals/request/list");
+      navigate("/dispatch/exports/request/list");
     } catch (error) {
       console.error("Error creating export request:", error);
       message.error("Không thể tạo đề xuất vật nuôi");
@@ -289,7 +289,7 @@ const CreateExportRequest = () => {
               paddingRight: 24,
             }}
           >
-            Tạo đề xuất xuất
+            Tạo đề xuất
           </Button>
         </div>
       </Card>

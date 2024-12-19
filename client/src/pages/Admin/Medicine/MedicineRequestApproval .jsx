@@ -142,6 +142,18 @@ const MedicineRequestApproval = () => {
   };
 
   const handleDetailChange = (medicineId, field, value) => {
+    if (field === "price") {
+      if (value <= 0) {
+        message.error("Đơn giá phải lớn hơn 0");
+        return;
+      }
+      if (value > 1000000000) {
+        // 1 tỷ đồng
+        message.error("Đơn giá không được vượt quá 1,000,000,000đ");
+        return;
+      }
+    }
+
     setSelectedDetails((prev) => ({
       ...prev,
       [medicineId]: {
@@ -156,6 +168,38 @@ const MedicineRequestApproval = () => {
   };
 
   const handleApprove = async () => {
+    const groupedDetails = groupDetailsBySupplier();
+
+    const missingDeliveryDates = Object.keys(groupedDetails.assigned).some(
+      (supplierId) => !deliveryDates[supplierId]
+    );
+    if (missingDeliveryDates) {
+      message.error("Vui lòng chọn ngày giao hàng cho tất cả các nhà cung cấp");
+      return;
+    }
+
+    const missingDeposits = Object.keys(groupedDetails.assigned).some(
+      (supplierId) => {
+        const deposit = selectedDetails[`group_${supplierId}`]?.deposit;
+        return !deposit || deposit <= 0;
+      }
+    );
+    if (missingDeposits) {
+      message.error("Vui lòng nhập tiền cọc cho tất cả các nhà cung cấp");
+      return;
+    }
+
+    if (
+      groupedDetails.unassigned.length > 0 &&
+      !rejectNote &&
+      !Object.values(rejectDetails).some((note) => note)
+    ) {
+      message.error(
+        "Vui lòng nhập lý do từ chối cho các sản phẩm không được chọn"
+      );
+      return;
+    }
+
     setApproving(true);
     try {
       const groupedDetails = groupDetailsBySupplier();
