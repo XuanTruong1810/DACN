@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DataBaseContext))]
-    [Migration("20241207112154_FixCode22")]
-    partial class FixCode22
+    [Migration("20241220032541_InitProject")]
+    partial class InitProject
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -293,6 +293,13 @@ namespace Infrastructure.Migrations
                     b.Property<decimal>("ExpectedQuantity")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("FoodImportRequestId", "FoodId");
 
                     b.HasIndex("FoodId");
@@ -366,6 +373,10 @@ namespace Infrastructure.Migrations
 
                     b.Property<decimal?>("ReceivedAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Receiver")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -706,10 +717,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Note")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ToArea")
@@ -1106,9 +1113,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Note")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RejectReason")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RequestBy")

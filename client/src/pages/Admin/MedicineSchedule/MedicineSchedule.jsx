@@ -393,7 +393,7 @@ const MedicineSchedule = () => {
                 height: 100%;
               }
 
-              /* Ẩn các phần không c��n thiết của modal */
+              /* Ẩn các phần không cần thiết của modal */
               .ant-modal-mask,
               .ant-modal-footer,
               .ant-modal-close {
@@ -430,22 +430,20 @@ const MedicineSchedule = () => {
         </style>
         <Modal
           title={null}
-          open={isPrintModalVisible}
+          visible={isPrintModalVisible}
           onCancel={() => setIsPrintModalVisible(false)}
-          width={1000}
-          className="invoice-modal"
+          width={1200}
           footer={[
+            <Button key="cancel" onClick={() => setIsPrintModalVisible(false)}>
+              Đóng
+            </Button>,
             <Button
               key="print"
               type="primary"
               icon={<PrinterOutlined />}
-              onClick={() => window.print()}
-              // disabled={!isToday}
+              onClick={handlePrint}
             >
               In phiếu
-            </Button>,
-            <Button key="close" onClick={() => setIsPrintModalVisible(false)}>
-              Đóng
             </Button>,
           ]}
         >
@@ -509,7 +507,7 @@ const MedicineSchedule = () => {
                 ).map(([stableName, pigs]) => (
                   <div key={stableName} style={{ marginBottom: 32 }}>
                     <Title level={5} style={{ marginBottom: 16 }}>
-                      Chuồng: {stableName}
+                      {stableName}
                     </Title>
                     <Table
                       bordered
@@ -646,12 +644,53 @@ const MedicineSchedule = () => {
   };
 
   const handlePrint = () => {
-    setIsPrintModalVisible(true);
+    const printContent = document.querySelector(".print-content");
+    if (!printContent) {
+      message.error("Vui lòng mở phiếu tiêm chủng trước khi in");
+      return;
+    }
+
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Phiếu Tiêm Chủng</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd/dist/antd.min.css">
+        <style>
+          body {
+            padding: 40px;
+            background-color: white;
+          }
+          @media print {
+            body {
+              padding: 0;
+            }
+            .ant-btn {
+              display: none;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        ${printContent.outerHTML}
+        <script>
+          window.onload = function() {
+            window.print();
+            window.onafterprint = function() {
+              window.close();
+            }
+          }
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const onSelect = (date) => {
     setSelectedDate(date);
-    handlePrint();
+    setIsPrintModalVisible(true);
   };
 
   return (

@@ -9,11 +9,6 @@ import { useAuth } from "../../../contexts/AuthContext";
 const LoginComponent = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [formValues, setFormValues] = useState({
-    email: "",
-    password: "",
-    remember: false,
-  });
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const location = useLocation();
@@ -26,14 +21,6 @@ const LoginComponent = () => {
       message.success(successMessage);
     }
   }, [successMessage]);
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormValues((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
 
   const onFinish = async (values) => {
     try {
@@ -92,12 +79,7 @@ const LoginComponent = () => {
       </div>
 
       {/* Form */}
-      <Form
-        form={form}
-        onFinish={onFinish}
-        className="space-y-6"
-        initialValues={formValues}
-      >
+      <Form form={form} onFinish={onFinish} className="space-y-6">
         {/* Email Field */}
         <div className="space-y-2">
           <label htmlFor="email" className="block text-gray-700 font-medium">
@@ -109,14 +91,10 @@ const LoginComponent = () => {
               { required: true, message: "Vui lòng nhập email!" },
               { type: "email", message: "Email không hợp lệ!" },
             ]}
-            noStyle
           >
             <input
               type="email"
               id="email"
-              name="email"
-              value={formValues.email}
-              onChange={handleInputChange}
               placeholder="your-email@gmail.com"
               className="w-full h-12 px-4 rounded-lg border-2 border-gray-200 
                 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 
@@ -125,7 +103,7 @@ const LoginComponent = () => {
           </Form.Item>
         </div>
 
-        {/* Password Field với Toggle Icon */}
+        {/* Password Field */}
         <div style={{ marginBottom: "1.5rem" }}>
           <label
             htmlFor="password"
@@ -137,21 +115,22 @@ const LoginComponent = () => {
           >
             Mật khẩu
           </label>
-          <div style={{ position: "relative" }}>
-            <Form.Item
-              name="password"
-              rules={[
-                { required: true, message: "Vui lòng nhập mật khẩu!" },
-                { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự!" },
-              ]}
-              noStyle
-            >
+          <Form.Item
+            name="password"
+            rules={[
+              { required: true, message: "Vui lòng nhập mật khẩu!" },
+              {
+                pattern:
+                  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]{8,16}$/,
+                message:
+                  "Mật khẩu phải có ít nhất 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt",
+              },
+            ]}
+          >
+            <div style={{ position: "relative" }}>
               <input
                 type={showPassword ? "text" : "password"}
                 id="password"
-                name="password"
-                value={formValues.password}
-                onChange={handleInputChange}
                 placeholder="Nhập mật khẩu"
                 style={{
                   width: "100%",
@@ -162,28 +141,28 @@ const LoginComponent = () => {
                   transition: "all 0.3s ease",
                 }}
               />
-            </Form.Item>
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              style={{
-                position: "absolute",
-                right: "15px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "0",
-                display: "flex",
-                alignItems: "center",
-                color: "#666",
-                fontSize: "18px",
-              }}
-            >
-              {showPassword ? <FaEyeSlash /> : <FaEye />}
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "15px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "0",
+                  display: "flex",
+                  alignItems: "center",
+                  color: "#666",
+                  fontSize: "18px",
+                }}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+          </Form.Item>
         </div>
 
         <div className="flex items-center justify-between">
@@ -192,8 +171,6 @@ const LoginComponent = () => {
               type="checkbox"
               id="remember"
               name="remember"
-              checked={formValues.remember}
-              onChange={handleInputChange}
               className="w-4 h-4 text-orange-500 border-gray-300 rounded 
                 focus:ring-orange-500"
             />

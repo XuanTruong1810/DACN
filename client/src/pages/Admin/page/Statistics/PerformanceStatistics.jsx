@@ -54,7 +54,7 @@ const PerformanceStatistics = () => {
     pageSize: 10,
     total: 0,
   });
- const customRanges = {
+  const customRanges = {
     "Tháng này": [dayjs().startOf("month"), dayjs().endOf("month")],
     "Tháng trước": [
       dayjs().subtract(1, "month").startOf("month"),
@@ -74,7 +74,7 @@ const PerformanceStatistics = () => {
   const fetchStatistics = async () => {
     try {
       setLoading(true);
-      
+
       // 1. Lấy thống kê hiệu suất tổng quan
       const performanceResponse = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/StatisticPerformance/performance`,
@@ -135,7 +135,9 @@ const PerformanceStatistics = () => {
 
       // 3. Lấy thống kê theo khu vực
       const areaResponse = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/StatisticPerformance/area-performance`,
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/StatisticPerformance/area-performance`,
         {
           params: {
             fromDate: dateRange[0].toISOString(),
@@ -157,14 +159,12 @@ const PerformanceStatistics = () => {
         }))
       );
 
-      setPagination(prev => ({
+      setPagination((prev) => ({
         ...prev,
-        total: areaData.length
+        total: areaData.length,
       }));
-
     } catch (error) {
       console.error("Error fetching statistics:", error);
-      message.error("Không thể tải dữ liệu thống kê");
     } finally {
       setLoading(false);
     }
@@ -309,9 +309,7 @@ const PerformanceStatistics = () => {
                   }
                 >
                   <ResponsiveContainer width="100%" height={400}>
-                    <RadarChart
-                      data={radarData}
-                    >
+                    <RadarChart data={radarData}>
                       <PolarGrid />
                       <PolarAngleAxis dataKey="subject" />
                       <PolarRadiusAxis angle={30} domain={[0, 100]} />
@@ -330,13 +328,13 @@ const PerformanceStatistics = () => {
                         fillOpacity={0.6}
                       />
                       <Legend />
-                      <RechartsTooltip 
+                      <RechartsTooltip
                         formatter={(value, name, props) => {
                           const subject = props;
                           if (subject === "FCR") {
                             return [(value / 20).toFixed(2), name]; // Convert back from scaled value
                           }
-                          return [value.toFixed(2) + '%', name];
+                          return [value.toFixed(2) + "%", name];
                         }}
                       />
                     </RadarChart>

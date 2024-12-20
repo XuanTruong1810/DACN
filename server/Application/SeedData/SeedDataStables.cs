@@ -54,7 +54,7 @@ namespace Application.SeedData
             {
                 stables.Add(new Stables
                 {
-                    Id = $"STABLE{i:D4}",
+                    Id = $"STB{i:D4}",
                     Name = $"Chuồng C{i - 12}",
                     Status = StatusStables.Available,
                     AreasId = "AREA0003",
@@ -70,7 +70,7 @@ namespace Application.SeedData
             {
                 stables.Add(new Stables
                 {
-                    Id = $"STABLE{i:D4}",
+                    Id = $"STB{i:D4}",
                     Name = $"Chuồng F{i - 17}",
                     Status = StatusStables.Available,
                     AreasId = "AREA0004",

@@ -138,7 +138,6 @@ namespace Infrastructure.Migrations
                     ToArea = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     TotalPigs = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreateBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     UpdatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
@@ -178,8 +177,7 @@ namespace Infrastructure.Migrations
                     RequestBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     RequestDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    RejectReason = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -441,6 +439,7 @@ namespace Infrastructure.Migrations
                     StockedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     ExpectedDeliveryTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     CreatedById = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Receiver = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DeliveredTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -496,7 +495,6 @@ namespace Infrastructure.Migrations
                 {
                     MedicineId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     SupplierId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Status = table.Column<bool>(type: "bit", nullable: false),
                     CreateTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     DeleteTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     LastUpdateTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true)
@@ -700,7 +698,9 @@ namespace Infrastructure.Migrations
                 {
                     FoodId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     FoodImportRequestId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ExpectedQuantity = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                    ExpectedQuantity = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Note = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -725,7 +725,6 @@ namespace Infrastructure.Migrations
                 {
                     FoodsId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     SuppliersId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     LastUpdatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     DeletedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true)

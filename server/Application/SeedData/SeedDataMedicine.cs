@@ -78,7 +78,7 @@ public static class SeedDataMedicine
             new Medicines
             {
                 Id = "MED0006",
-                MedicineName = "Vắc xin Tụ huyết trùng",
+                MedicineName = "Thuốc Tụ huyết trùng",
                 Description = "Vắc-xin phòng bệnh tụ huyết trùng",
                 Usage = "Tiêm bắp, 1 liều/con",
                 Unit = "Liều",
@@ -87,7 +87,7 @@ public static class SeedDataMedicine
             new Medicines
             {
                 Id = "MED0007",
-                MedicineName = "Vắc xin Phó thương hàn",
+                MedicineName = "Thuốc Phó thương hàn",
                 Description = "Vắc-xin phòng bệnh phó thương hàn",
                 Usage = "Tiêm bắp, 1 liều/con",
                 Unit = "Liều",
@@ -96,7 +96,7 @@ public static class SeedDataMedicine
             new Medicines
             {
                 Id = "MED0008",
-                MedicineName = "Vắc xin Mycoplasma",
+                MedicineName = "Thuốc Mycoplasma",
                 Description = "Vắc-xin phòng viêm phổi do Mycoplasma",
                 Usage = "Tiêm bắp, 1 liều/con",
                 Unit = "Liều",

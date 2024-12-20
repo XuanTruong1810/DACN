@@ -235,7 +235,35 @@ namespace Application.Services
             string cacheKey = $"OTPResetPassword_{emailModelView.Email}";
             memoryCache.Set(cacheKey, OTP, TimeSpan.FromMinutes(1));
             await emailService.SendEmailAsync(emailModelView.Email, "Đặt lại mật khẩu",
-                       $"Vui lòng xác nhận tài khoản của bạn, OTP của bạn là:  <div class='otp'>{OTP}</div>");
+                       $@"
+    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e4e4e4; border-radius: 5px;'>
+        <div style='text-align: center; margin-bottom: 20px;'>
+            <h2 style='color: #333; margin-bottom: 10px;'>Xác nhận đặt lại mật khẩu</h2>
+            <div style='width: 100px; height: 2px; background-color: #ff6b00; margin: 0 auto;'></div>
+        </div>
+
+        <div style='color: #555; line-height: 1.5;'>
+            <p>Xin chào,</p>
+            <p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn. Vui lòng sử dụng mã OTP dưới đây để xác nhận:</p>
+        </div>
+
+        <div style='text-align: center; margin: 30px 0;'>
+            <div style='background-color: #f8f9fa; padding: 15px; border-radius: 5px; display: inline-block;'>
+                <span style='font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #ff6b00;'>{OTP}</span>
+            </div>
+        </div>
+
+        <div style='color: #555; line-height: 1.5;'>
+            <p>Mã OTP này sẽ hết hạn sau 1 phút.</p>
+            <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+        </div>
+
+        <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #e4e4e4; color: #777; font-size: 12px;'>
+            <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+            <p>Nếu bạn cần hỗ trợ, vui lòng liên hệ với chúng tôi qua email hỗ trợ.</p>
+        </div>
+    </div>
+    ");
         }
 
         public async Task ResetPassword(ResetPasswordDTO resetPassword)

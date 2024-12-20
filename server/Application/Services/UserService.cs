@@ -273,11 +273,7 @@ namespace Application.Services
     </head>
     <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; line-height: 1.6; background-color: #f4f4f4;">
         <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background-color: #ffffff; border-radius: 10px; padding: 40px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <div style="text-align: center; margin-bottom: 30px;">
-                    <img src="https://res.cloudinary.com/dxx6zq50z/image/upload/v1728261614/pig-management/logo_pig_management_zqzqzq.png" alt="Logo" style="max-width: 150px;">
-                </div>
-                
+            <div style="background-color: #ffffff; border-radius: 10px; padding: 40px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">                
                 <h2 style="color: #333333; margin-bottom: 20px; text-align: center;">Chào mừng bạn đến với Pig Management</h2>
                 
                 <p style="color: #666666; margin-bottom: 25px;">

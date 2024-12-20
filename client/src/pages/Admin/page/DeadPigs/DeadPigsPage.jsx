@@ -125,7 +125,7 @@ const DeadPigsPage = () => {
       );
 
       if (response.status === 200) {
-        message.success("Xử lý heo chết thành công");
+        message.success("Báo cáo heo chết thành công");
         fetchDeadPigs();
         setIsModalVisible(false);
         form.resetFields();
@@ -158,7 +158,7 @@ const DeadPigsPage = () => {
               setIsModalVisible(true);
             }}
           >
-            Thêm mới
+            Báo cáo heo chết
           </Button>
         </div>
 
@@ -187,7 +187,7 @@ const DeadPigsPage = () => {
         />
 
         <Modal
-          title={editingRecord ? "Cập nhật thông tin" : "Thêm mới"}
+          title={editingRecord ? "Cập nhật thông tin" : "Báo cáo heo chết"}
           open={isModalVisible}
           onCancel={() => {
             setIsModalVisible(false);

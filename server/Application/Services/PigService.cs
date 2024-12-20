@@ -228,7 +228,7 @@ namespace Application.Services
                     .GetEntities
                     .Include(p => p.Stables)
                     .FirstOrDefaultAsync(p => p.Id == id && p.DeleteTime == null && p.Status == "alive")
-                    ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy heo");
+                    ?? throw new BaseException(StatusCodeHelper.NotFound, ErrorCode.NotFound, "Không tìm thấy heo này trong hệ thống");
 
                 Stables stable = pig.Stables;
                 stable.CurrentOccupancy--;
@@ -270,10 +270,10 @@ namespace Application.Services
 
                 return _mapper.Map<PigCancelModelView>(pig);
             }
-            catch
+            catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError, "Lỗi hệ thống");
+                throw new BaseException(StatusCodeHelper.InternalServerError, ErrorCode.InternalServerError, ex.Message);
             }
         }
 
